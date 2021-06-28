@@ -9,6 +9,7 @@
     
     <!--Run image_raw-->
     <node pkg="airsim_ros_pkgs" type="image_raw.py" name="image_raw"/>
+    
     <!--Run image proc-->
     <node 
     pkg="image_proc" 
