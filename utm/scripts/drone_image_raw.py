@@ -32,8 +32,8 @@ def airpub():
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "frameId"
         msg.encoding = "rgba8"
-        msg.height = 360  # resolution should match values in settings.json 
-        msg.width = 640
+        msg.height = 1080  # resolution should match values in settings.json 
+        msg.width = 1920
         msg.data = img_rgba_string
         msg.is_bigendian = 0
         msg.step = msg.width * 4

@@ -5,7 +5,7 @@
     <arg name="node_namespace" default="apriltag_ros_continuous_node" />
     <arg name="camera_name" default="/airsim/rgb" />
     <arg name="camera_frame" default="front_center_custom_optical" />
-    <arg name="image_topic" default="image_rect" />
+    <arg name="image_topic" default="image_rect_color" />
     
     <!--Run image_raw-->
     <node pkg="airsim_ros_pkgs" type="image_raw.py" name="image_raw"/>

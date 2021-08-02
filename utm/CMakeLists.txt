@@ -8,6 +8,7 @@ set(AIRSIM_ROOT /home/jnguyen/AirSim/)
 # find_package(Eigen3 REQUIRED) 
 find_package(Boost REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   airsim_ros_pkgs
@@ -71,10 +72,14 @@ include_directories(
   ${AIRSIM_ROOT}/MavLinkCom/common_utils
   ${OpenCV_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
+
+add_executable(offboard_tracking src/offboard_tracking.cpp)
+target_link_libraries(offboard_tracking ${catkin_LIBRARIES})
 #add_dependencies(offboard_example utm_generate_messages_cpp)
 #add_dependencies(offboard_example $(PROJECT_NAME)_generate_messages_cpp)
 #target_link_libraries(offboard_example utm ${catkin_LIBRARIES})
@@ -88,6 +93,12 @@ target_link_libraries(offboard_example ${catkin_LIBRARIES})
 
 catkin_install_python(PROGRAMS
     scripts/drone_image_raw.py
+    scripts/offboard_drone.py
+    scripts/apriltag_position_pub.py
+    scripts/mavros_tf.py
+    scripts/apriltag_norm.py
+    scripts/ekf_tag.py
+    scripts/land_permission.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple
