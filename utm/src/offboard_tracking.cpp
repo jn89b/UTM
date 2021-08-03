@@ -85,7 +85,7 @@ class Controller
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
                     ("kf_tag/pose", 10, &Controller::kftag_cb,this);
             quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                ("mavros/local_position/pose",50, &Controller::quad_odom_callback, this);
+                ("mavros/offset_local_position/pose",15, &Controller::quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
                 ("kf_tag/vel", 10, &Controller::kftagvel_cb,this);
             land_permit_sub = nh.subscribe<std_msgs::Bool>
@@ -103,7 +103,7 @@ class Controller
                     ("mavros/set_mode");
 
             //the setpoint publishing rate MUST be faster than 2Hz
-            ros::Rate rate(20.0);
+            ros::Rate rate(10.0);
 
             // wait for FCU connection
             while(ros::ok() && !current_state.connected){
@@ -157,12 +157,15 @@ class Controller
                 {
                     case 1: // we found the tag
                         go_follow();
+                        //ROS_INFO("Follow");
                         break;
                     case 2: //we can land
                         go_land();
+                        //ROS_INFO("landing");
                         break;
                     case 3: //we don't have the tag
                         go_home();
+                        //ROS_INFO("go home");
                         break;
                 }
 
@@ -172,10 +175,12 @@ class Controller
         }
 
     void init_vals()
-    {    
+    {   
+        //set target found and landing permit to false initially 
         target_found = false;
         land_permit = false;
-
+        
+        //rotation matrix  
         r_x = 0.0;
         r_y = 0.0;
         r_z = 0.0;
@@ -184,15 +189,18 @@ class Controller
         r_qz = 0.0;
         r_qw = 0.0;
 
+        //kalman filter
         kf_x = 0.0;
         kf_y = 0.0;
         kf_vel_x = 0.0;
         kf_vel_y = 0.0;
 
+        //odometry of quad
         odom_x = 0.0;
         odom_y = 0.0;
         odom_z = 0.0; 
 
+        //intial error estimates
         pre_error_x = 0.0;
         pre_error_y = 0.0;
 
@@ -200,10 +208,11 @@ class Controller
         pre_ierror_y = 0.0;
 
         //set this into a text/config file 
-        kp = 0.7;
-        ki = 1E-8;
+        kp = 0.45;
+        ki = 1E-3;
         kd = 0.0;
 
+        //set decision case to go stay where they are at initially
         decision_case = 3;
 
     }
@@ -260,19 +269,21 @@ class Controller
         kf_vel_y = msg->twist.linear.y;
     }
 
-    Eigen::Vector2d calc_PID(float desired_x, float desired_y, float curr_x, float curr_y, double dt)
+    Eigen::Vector2d calc_PID(float target_x, float target_y, float curr_x, float curr_y, double dt)
     {
         ROS_INFO("calculating");
-        //calculate error 
-        float error_x = curr_x - desired_x;
-        float error_y = curr_y - desired_y;
+        //target x and target y is the position relative to quad 
+        float error_x = target_x;
+        float error_y = target_y;
+        std::cout << "error x " << error_x << "error y" << error_y << std::endl;
+
         //proportional val
         float Pgain_x = kp * error_x;
         float Pgain_y = kp * error_y;
 
         //integral error 
-        float int_error_x = pre_ierror_x + ((error_x + pre_error_x)/ 2);
-        float int_error_y = pre_ierror_y + ((error_y + pre_error_y)/ 2);
+        float int_error_x = pre_ierror_x + ((error_x + pre_error_x)/ 2) * dt;
+        float int_error_y = pre_ierror_y + ((error_y + pre_error_y)/ 2) * dt;
         //integral gain
         float Igain_x = ki * int_error_x;
         float Igain_y = ki * int_error_y;
@@ -282,15 +293,30 @@ class Controller
         double der_error_y = (error_y - pre_error_y) / dt;
         float Dgain_x = kd * der_error_x;
         float Dgain_y = kd * der_error_y;
-        //std::cout << "Dererror:" << der_error_x << std::endl;
         
-
         float PID_x = Pgain_x + Igain_x + Dgain_x;
         float PID_y = Pgain_y + Igain_y + Dgain_y;
+        
+        //set gain constraint to prevent the guy from going to crazy
+        float gain_constraint = 2.0;
+        if (PID_x >= gain_constraint)
+            {
+                PID_x = gain_constraint;
+            }
+        else if (PID_y >= gain_constraint)
+            {
+                PID_y = gain_constraint;
+            }
 
-        Eigen::Vector2d PID(PID_x, PID_y);
-        std::cout << "Dgainx:" << Dgain_x << std::endl;
-        std::cout << "Dgainy:" << Dgain_y << std::endl;
+        if (PID_x <= -gain_constraint)
+            {
+                PID_x = -gain_constraint;
+            }
+        else if (PID_y <= -gain_constraint)
+            {
+                PID_y = -gain_constraint;
+            }
+        
         //save error
         pre_error_x = error_x; 
         pre_error_y = error_y;
@@ -298,6 +324,7 @@ class Controller
         pre_ierror_x = int_error_x;
         pre_ierror_y = int_error_y;
 
+        Eigen::Vector2d PID(PID_x, PID_y);
         return PID;
     }
     
@@ -306,43 +333,67 @@ class Controller
         if(target_found==true and land_permit == false){
             decision_case = 1; // we found the tag
         }
-        else if (target_found==true && land_permit == true){
+        else if (land_permit == true){
             decision_case = 2; //we can land
         }
         else{
             decision_case = 3;
         }
-
-
     }
     //Pointer functions -> probably put in a seperate library like how ardupilot does it
     void go_follow()
     {   
         //kalman filter and kalman y are already the desired positions
-        Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.001);
+        Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
         //publish position of tag with kalman fitler
-        pose.pose.position.x = gain[0];
-        pose.pose.position.y = gain[1];
+        pose.pose.position.x = odom_x - gain[0];
+        pose.pose.position.y = odom_y - gain[1];
         std::cout << "gain:" << gain << std::endl;
-        pose.pose.position.z = 1.5; // just testing the loiter
+        pose.pose.position.z = 4.5; // just testing the loiter
         local_pos_pub.publish(pose);
         ros::spinOnce();
-        check_case();
+        //check_case();
     //printf("woof woof I follow");
     }
 
     void go_land()
     {
-        Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.001);
+        Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
+        
         //publish position of tag with kalman fitler
-        pose.pose.position.x = gain[0];
-        pose.pose.position.y = gain[1];
+        pose.pose.position.x = odom_x - gain[0];
+        pose.pose.position.y = odom_y - gain[1];
         std::cout << "gain:" << gain << std::endl;
-        pose.pose.position.z = 1.25; // just testing the loiter
-        local_pos_pub.publish(pose);
-        set_mode.request.custom_mode = "AUTO.LAND";        
-        ros::spinOnce();
-        check_case();
+        pose.pose.position.z = 0.5; // just testing the loiter
+        local_pos_pub.publish(pose);    
+        set_mode.request.custom_mode = "AUTO.LAND";
+
+        arm_cmd.request.value = false;
+
+        ros::Time last_request = ros::Time::now();
+        
+            while(ros::ok()){
+                if( current_state.mode != "AUTO.LAND" &&
+                    (ros::Time::now() - last_request > ros::Duration(5.0))){
+                    if( set_mode_client.call(set_mode) &&
+                        set_mode.response.mode_sent){
+                        ROS_INFO("Beginning Land");
+                    }
+                    last_request = ros::Time::now();
+                } else {
+                    if( !current_state.armed &&
+                        (ros::Time::now() - last_request > ros::Duration(5.0))){
+                        if( arming_client.call(arm_cmd) &&
+                            arm_cmd.response.success){
+                            ROS_INFO("Vehicle Disarmed");
+                        }
+                        last_request = ros::Time::now();
+                    }
+                }
+            }
+        
+        //ros::spinOnce();
+        //check_case();
         //printf("I want to land");
     }
 
@@ -350,7 +401,7 @@ class Controller
     {
         pose.pose.position.x = 0.0;
         pose.pose.position.y = 3.5;
-        pose.pose.position.z = 4.5;
+        pose.pose.position.z = 4.0;
         //std::cout << "no target:" << target_found << std::endl;
         local_pos_pub.publish(pose);
         //printf("I want to go home");

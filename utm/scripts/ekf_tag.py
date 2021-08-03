@@ -36,8 +36,9 @@ class KalmanFilter():
 
     def predict(self, u = 0):
         self.x = np.dot(self.F, self.x) + np.dot(self.B, u)
-        print("x is ", self.x[2,0], self.x[3,0]) #checking state prediction estimates
-        #print("x is", self.x[1,0], self.x[2,0])
+        #print("x is ", self.x[2,0], self.x[3,0]) #checking state prediction estimates
+        #print("x and y positions are:", self.x[0,0], self.x[1,0])
+        print("x", self.x)
         self.publish_kf_est() #publish the kf estimates for position and vel of tag
         self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
         return self.x
@@ -78,26 +79,67 @@ if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 10
+    rate_val = 20
     #init vals
     dt = 1/rate_val
-    x_1 = [1, 0, dt, 0] #px  
-    x_2 = [0, 1, 0, dt] #py 
-    x_3 = [0, 0 , 1, 0] #vx
-    x_4 = [0, 0, 0, 1]  #vy
+
+    
+    ####### CONSTANT ACCELERATION MODEL##########
+    
+    #This array is for constant acceleartion so size 6
+    x_1 = [1, 0.0, dt, 0.0, 1/2.0*dt**2, 0.0] #px  
+    x_2 = [0.0, 1, 0.0, dt, 0.0,  1/2.0*dt**2] #py 
+    x_3 = [0.0, 0.0 , 1, 0.0, dt, 0.0] #vx
+    x_4 = [0.0, 0.0, 0.0, 1, 0.0, dt]  #vy
+    x_5 = [0.0, 0.0, 0.0, 0.0, 1, 0.0] #ax
+    x_6 = [0.0, 0.0, 0.0, 0.0, 0.0, 1] #ay
+
 
     #F = np.array([[1, dt, 0, 0], [0, 1, dt, 0], [0, 0, 1, 0]])
-    F = np.array([x_1, x_2, x_3, x_4])
-    #F = np.array([[1, dt, 0], [0, 1, dt], [0, 0, 1]])
+    F = np.array([x_1, x_2, x_3, x_4, x_5, x_6]) #feeding in x values in array
+    print(F.shape)
 
-    h_1 = [1, 0, 0, 0] #measurement of px
-    h_2 = [0, 1, 0, 0] #measurement of py
+    h_1 = [1, 0.0, 0.0, 0.0, 0.0, 0.0] #measurement of px
+    h_2 = [0.0, 1, 0.0, 0.0, 0.0, 0.0] #measurement of py
+
+    H = np.array([h_1, h_2])
+    print(H.shape)
+
+    Q_fact = 1E-6 # process noise covariance constant 
+    Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
+                [0, Q_fact, 0, 0, 0, 0], 
+                [0, 0, Q_fact, 0, 0, 0], 
+                [0, 0 , 0, Q_fact, 0, 0],
+                [0, 0 , 0, 0, Q_fact, 0],
+                [0, 0 , 0, 0, 0, Q_fact]])
+    
+    ##################################################
+
+    ############ CONSTANT VELOCITY MODEL###############
+    """
+    # This model is for constant velocity size 4x4
+    x_1 = [1, 0, dt, 0]
+    x_2 = [0, 1, 0, dt]
+    x_3 = [0, 0, 1, 0]
+    x_4 = [0, 0, 0, 1]
+
+    F = np.array([x_1, x_2, x_3, x_4])
+
+    h_1 = [1, 0, 0, 0]
+    h_2 = [0, 1, 0, 0]
+
     H = np.array([h_1, h_2])
 
-    Q_fact = 0.00001 # process noise covariance constant 
-    Q = np.array([[Q_fact, 0, 0, 0], [0, Q_fact, 0, 0], [0, 0, Q_fact,0], [0, 0 , 0, Q_fact]])
+    Q_fact = 1E-5 #process noise variance
+    Q = np.array([[Q_fact, 0, 0, 0],
+                [0, Q_fact, 0, 0],
+                [0, 0, Q_fact, 0],
+                [0, 0, 0, Q_fact]])
+    """
+    ##################################################
 
-    R_factor = 0.25 # measurement of camera saying .25m off so bad
+    ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
+    R_factor = 0.3 # measurement of camera saying .3m off
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class
@@ -110,4 +152,3 @@ if __name__ == "__main__":
         rate.sleep()
 
 
-    #main_method()
