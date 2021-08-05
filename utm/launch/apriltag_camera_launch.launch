@@ -6,9 +6,12 @@
     <arg name="camera_name" default="/airsim/rgb" />
     <arg name="camera_frame" default="front_center_custom_optical" />
     <arg name="image_topic" default="image_rect_color" />
-    
+    <arg name="wsl_ip" default="172.19.144.1"/>
+
     <!--Run image_raw-->
-    <node pkg="airsim_ros_pkgs" type="image_raw.py" name="image_raw"/>
+    <node pkg="airsim_ros_pkgs" type="image_raw.py" name="image_raw"> 
+        <param name="wsl_ip" value="$(arg wsl_ip)"/>
+    </node>
     
     <!--Run image proc-->
     <node 
@@ -27,4 +30,10 @@
         <arg name="image_topic" value="$(arg image_topic)" />
 	</include>
 
-</launch>
+    <!--ekf apriltag estimation-->
+    <node 
+    pkg="utm"
+    type="ekf_tag.py"
+    name="ekf_tag"/>
+    
+</launch>   

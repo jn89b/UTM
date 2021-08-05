@@ -14,7 +14,7 @@
     <node pkg="utm" type="mavros_tf.py" name="mavros_tf">
         <param name="quad_tf" value="$(arg tf_quad)"/>
         <param name="world_tf" value="$(arg world_tf)"/> 
-    </node>vcd
+    </node>
 
     <!--apriltag position pub-->
     <node pkg="utm" type="apriltag_position_pub.py" name="apriltag_position_pub">
