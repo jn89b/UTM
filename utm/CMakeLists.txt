@@ -75,6 +75,10 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+## Declare a cpp library
+#add_library(PID src/PID.cpp)
+#target_link_libraries(PID ${catkin_LIBRARIES})
+
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 
@@ -84,12 +88,17 @@ target_link_libraries(offboard_tracking ${catkin_LIBRARIES})
 #add_dependencies(offboard_example $(PROJECT_NAME)_generate_messages_cpp)
 #target_link_libraries(offboard_example utm ${catkin_LIBRARIES})
 
-#install(TARGETS
-#    offboard_example
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-#)
+##################
+##  Install #####
+#################
+
+
+install(TARGETS
+    #TARGETS PID
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
 
 catkin_install_python(PROGRAMS
     scripts/drone_image_raw.py
@@ -103,6 +112,13 @@ catkin_install_python(PROGRAMS
 #    airsim_ros
 #    pd_position_controller_simple
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Mark cpp header files for installation
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
 )
 
 install(FILES 

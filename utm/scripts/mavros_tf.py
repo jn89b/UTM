@@ -20,7 +20,7 @@ class MavrosTF():
         #source tf we will want to make a transformation of Rnew_tf/source_tf
         self.source_tf = rospy.get_param("~world_tf", "world_enu")
         #offset from airsim 
-        self.offset_z = rospy.get_param("~offset_z", 0.8)
+        self.offset_z = rospy.get_param("~offset_z", 0.6)
         # Current drone position (local frame)
         self.drone_pos = [0,0,0,0,0,0,0]
         # Subscriber to current drone's position
