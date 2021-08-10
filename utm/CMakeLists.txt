@@ -78,12 +78,20 @@ include_directories(
 ## Declare a cpp library
 #add_library(PID src/PID.cpp)
 #target_link_libraries(PID ${catkin_LIBRARIES})
+#add_executable(null_test src/null_test.cpp)
+#add_dependencies(null_test ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(null_test ${catkin_LIBRARIES})
+
+add_executable(main_null src/main_null.cpp src/null_test.cpp)
+add_dependencies(main_null ${catkin_EXPORTED_TARGETS})
+target_link_libraries(main_null  ${catkin_LIBRARIES})
 
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 
 add_executable(offboard_tracking src/offboard_tracking.cpp)
 target_link_libraries(offboard_tracking ${catkin_LIBRARIES})
+
 #add_dependencies(offboard_example utm_generate_messages_cpp)
 #add_dependencies(offboard_example $(PROJECT_NAME)_generate_messages_cpp)
 #target_link_libraries(offboard_example utm ${catkin_LIBRARIES})
@@ -94,7 +102,7 @@ target_link_libraries(offboard_tracking ${catkin_LIBRARIES})
 
 
 install(TARGETS
-    #TARGETS PID
+    #TARGETS null_test
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}

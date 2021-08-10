@@ -73,7 +73,7 @@ class Controller
         //initial pose commands
         float init_x = 0.0;
         float init_y = 3.0;
-        float init_z = 4.3;
+        float init_z = 4.0;
 
     public:
         Controller()
@@ -364,14 +364,14 @@ class Controller
         pose.pose.position.x = odom_x - gain[0];
         pose.pose.position.y = odom_y - gain[1];
         std::cout << "gain:" << gain << std::endl;
-        pose.pose.position.z = 4.5; // just testing the loiter
+        pose.pose.position.z = 4.0; // just testing the loiter
         local_pos_pub.publish(pose);
         ros::spinOnce();
     }
 
     // this function is too long 
     void go_land()
-    {
+    {   
         Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
         
         //publish position of tag with kalman fitler
@@ -441,9 +441,7 @@ class Controller
             pose.pose.position.y = odom_y - gain[1];            
             pose.pose.position.z = odom_z - 0.001; 
         }
-
-        local_pos_pub.publish(pose);    
-    
+        local_pos_pub.publish(pose);   
     }
 
     void go_home()
