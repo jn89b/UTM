@@ -86,6 +86,10 @@ add_executable(main_null src/main_null.cpp src/null_test.cpp)
 add_dependencies(main_null ${catkin_EXPORTED_TARGETS})
 target_link_libraries(main_null  ${catkin_LIBRARIES})
 
+add_executable(test_track src/test_track.cpp src/PID.cpp)
+add_dependencies(test_track ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_track  ${catkin_LIBRARIES})
+
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 

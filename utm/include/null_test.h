@@ -13,7 +13,7 @@ class TestNull
         float _kf_y;
 
         //vals to remember this is for testing
-        float _val_to_remember; 
+        float _val_to_remember;
 
         ros::NodeHandle _nh;
         ros::Subscriber _rtag_ekf_sub;
@@ -23,17 +23,14 @@ class TestNull
         TestNull(ros::NodeHandle* nodehandle, float kf_x, float kf_y);
 
         //callback function
-        void kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
+        void kftagCb(const geometry_msgs::PoseStamped::ConstPtr& msg);
+        
         //member methods
-        //void initVals(float kf_x, float kf_y);
-        //void initSubscribers(_rtag_ekf_sub);
-        //void initPublishers(_test_pub);
+        void publishVal();
 
-        void printDetection();
-        //int main_method();
-
-        //float getKFx(){return _kf_x;}
-        //float getKFy(){return _kf_y;}
+        //return values
+        float getKFx(){return _kf_x;}
+        float getKFy(){return _kf_y;}
 };
 
 #endif

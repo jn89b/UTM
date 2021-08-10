@@ -337,7 +337,7 @@ class Controller
 
         pre_ierror_x = int_error_x;
         pre_ierror_y = int_error_y;
-
+        std::cout << "PID_x" << PID_x << std::endl;
         Eigen::Vector2d PID(PID_x, PID_y);
         return PID;
     }
@@ -363,7 +363,7 @@ class Controller
         //publish position of tag with kalman fitler
         pose.pose.position.x = odom_x - gain[0];
         pose.pose.position.y = odom_y - gain[1];
-        std::cout << "gain:" << gain << std::endl;
+        //std::cout << "gain:" << gain << std::endl;
         pose.pose.position.z = 4.0; // just testing the loiter
         local_pos_pub.publish(pose);
         ros::spinOnce();
@@ -433,7 +433,7 @@ class Controller
         else if (current_state.armed == false && odom_z <= 0.6){
             ROS_INFO("I have landed");
         }
-
+        
         //keep dropping down not at the height we want
         else{
             ROS_INFO("dropping down");
