@@ -72,6 +72,7 @@ class Controller
         float dt;
 
         int decision_case;
+        int landing_decision_case;
 
         //initial pose commands
         float init_x = 0.0;
@@ -107,7 +108,6 @@ class Controller
             vel_pub = nh.advertise<geometry_msgs::TwistStamped>
                     ("/mavros/setpoint_velocity/cmd_vel", 10);
             
-
             //services
             arming_client = nh.serviceClient<mavros_msgs::CommandBool>
                 ("mavros/cmd/arming");
@@ -136,43 +136,31 @@ class Controller
             }
 
             init_vals();
-
             set_mode.request.custom_mode = "OFFBOARD";
             arm_cmd.request.value = true;
 
             ros::Time last_request = ros::Time::now();
-
             while(ros::ok()){
-                if( current_state.mode != "OFFBOARD" &&
-                    (ros::Time::now() - last_request > ros::Duration(5.0))){
-                    if( set_mode_client.call(set_mode) &&
-                        set_mode.response.mode_sent){
-                        ROS_INFO("Offboard enabled");
-                    }
-                    last_request = ros::Time::now();
-                } else {
-                    if( !current_state.armed &&
-                        (ros::Time::now() - last_request > ros::Duration(5.0))){
-                        if( arming_client.call(arm_cmd) &&
-                            arm_cmd.response.success){
-                            ROS_INFO("Vehicle armed");
-                        }
-                        last_request = ros::Time::now();
-                    }
-                }
                 
-                //set value to case then check case
+                setmode_arm(last_request, "OFFBOARD", arm_cmd);
+
+                //PID gains
+                PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
+                PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
+
+                float p_x = pid_x.getPID();
+                float p_y = pid_y.getPID();
+                Eigen::Vector2d gain(p_x, p_y);
+                
                 check_case();
-                //std::cout << "case number:" << decision_case << std::endl;
                 switch(decision_case)
-                
                 {
                     case 1: // we found the tag
-                        go_follow();
+                        go_follow(gain);
                         //ROS_INFO("Follow");
                         break;
                     case 2: //we can land
-                        go_land();
+                        begin_land_protocol(gain);
                         //ROS_INFO("landing");
                         break;
                     case 3: //we don't have the tag
@@ -180,7 +168,6 @@ class Controller
                         //ROS_INFO("go home");
                         break;
                 }
-
                 ros::spinOnce();
                 rate.sleep();
             }       
@@ -229,7 +216,7 @@ class Controller
 
         //set decision case to go stay where they are at initially
         decision_case = 3;
-
+        landing_decision_case = 3;
     }
 
     //recieve state of quad
@@ -275,13 +262,11 @@ class Controller
         odom_x = msg->pose.position.x;
         odom_y = msg->pose.position.y;
         odom_z = msg->pose.position.z;
-        //ROS_INFO("odom_x: %f, odom_y:", odom_x, odom_y); 
     }
 
     void true_quad_odom_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
     {
         true_odom_z = msg->pose.position.z;
-        //ROS_INFO("odom_x: %f, odom_y:", odom_x, odom_y); 
     }
 
     void kftagvel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
@@ -289,66 +274,29 @@ class Controller
         kf_vel_x = msg->twist.linear.x;
         kf_vel_y = msg->twist.linear.y;
     }
-
-    Eigen::Vector2d calc_PID(float target_x, float target_y, float curr_x, float curr_y, double dt)
-    {
-        //ROS_INFO("calculating");
-        //target x and target y is the position relative to quad 
-        float error_x = target_x;
-        float error_y = target_y;
-        //std::cout << "error x " << error_x << "error y" << error_y << std::endl;
-
-        //proportional val
-        float Pgain_x = kp * error_x;
-        float Pgain_y = kp * error_y;
-
-        //integral error 
-        float int_error_x = pre_ierror_x + ((error_x + pre_error_x)/ 2) * dt;
-        float int_error_y = pre_ierror_y + ((error_y + pre_error_y)/ 2) * dt;
-        //integral gain
-        float Igain_x = ki * int_error_x;
-        float Igain_y = ki * int_error_y;
-        
-        //derivative error
-        double der_error_x = (error_x - pre_error_x) / dt;
-        double der_error_y = (error_y - pre_error_y) / dt;
-        float Dgain_x = kd * der_error_x;
-        float Dgain_y = kd * der_error_y;
-        
-        float PID_x = Pgain_x + Igain_x + Dgain_x;
-        float PID_y = Pgain_y + Igain_y + Dgain_y;
-        
-        //set gain constraint to prevent the guy from going to crazy
-        float gain_constraint = 2.0;
-        if (PID_x >= gain_constraint)
-            {
-                PID_x = gain_constraint;
-            }
-        else if (PID_y >= gain_constraint)
-            {
-                PID_y = gain_constraint;
-            }
-
-        if (PID_x <= -gain_constraint)
-            {
-                PID_x = -gain_constraint;
-            }
-        else if (PID_y <= -gain_constraint)
-            {
-                PID_y = -gain_constraint;
-            }
-        
-        //save error
-        pre_error_x = error_x; 
-        pre_error_y = error_y;
-
-        pre_ierror_x = int_error_x;
-        pre_ierror_y = int_error_y;
-        std::cout << "PID_x" << PID_x << std::endl;
-        Eigen::Vector2d PID(PID_x, PID_y);
-        return PID;
-    }
     
+    void setmode_arm(ros::Time last_request,const std::string& mode_input, 
+    mavros_msgs::CommandBool arm_cmd)
+    {
+        if( current_state.mode != mode_input &&
+            (ros::Time::now() - last_request > ros::Duration(5.0))){
+            if( set_mode_client.call(set_mode) &&
+                set_mode.response.mode_sent){
+                ROS_INFO("Offboard enabled");
+            }
+            last_request = ros::Time::now();
+        } else {
+            if( !current_state.armed &&
+                (ros::Time::now() - last_request > ros::Duration(5.0))){
+                if( arming_client.call(arm_cmd) &&
+                    arm_cmd.response.success){
+                    ROS_INFO("Vehicle armed");
+                }
+                last_request = ros::Time::now();
+            }
+        }
+    }
+
     void check_case()
     {
         if(target_found==true and land_permit == false){
@@ -363,96 +311,42 @@ class Controller
     }
     
     //Pointer functions -> probably put in a seperate library like how ardupilot does it
-    void go_follow()
+    void go_follow(Eigen::Vector2d gain)
     {   
         ROS_INFO("following");
-        PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
-        PID pid_y(kp, ki, kd, dt, kf_y, odom_y); 
-        //Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
-        //initiate class for pid 
-        //publish position of tag with kalman fitler
-        pose.pose.position.x = odom_x - pid_x.getPID();
-        pose.pose.position.y = odom_y - pid_y.getPID();
-        //std::cout << "gain:" << gain << std::endl;
+        pose.pose.position.x = odom_x - gain[0];
+        pose.pose.position.y = odom_y - gain[1];
         pose.pose.position.z = 4.0; // just testing the loiter
+
         local_pos_pub.publish(pose);
         ros::spinOnce();
     }
 
     // this function is too long 
-    void go_land()
+    void begin_land_protocol(Eigen::Vector2d gain)
     {   
-        //Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
-        PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
-        PID pid_y(kp, ki, kd, dt, kf_y, odom_y); 
-        //publish position of tag with kalman fitler
-        float pre_land = 0.95; //this is an offset from the actual height
-        float z_land = 0.8; //need to set this as offset
-        float tol = 0.15;
-
-
-        //if we a
-        if ((odom_z < pre_land) && (odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
+        check_landing_cases(); 
+        switch(landing_decision_case)
         {
-            ROS_INFO("Beginning Prelanding");
-            pose.pose.position.x = odom_x - pid_x.getPID();
-            pose.pose.position.y = odom_y - pid_y.getPID();; // pretty much keep at where we are 
-            pose.pose.position.z = odom_z - 0.001; //keep it at this general area 
-        } 
-
-        // we' are closing in on the ground
-        else if ((odom_z < z_land) && (abs(kf_x) > tol) && (abs(kf_y) > tol))
-        {   
-            while(ros::ok())
-            {
-                ROS_INFO("Beginning Land");
-                ros::Rate rate(20.0);
-                
-                //set to prelanding hover/ hover to around 
-                set_mode.request.custom_mode = "AUTO.LAND";
-                arm_cmd.request.value = false;
-            
-                ros::Time last_request = ros::Time::now();
-
-                //had to set 
-                while(ros::ok()){
-                    if( current_state.mode != "AUTO.LAND" &&
-                        (ros::Time::now() - last_request > ros::Duration(5.0)))
-                        {
-                            if( set_mode_client.call(set_mode) &&
-                                set_mode.response.mode_sent){
-                                ROS_INFO("Landing");
-                        }
-                        last_request = ros::Time::now();
-                    } else {
-                        if( !current_state.armed &&
-                            (ros::Time::now() - last_request > ros::Duration(5.0)))
-                            {
-                                if( arming_client.call(arm_cmd) &&
-                                    arm_cmd.response.success){
-                                    ROS_INFO("Vehicle Disarmed");
-                            }
-                            last_request = ros::Time::now();
-                        }
-                    }
-                    ros::spinOnce();
-                    rate.sleep();
-                }
-            }
-        }
-
-        else if (current_state.armed == false && odom_z <= 0.6){
-            ROS_INFO("I have landed");
-        }
-        
-        //keep dropping down not at the height we want
-        else{
-            ROS_INFO("dropping down");
-            pose.pose.position.x = odom_x - pid_x.getPID();;
-            pose.pose.position.y = odom_y - pid_y.getPID();;            
-            pose.pose.position.z = odom_z - 0.001; 
+            case 1: //drop slowly to landing target
+                pre_land_protocol(gain);
+                break;
+            case 2:
+                land_disarm_protcol();
+                break;
+            case 3:
+                already_landed();
+                break;
+            case 4:
+                pre_land_protocol(gain);
+                break;
         }
         local_pos_pub.publish(pose);   
+    }
+
+    void already_landed()
+    {
+        ROS_INFO("I have landed");
     }
 
     void go_home()
@@ -460,7 +354,6 @@ class Controller
         pose.pose.position.x = init_x;
         pose.pose.position.y = init_y;
         pose.pose.position.z = init_z;
-        //std::cout << "no target:" << target_found << std::endl;
         local_pos_pub.publish(pose);
         //printf("I want to go home");
     }
@@ -469,6 +362,63 @@ class Controller
     {   
         //want to keep last time we heard target found if we have it 
         printf("I'm lost");
+    }
+
+    void check_landing_cases()
+    {
+        // should be a hashtable or struct
+        float pre_land = 0.95; //this is an offset from the actual height
+        float z_land = 0.8; //need to set this as offset
+        float tol = 0.15;
+       
+        if ((odom_z < pre_land) && (odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
+        {
+            landing_decision_case = 1; // we're above the prelanding zone so keep dropping down
+        }
+        else if ((odom_z < z_land) && (abs(kf_x) > tol) && (abs(kf_y) > tol))
+        {
+            landing_decision_case = 2; // we're about to land
+        }
+        else if (current_state.armed == false && odom_z <= 0.6)
+        {
+            landing_decision_case = 3; // we lost sight?
+        }
+        else
+        {
+            landing_decision_case = 4; // keep dropping
+        }
+    }
+
+    void pre_land_protocol(Eigen::Vector2d gain)
+    {
+        ROS_INFO("Beginning Prelanding");
+
+        pose.pose.position.x = odom_x - gain[0];
+        pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
+        pose.pose.position.z = odom_z - 0.001; //keep it at this general area 
+    }
+
+    void land_disarm_protcol()
+    {   // need to clean this up or check if you're out of sight...
+        while(ros::ok())
+        {
+            ROS_INFO("Beginning Land");
+            ros::Rate rate(20.0);
+            
+            //set to prelanding hover/ hover to around 
+            set_mode.request.custom_mode = "AUTO.LAND";
+            arm_cmd.request.value = false;
+
+            ros::Time last_request = ros::Time::now();
+
+            //had to set 
+            while(ros::ok())
+            {
+                setmode_arm(last_request, "AUTO.LAND", arm_cmd);
+                ros::spinOnce();
+                rate.sleep();
+            }
+        }
     }
 
 };
