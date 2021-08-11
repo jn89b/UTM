@@ -6,10 +6,22 @@ PID::PID(float kp, float ki, float kd, float dt, float target, float current)
     float pre_error = 0.0;
     float pre_ierror = 0.0;
 
-    calcPID(target, current, dt, pre_error, pre_ierror);
+    setVals(kp, ki, kd, dt);
+
+    calcPID(target, current, pre_error, pre_ierror);
 }
 
-void PID::calcPID(float target, float current, double dt, double pre_error, double pre_ierror)
+void PID::setVals(float kp, float ki, float kd, float dt)
+{
+    _kp = kp;
+    _ki = ki;
+    _kd = kd;
+
+    _dt = dt;
+
+}
+
+void PID::calcPID(float target, float current, float pre_error, float pre_ierror)
 {
     //ROS_INFO("calculating");
     //target x and target y is the position relative to quad 
@@ -19,10 +31,10 @@ void PID::calcPID(float target, float current, double dt, double pre_error, doub
 
     float Pgain = _kp * error;
 
-    float int_error = pre_ierror + ((error + pre_error)/ 2) * dt;
+    float int_error = pre_ierror + ((error + pre_error)/ 2) * _dt;
     float Igain = _ki * int_error;
     
-    float der_error = (error - pre_error) / dt;
+    float der_error = (error - pre_error) / _dt;
     float Dgain = _kd * der_error;
 
     float PID = Pgain + Igain + Dgain;

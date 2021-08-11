@@ -78,6 +78,9 @@ class Controller
         float init_y = 3.0;
         float init_z = 4.0;
 
+        //class pid
+        //PID(float kp, float ki, float kd, float dt, float target, float current);
+
     public:
         Controller()
         {
@@ -363,10 +366,10 @@ class Controller
     void go_follow()
     {   
         ROS_INFO("following");
+        PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
+        PID pid_y(kp, ki, kd, dt, kf_y, odom_y); 
         //Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
         //initiate class for pid 
-        PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
-        PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
         //publish position of tag with kalman fitler
         pose.pose.position.x = odom_x - pid_x.getPID();
         pose.pose.position.y = odom_y - pid_y.getPID();
@@ -381,11 +384,12 @@ class Controller
     {   
         //Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
         PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
-        PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
+        PID pid_y(kp, ki, kd, dt, kf_y, odom_y); 
         //publish position of tag with kalman fitler
         float pre_land = 0.95; //this is an offset from the actual height
         float z_land = 0.8; //need to set this as offset
         float tol = 0.15;
+
 
         //if we a
         if ((odom_z < pre_land) && (odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
