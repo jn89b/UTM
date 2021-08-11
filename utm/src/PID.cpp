@@ -15,7 +15,7 @@ void PID::calcPID(float target, float current, double dt, double pre_error, doub
     //target x and target y is the position relative to quad 
     float error = target;
     //std::cout << "error x " << error_x << "error y" << error_y << std::endl;
-    
+    std::cout <<"P" << _kp << std::endl;
 
     float Pgain = _kp * error;
 

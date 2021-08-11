@@ -69,6 +69,7 @@ class Controller
         float kd;
 
         int decision_case;
+        int landing_decision_case; 
 
         //initial pose commands
         float init_x = 0.0;
@@ -159,14 +160,13 @@ class Controller
                 check_case();
                 //std::cout << "case number:" << decision_case << std::endl;
                 switch(decision_case)
-                
                 {
                     case 1: // we found the tag
                         go_follow();
                         //ROS_INFO("Follow");
                         break;
-                    case 2: //we can land
-                        go_land();
+                    case 2: //begin landing protocol
+                        being_land_protocol(); 
                         //ROS_INFO("landing");
                         break;
                     case 3: //we don't have the tag
@@ -222,6 +222,8 @@ class Controller
 
         //set decision case to go stay where they are at initially
         decision_case = 3;
+
+        landing_decision_case = 4;
 
     }
 
@@ -337,6 +339,7 @@ class Controller
 
         pre_ierror_x = int_error_x;
         pre_ierror_y = int_error_y;
+
         std::cout << "PID_x" << PID_x << std::endl;
         Eigen::Vector2d PID(PID_x, PID_y);
         return PID;
@@ -370,78 +373,108 @@ class Controller
     }
 
     // this function is too long 
-    void go_land()
+    void being_land_protocol()
     {   
         Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.1);
-        
         //publish position of tag with kalman fitler
         std::cout << "gain:" << gain << std::endl;
+
+        check_landing_cases();
+
+        switch(landing_decision_case)
+        {
+            case 1: //drop slowly to landing target
+                pre_land_protocol(gain);
+                break;
+            case 2:
+                land_disarm_protcol();
+                break;
+            case 3:
+                already_landed();
+                break;
+            case 4:
+                pre_land_protocol(gain);
+                break;
+        }
+        local_pos_pub.publish(pose);         
+    }
+
+    void check_landing_cases()
+    {
+
         float pre_land = 0.95; //this is an offset from the actual height
         float z_land = 0.8; //need to set this as offset
         float tol = 0.15;
-
-        //if we a
+       
         if ((odom_z < pre_land) && (odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
         {
-            ROS_INFO("Beginning Prelanding");
-            pose.pose.position.x = odom_x - gain[0];
-            pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
-            pose.pose.position.z = odom_z - 0.001; //keep it at this general area 
-        } 
-
-        // we' are closing in on the ground
+            landing_decision_case = 1; // we're above the prelanding zone so keep dropping down
+        }
         else if ((odom_z < z_land) && (abs(kf_x) > tol) && (abs(kf_y) > tol))
-        {   
-            while(ros::ok())
-            {
-                ROS_INFO("Beginning Land");
-                ros::Rate rate(20.0);
-                
-                //set to prelanding hover/ hover to around 
-                set_mode.request.custom_mode = "AUTO.LAND";
-                arm_cmd.request.value = false;
-            
-                ros::Time last_request = ros::Time::now();
+        {
+            landing_decision_case = 2; // we're about to land
+        }
+        else if (current_state.armed == false && odom_z <= 0.6)
+        {
+            landing_decision_case = 3; // we lost sight?
+        }
+        else
+        {
+            landing_decision_case = 4; // keep dropping
+        }
+    }
 
-                //had to set 
-                while(ros::ok()){
-                    if( current_state.mode != "AUTO.LAND" &&
+    void pre_land_protocol(Eigen::Vector2d some_gain)
+    {
+        ROS_INFO("Beginning Prelanding");
+        pose.pose.position.x = odom_x - some_gain[0];
+        pose.pose.position.y = odom_y - some_gain[1]; // pretty much keep at where we are 
+        pose.pose.position.z = odom_z - 0.001; //keep it at this general area 
+    }
+
+    void land_disarm_protcol()
+    {
+        while(ros::ok())
+        {
+            ROS_INFO("Beginning Land");
+            ros::Rate rate(20.0);
+            
+            //set to prelanding hover/ hover to around 
+            set_mode.request.custom_mode = "AUTO.LAND";
+            arm_cmd.request.value = false;
+
+            ros::Time last_request = ros::Time::now();
+
+            //had to set 
+            while(ros::ok()){
+                if( current_state.mode != "AUTO.LAND" &&
+                    (ros::Time::now() - last_request > ros::Duration(5.0)))
+                    {
+                        if( set_mode_client.call(set_mode) &&
+                            set_mode.response.mode_sent){
+                            ROS_INFO("Landing");
+                    }
+                    last_request = ros::Time::now();
+                } else {
+                    if( !current_state.armed &&
                         (ros::Time::now() - last_request > ros::Duration(5.0)))
                         {
-                            if( set_mode_client.call(set_mode) &&
-                                set_mode.response.mode_sent){
-                                ROS_INFO("Landing");
+                            if( arming_client.call(arm_cmd) &&
+                                arm_cmd.response.success){
+                                ROS_INFO("Vehicle Disarmed");
                         }
                         last_request = ros::Time::now();
-                    } else {
-                        if( !current_state.armed &&
-                            (ros::Time::now() - last_request > ros::Duration(5.0)))
-                            {
-                                if( arming_client.call(arm_cmd) &&
-                                    arm_cmd.response.success){
-                                    ROS_INFO("Vehicle Disarmed");
-                            }
-                            last_request = ros::Time::now();
-                        }
                     }
-                    ros::spinOnce();
-                    rate.sleep();
                 }
+                ros::spinOnce();
+                rate.sleep();
             }
         }
+    }
 
-        else if (current_state.armed == false && odom_z <= 0.6){
-            ROS_INFO("I have landed");
-        }
-        
-        //keep dropping down not at the height we want
-        else{
-            ROS_INFO("dropping down");
-            pose.pose.position.x = odom_x - gain[0];
-            pose.pose.position.y = odom_y - gain[1];            
-            pose.pose.position.z = odom_z - 0.001; 
-        }
-        local_pos_pub.publish(pose);   
+    void already_landed()
+    {
+        ROS_INFO("I have landed");
     }
 
     void go_home()
