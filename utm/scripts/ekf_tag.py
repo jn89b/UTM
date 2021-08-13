@@ -29,17 +29,17 @@ class KalmanFilter():
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
 
         self.z = [0] * len(self.H)
-        self.kf_pub = rospy.Publisher("kf_tag/pose", PoseStamped, queue_size=10)
-        self.kf_vel_pub = rospy.Publisher("kf_tag/vel", TwistStamped, queue_size=10)
+
         #this is the apriltag position subscriber
         rospy.Subscriber("tag/pose", PoseStamped, self.tagpose_cb)
+        self.kf_pub = rospy.Publisher("kf_tag/pose", PoseStamped, queue_size=10)
+        self.kf_vel_pub = rospy.Publisher("kf_tag/vel", TwistStamped, queue_size=10)
 
     def predict(self, u = 0):
         self.x = np.dot(self.F, self.x) + np.dot(self.B, u)
-        #print("x is ", self.x[2,0], self.x[3,0]) #checking state prediction estimates
-        #print("x and y positions are:", self.x[0,0], self.x[1,0])
-        print("x", self.x)
+
         self.publish_kf_est() #publish the kf estimates for position and vel of tag
+        
         self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
         return self.x
 
@@ -56,7 +56,6 @@ class KalmanFilter():
         px = msg.pose.position.x 
         py = msg.pose.position.y
         self.z = np.array([[px,py]]).T
-        #print("z", self.z)
         return self.z 
 
     def publish_kf_est(self):
@@ -79,10 +78,9 @@ if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 20
+    rate_val = 10
     #init vals
     dt = 1/rate_val
-
     
     ####### CONSTANT ACCELERATION MODEL##########
     
@@ -139,7 +137,7 @@ if __name__ == "__main__":
     ##################################################
 
     ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
-    R_factor = 0.3 # measurement of camera saying .3m off
+    R_factor = 0.4 # measurement of camera saying .3m off
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class

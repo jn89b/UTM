@@ -140,8 +140,8 @@ class Controller
             arm_cmd.request.value = true;
 
             ros::Time last_request = ros::Time::now();
-            while(ros::ok()){
-                
+            while(ros::ok())
+            {
                 setmode_arm(last_request, "OFFBOARD", arm_cmd);
 
                 //PID gains
@@ -317,7 +317,6 @@ class Controller
         pose.pose.position.x = odom_x - gain[0];
         pose.pose.position.y = odom_y - gain[1];
         pose.pose.position.z = 4.0; // just testing the loiter
-
         local_pos_pub.publish(pose);
         ros::spinOnce();
     }
@@ -355,7 +354,6 @@ class Controller
         pose.pose.position.y = init_y;
         pose.pose.position.z = init_z;
         local_pos_pub.publish(pose);
-        //printf("I want to go home");
     }
     
     void go_find()
