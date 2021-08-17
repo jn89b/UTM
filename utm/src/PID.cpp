@@ -7,7 +7,7 @@ PID::PID(float kp, float ki, float kd, float dt, float target, float current)
     float pre_ierror = 0.0;
 
     setVals(kp, ki, kd, dt);
-
+    
     calcPID(target, current, pre_error, pre_ierror);
 }
 
@@ -25,8 +25,13 @@ void PID::calcPID(float target, float current, float pre_error, float pre_ierror
     //target x and target y is the position relative to quad 
     float error = target;
     
-    float Pgain = _kp * error;
+    //stop adjusting if error is less than tolerance
+    if (error <= 0.10)
+    {   
+        _PID = 0.0;          
+    }
 
+    float Pgain = _kp * error;
     float int_error = pre_ierror + ((error + pre_error)/ 2) * _dt;
     float Igain = _ki * int_error;
     
@@ -51,8 +56,6 @@ void PID::calcPID(float target, float current, float pre_error, float pre_ierror
     //save error
     pre_error = error;
     pre_ierror = int_error;
-    std::cout << "error" << int_error << std::endl;
-    std::cout << "function" << PID << std::endl;
+
     _PID = PID;
-    //return _PID;
 }

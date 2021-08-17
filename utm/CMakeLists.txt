@@ -100,9 +100,10 @@ target_link_libraries(offboard_example ${catkin_LIBRARIES})
 add_executable(offboard_tracking src/offboard_tracking.cpp)
 target_link_libraries(offboard_tracking ${catkin_LIBRARIES})
 
-#add_dependencies(offboard_example utm_generate_messages_cpp)
-#add_dependencies(offboard_example $(PROJECT_NAME)_generate_messages_cpp)
-#target_link_libraries(offboard_example utm ${catkin_LIBRARIES})
+add_executable(moving_avg_main src/moving_avg_main.cpp src/moving_avg.cpp)
+add_dependencies(moving_avg_main ${catkin_EXPORTED_TARGETS})
+target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
+
 
 ##################
 ##  Install #####

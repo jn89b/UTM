@@ -216,7 +216,7 @@ class Controller
 
         //set decision case to go stay where they are at initially
         decision_case = 3;
-        landing_decision_case = 3;
+        landing_decision_case = 1;
     }
 
     //recieve state of quad
@@ -247,8 +247,6 @@ class Controller
         r_qy = msg->pose.orientation.y;
         r_qz = msg->pose.orientation.z;
         r_qw = msg->pose.orientation.w;
-
-        //Eigen::Vector3d r_pos(r_x, r_y, r_z);
     }
 
     void kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -338,7 +336,6 @@ class Controller
                 break;
             case 4:
                 pre_land_protocol(gain);
-                break;
         }
         local_pos_pub.publish(pose);   
     }
@@ -358,57 +355,59 @@ class Controller
     
     void go_find()
     {   
-        //want to keep last time we heard target found if we have it 
         printf("I'm lost");
     }
 
     void check_landing_cases()
     {
         // should be a hashtable or struct
-        float pre_land = 0.95; //this is an offset from the actual height
-        float z_land = 0.8; //need to set this as offset
-        float tol = 0.15;
+        const float pre_land = 1.25; //this is an offset from the actual height
+        const float z_land = 0.75; //need to set this as offset
+        float tol = 0.1;
        
         if ((odom_z < pre_land) && (odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
         {
             landing_decision_case = 1; // we're above the prelanding zone so keep dropping down
         }
-        else if ((odom_z < z_land) && (abs(kf_x) > tol) && (abs(kf_y) > tol))
+        else if ((odom_z <= z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
         {
             landing_decision_case = 2; // we're about to land
         }
-        else if (current_state.armed == false && odom_z <= 0.6)
+        else if (arm_cmd.request.value == false || odom_z <= 0.65)
         {
-            landing_decision_case = 3; // we lost sight?
+            landing_decision_case = 3; // we landed already
         }
         else
         {
-            landing_decision_case = 4; // keep dropping
+            landing_decision_case = 4;
         }
     }
 
     void pre_land_protocol(Eigen::Vector2d gain)
     {
         ROS_INFO("Beginning Prelanding");
-
         pose.pose.position.x = odom_x - gain[0];
         pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
-        pose.pose.position.z = odom_z - 0.001; //keep it at this general area 
+        pose.pose.position.z = odom_z - 1E-4; //keep it at this general area 
     }
 
     void land_disarm_protcol()
     {   // need to clean this up or check if you're out of sight...
+        float tol = 0.1;
         while(ros::ok())
         {
             ROS_INFO("Beginning Land");
             ros::Rate rate(20.0);
             
+            if ((abs(kf_x) < tol) && (abs(kf_y) < tol))
+            {
+                break;
+            }
+
             //set to prelanding hover/ hover to around 
             set_mode.request.custom_mode = "AUTO.LAND";
             arm_cmd.request.value = false;
-
             ros::Time last_request = ros::Time::now();
-
             //had to set 
             while(ros::ok())
             {
@@ -418,7 +417,6 @@ class Controller
             }
         }
     }
-
 };
 
 int main(int argc, char **argv)

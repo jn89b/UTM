@@ -402,15 +402,15 @@ class Controller
     void check_landing_cases()
     {
 
-        float pre_land = 0.95; //this is an offset from the actual height
-        float z_land = 0.8; //need to set this as offset
+        float pre_land = 0.5; //this is an offset from the actual height
+        float z_land = 0.3; //need to set this as offset
         float tol = 0.15;
        
-        if ((odom_z < pre_land) && (odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
+        if ((true_odom_z < pre_land) && (true_odom_z > z_land) && (abs(kf_x) < tol) && (abs(kf_y) < tol))
         {
             landing_decision_case = 1; // we're above the prelanding zone so keep dropping down
         }
-        else if ((odom_z < z_land) && (abs(kf_x) > tol) && (abs(kf_y) > tol))
+        else if ((true_odom_z < z_land) && (abs(kf_x) > tol) && (abs(kf_y) > tol))
         {
             landing_decision_case = 2; // we're about to land
         }
