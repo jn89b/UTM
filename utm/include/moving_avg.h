@@ -7,34 +7,34 @@ class MovingAverage
 {
     private:
         
-        double kf_x;
-        double kf_y;
-        double kf_mag;
+        float kf_x;
+        float kf_y;
+        float kf_mag;
         
-        double kfx_avg;
-        double kfy_avg;
+        float kfx_avg;
+        float kfy_avg;
                 
-        double running_total;
+        float running_total;
         
-        const int window_size = 25;
+        const int window_size = 50;
         std::queue<int> buffer;
-        double _avg_mag;
+        float _avg_mag;
 
     public:
-        MovingAverage(double x, double y); 
+        MovingAverage(float x, float y); 
 
-        void init_vals(double x, double y);
-        double compute_avg(double input);
+        void init_vals(float x, float y);
+        float compute_avg(float input);
 
-        //double compute_avg(double x);
-        //double compute_avg(double y);        
+        //float compute_avg(float x);
+        //float compute_avg(float y);        
 
-        double get_kfx(){return kfx_avg;}
-        double get_kfy(){return kfy_avg;}
+        float get_kfx(){return kfx_avg;}
+        float get_kfy(){return kfy_avg;}
 
-        double compute_mag(double x, double y);
+        float compute_mag(float x, float y);
 
-        double get_avg_mag(){return _avg_mag;}   
+        float get_avg_mag(){return _avg_mag;}   
 };
 
 #endif

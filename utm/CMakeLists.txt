@@ -90,7 +90,7 @@ add_executable(test_track src/test_track.cpp src/PID.cpp)
 add_dependencies(test_track ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_track  ${catkin_LIBRARIES})
 
-add_executable(offboard_test src/offboard_test.cpp src/PID.cpp)
+add_executable(offboard_test src/offboard_test.cpp src/PID.cpp src/moving_avg.cpp)
 add_dependencies(offboard_test ${catkin_EXPORTED_TARGETS})
 target_link_libraries(offboard_test  ${catkin_LIBRARIES})
 

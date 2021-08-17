@@ -3,16 +3,16 @@
 #include <math.h>
 #include <moving_avg.h>
 
-MovingAverage::MovingAverage(double x, double y)
+MovingAverage::MovingAverage(float x, float y)
 {
     init_vals(x,y);
     //kfx_avg = compute_avg(x);
-    std::cout<< "avg_x" << kfx_avg << std::endl;
+    //std::cout<< "avg_x" << kfx_avg << std::endl;
     //kfy_avg = compute_avg(y);
     _avg_mag = sqrt(pow(kfx_avg,2) + pow(kfy_avg,2));
 }
 
-void MovingAverage::init_vals(double x, double y)
+void MovingAverage::init_vals(float x, float y)
 {
     kf_x = x;
     kf_y = y;
@@ -24,7 +24,7 @@ void MovingAverage::init_vals(double x, double y)
 }
 
 
-double MovingAverage::compute_avg(double input)
+float MovingAverage::compute_avg(float input)
 {   
     //check if buffer queue is full
     if (buffer.size() == window_size)
