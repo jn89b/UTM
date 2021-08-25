@@ -9,7 +9,7 @@ MovingAverage::MovingAverage(float x, float y)
     //kfx_avg = compute_avg(x);
     //std::cout<< "avg_x" << kfx_avg << std::endl;
     //kfy_avg = compute_avg(y);
-    _avg_mag = sqrt(pow(kfx_avg,2) + pow(kfy_avg,2));
+    //_avg_mag = sqrt(pow(kfx_avg,2) + pow(kfy_avg,2));
 }
 
 void MovingAverage::init_vals(float x, float y)

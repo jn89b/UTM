@@ -2,8 +2,8 @@
 
     <!--args for mavros set the fcu_url and url_ to the respective correct ports
 	and the ip address to the WSL2 internet connection-->
-	<arg name ="host" default ="192.168.96.1"/>
-	<arg name ="host_ip" default ="192.168.96.1"/>
+	<arg name ="host" default ="172.28.224.1"/>
+	<arg name ="host_ip" default ="172.28.224.1"/>
 	<arg name="fcu_url" default="udp://:14540@$(arg host_ip):14557" />
 	<arg name="gcs_url" default="udp://:14556@$(arg host_ip):14551" />
 	<arg name="tgt_system" default="1" />

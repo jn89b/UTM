@@ -111,7 +111,7 @@ target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
 
 
 install(TARGETS
-    #TARGETS null_test
+    #TARGETS null_testlogger.
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
@@ -125,6 +125,7 @@ catkin_install_python(PROGRAMS
     scripts/apriltag_norm.py
     scripts/ekf_tag.py
     scripts/land_permission.py
+    scripts/logger.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple

@@ -24,6 +24,7 @@ class Controller
         ros::Publisher local_pos_pub, vel_pub;
         ros::Subscriber state_sub, target_found_sub, rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
         ros::Subscriber rtag_ekf_vel_sub, land_permit_sub, true_quad_odom_sub;
+        ros::Subscriber moving_avg_sub;
         
         //mavros service clients for arming and setting modes
         ros::ServiceClient arming_client, set_mode_client;
@@ -34,6 +35,7 @@ class Controller
 
         //
         geometry_msgs::PoseStamped pose;       
+
         
         //apriltag found
         bool target_found;
@@ -59,6 +61,7 @@ class Controller
         float odom_x;
         float odom_y;
         float odom_z;
+        float * curr_z_ptr = nullptr;
 
         float true_odom_z; // this is the true odometry 
     
@@ -81,10 +84,8 @@ class Controller
         float init_y = 3.0;
         float init_z = 4.0;
 
-        float kf_avg_x = 0.0;
-        float kf_avg_y = 0.0;
-        float moving_avg_error = 0.0;
-
+        bool avg_stabilize;
+        bool begin_land;
         //class pid
         //PID(float kp, float ki, float kd, float dt, float target, float current);
 
@@ -108,6 +109,8 @@ class Controller
                 ("kf_tag/vel", 10, &Controller::kftagvel_cb,this);
             land_permit_sub = nh.subscribe<std_msgs::Bool>
                     ("precland", 10, &Controller::land_permit_cb,this);
+            moving_avg_sub = nh.subscribe<std_msgs::Bool>
+                    ("stabilize_tag", 10, &Controller::moving_avg_cb,this);
 
             local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
                     ("mavros/setpoint_position/local", 10);
@@ -149,7 +152,8 @@ class Controller
             while(ros::ok())
             {
                 setmode_arm(last_request, "OFFBOARD", arm_cmd);
-
+                float curr_z; 
+                
                 //PID gains
                 PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
                 PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
@@ -158,28 +162,26 @@ class Controller
                 float p_y = pid_y.getPID();
                 Eigen::Vector2d gain(p_x, p_y);
 
-                MovingAverage moving_avg(kf_x, kf_y);
-                kf_avg_x = moving_avg.compute_avg(kf_x);
-                kf_avg_y = moving_avg.compute_avg(kf_y);
-                moving_avg_error = sqrt(pow(kf_avg_x,2) + pow(kf_avg_y,2));
-                //std::cout << "avg_error" << moving_avg_error << std::endl;
-
                 check_case();
+            
                 switch(decision_case)
                 {
                     case 1: // we found the tag
-                        go_follow(gain);
+                        curr_z = go_follow(gain, 4.0);
                         break;
                     case 2: //we can land
-                        begin_land_protocol(gain, moving_avg_error);
-                        break;
+                        ROS_INFO("landing");
+                        begin_land_protocol(gain);
                     case 3: //we don't have the tag
-                        go_follow(gain);
+                        //ROS_INFO("stabilizing");
+                        curr_z_ptr = &curr_z;
+                        curr_z = go_follow(gain, 4.0);
                         break;
                     case 4: 
                         go_home();
                         break;
                 }
+            
                 ros::spinOnce();
                 rate.sleep();
             }       
@@ -190,7 +192,9 @@ class Controller
         //set target found and landing permit to false initially 
         target_found = false;
         land_permit = false;
-        
+        avg_stabilize = false;    
+        begin_land = false;
+    
         //rotation matrix  
         r_x = 0.0;
         r_y = 0.0;
@@ -227,7 +231,7 @@ class Controller
         dt = 0.1;
 
         //set decision case to go stay where they are at initially
-        decision_case = 3;
+        decision_case = 4;
         landing_decision_case = 1;
     }
 
@@ -272,6 +276,7 @@ class Controller
         odom_x = msg->pose.position.x;
         odom_y = msg->pose.position.y;
         odom_z = msg->pose.position.z;
+
     }
 
     void true_quad_odom_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -285,6 +290,11 @@ class Controller
         kf_vel_y = msg->twist.linear.y;
     }
     
+    void moving_avg_cb(const std_msgs::Bool::ConstPtr& msg)
+    {
+        avg_stabilize = msg->data;
+    }
+
     void setmode_arm(ros::Time last_request,const std::string& mode_input, 
     mavros_msgs::CommandBool arm_cmd)
     {
@@ -309,15 +319,14 @@ class Controller
 
     void check_case()
     {   
-        float tol = 0.1;
         if(target_found==true and land_permit == false){
             decision_case = 1; // we found the tag
         }
-        else if ((land_permit == true) && (moving_avg_error < tol )){
+        else if ((land_permit == true) && (avg_stabilize == true)){
             decision_case = 2; //we can land
         }
-        else if ((land_permit == true) && (moving_avg_error > tol)){
-            ROS_INFO("too unstablized");
+        else if ((land_permit == true) && (avg_stabilize == false)){
+            //ROS_INFO("too unstablized");
             decision_case = 3; // we are too unstablized too land
         }
         else {
@@ -326,36 +335,50 @@ class Controller
     }
     
     //Pointer functions -> probably put in a seperate library like how ardupilot does it
-    void go_follow(Eigen::Vector2d gain)
+    float go_follow(Eigen::Vector2d gain, float z_cmd)
     {   
         //ROS_INFO("following");
         pose.pose.position.x = odom_x - gain[0];
         pose.pose.position.y = odom_y - gain[1];
-        pose.pose.position.z = 4.0; // just testing the loiter
+        pose.pose.position.z = z_cmd; // just testing the loiter
         local_pos_pub.publish(pose);
-        ros::spinOnce();
+        //ros::spinOnce();
+
+        return odom_z;
     }
 
     // this function is too long 
-    void begin_land_protocol(Eigen::Vector2d gain, float avg_error)
+    void begin_land_protocol(Eigen::Vector2d gain )
     {   
-        check_landing_cases(avg_error); 
-        switch(landing_decision_case)
-        {
-            case 1: //drop slowly to landing target
-                ROS_INFO("dropping down slowly");
-                pre_land_protocol(gain, 1E-4);
-                break;
-            case 2:
-                land_disarm_protcol();
-                break;
-            case 3:
-                already_landed();
-                break;
-            case 4:
-                stabilize(gain);
+        while (ros::ok()){
+            PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
+            PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
+
+            float p_x = pid_x.getPID();
+            float p_y = pid_y.getPID();
+            Eigen::Vector2d gain(p_x, p_y);
+            check_landing_cases(); 
+            ros::Rate rate(20.0);
+            switch(landing_decision_case)
+            {
+                case 1: //drop slowly to landing target
+                    ROS_INFO("dropping down slowly");
+                    pre_land_protocol(gain, 1E-4);
+                    break;
+                case 2:
+                    land_disarm_protcol();
+                    break;
+                case 3:
+                    already_landed();
+                    break;
+                case 4:
+                    stabilize(gain, odom_z);
+                    break;
+            }
+            local_pos_pub.publish(pose);
+            ros::spinOnce();
+            rate.sleep();  
         }
-        local_pos_pub.publish(pose);   
     }
 
     void already_landed()
@@ -376,7 +399,7 @@ class Controller
         printf("I'm lost");
     }
 
-    void check_landing_cases(float avg_error)
+    void check_landing_cases()
     {
         // should be a hashtable or struct
         const float pre_land = 0.9; //this is an offset from the actual height
@@ -408,30 +431,13 @@ class Controller
         pose.pose.position.z = odom_z - drop_down_val; //keep it at this general area 
     }
 
-    void stabilize(Eigen::Vector2d gain)
+    void stabilize(Eigen::Vector2d gain, float current_z)
     {
         pose.pose.position.x = odom_x - gain[0];
         pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
-        pose.pose.position.z = odom_z; //keep it at this general area 
-    }
-
-    void stablize_to_target(Eigen::Vector2d gain, float avg_error, float tol)
-    {   
-        ros::Rate rate(20);
-        while (abs(avg_error) < tol)
-        {
-            pose.pose.position.x = odom_x - gain[0];
-            pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
-            pose.pose.position.z = odom_z;  //keep it at this general area
-            local_pos_pub.publish(pose);
-            ros::spinOnce();
-            rate.sleep();
-
-            if (abs(avg_error > tol))
-            {
-                break;
-            }
-        }
+        pose.pose.position.z = current_z; //keep it at this general area 
+        local_pos_pub.publish(pose);
+        ros::spinOnce();
     }
 
     void land_disarm_protcol()
@@ -440,7 +446,7 @@ class Controller
         {
             //ROS_INFO("Beginning Land");
             ros::Rate rate(20.0);
-    
+
             //set to prelanding hover/ hover to around 
             set_mode.request.custom_mode = "AUTO.LAND";
             arm_cmd.request.value = false;

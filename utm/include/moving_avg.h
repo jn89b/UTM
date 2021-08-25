@@ -16,7 +16,7 @@ class MovingAverage
                 
         float running_total;
         
-        const int window_size = 50;
+        const int window_size = 100;
         std::queue<int> buffer;
         float _avg_mag;
 
