@@ -35,7 +35,6 @@ class Controller
 
         //
         geometry_msgs::PoseStamped pose;       
-
         
         //apriltag found
         bool target_found;

@@ -19,18 +19,18 @@ class UserControl():
     def __init__(self):
 
         """
-        1 = track
-        2 = precland
-        3 = land
-        4 = disarm 
-        5 = sendwaypoint
+        1 = TRACK
+        2 = PRECLAND
+        3 = LAND
+        4 = DISARM 
+        5 = WAYPOINT
         """
         self.user_cmds_dict = {
-            "track": self.track_cmd,
-            "precland": self.precland_cmd,  
-            "land": self.land_cmd,
-            "disarm": self.disarm_cmd,
-            "send waypoint": self.waypoint_cmd
+            "TRACK": self.track_cmd,
+            "PRECLAND": self.precland_cmd,  
+            "LAND": self.land_cmd,
+            "DISARM": self.disarm_cmd,
+            "WAYPOINT": self.waypoint_cmd
         }
         self.cmd = None
 
@@ -54,7 +54,7 @@ class UserControl():
     #### COMMAND PROTOCOLS ##############################################
     def track_cmd(self):
         self.user_input.data = 1
-        print("im tracking")
+        #print("im tracking")
         self.user_control_pub.publish(self.user_input)
 
     #need to make sure that we quad is also stablized and that the error of
@@ -82,32 +82,32 @@ class UserControl():
     def waypoint_cmd(self):
         print("Waypoint cmd")
 
-    def listen_for_cmd(self):
-        self.listen_cmd = input("listen a command: ")
-        print("I heard", self.listen_cmd)
+
+    def run(self):
+        rate = 30
+        rate = rospy.Rate(rate)
+
+        self.cmd = input("Enter your command: ")
         
-        return self.listen_cmd 
+        if self.cmd in self.user_cmds_dict:
+            print("Starting command", self.cmd, ",to exit press ENTER")
 
-    def main(self):
-
-        rate_val = 30
-        rate = rospy.Rate(rate_val)
-
-        while not rospy.is_shutdown():
-            try: 
-                self.cmd = input("Enter your command: ")
-                if self.cmd in self.user_cmds_dict:
+            while True:
+                try:
                     self.user_cmds_dict.get(self.cmd)()
-                else:
-                    print("You're wrong")
-            except:
-                continue 
-            
-            rate.sleep()
+                    rate.sleep()
+                except KeyboardInterrupt:
+                    break  # The answer was in the question!
+
+        else:
+            print ("Wrong input, commands are: %s" %  self.user_cmds_dict.keys())
+ 
+def main():
+    usercontrol = UserControl()
+    usercontrol.run()
 
 if __name__=='__main__':
-    rospy.init_node("user_control", anonymous=True)
-    
-    usercontrol = UserControl()
-    usercontrol.main()
+    rospy.init_node("user_control", anonymous=True, disable_signals=True)
+    while True:
+        main()    
    
