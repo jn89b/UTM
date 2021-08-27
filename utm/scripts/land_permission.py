@@ -35,12 +35,11 @@ class PrecLand():
         if self.target_found == True or self.z < 0.8: #probably need to set this better 
             self.allow_land.data = True
             self.pub.publish(self.allow_land)
-
         else: 
             self.allow_land.data = False
             self.pub.publish(self.allow_land)
-            
-
+    
+    
 if __name__=='__main__':
     rospy.init_node("land_permission", anonymous=True)
     
@@ -50,3 +49,4 @@ if __name__=='__main__':
 
     while not rospy.is_shutdown():
         precland.check_permission()
+        rate.sleep()

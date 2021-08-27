@@ -104,6 +104,10 @@ add_executable(moving_avg_main src/moving_avg_main.cpp src/moving_avg.cpp)
 add_dependencies(moving_avg_main ${catkin_EXPORTED_TARGETS})
 target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
 
+add_executable(test_user src/test_user.cpp )
+add_dependencies(test_user ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_user  ${catkin_LIBRARIES})
+
 
 ##################
 ##  Install #####
@@ -126,6 +130,7 @@ catkin_install_python(PROGRAMS
     scripts/ekf_tag.py
     scripts/land_permission.py
     scripts/logger.py
+    scripts/user_control.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple
