@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int8.h>
 #include <Eigen/Dense>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -24,7 +25,7 @@ class Controller
         ros::Publisher local_pos_pub, vel_pub;
         ros::Subscriber state_sub, target_found_sub, rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
         ros::Subscriber rtag_ekf_vel_sub, land_permit_sub, true_quad_odom_sub;
-        ros::Subscriber moving_avg_sub;
+        ros::Subscriber moving_avg_sub, user_input_sub;
         
         //mavros service clients for arming and setting modes
         ros::ServiceClient arming_client, set_mode_client;
@@ -85,6 +86,8 @@ class Controller
 
         bool avg_stabilize;
         bool begin_land;
+
+        int user_input = 0;
         //class pid
         //PID(float kp, float ki, float kd, float dt, float target, float current);
 
@@ -111,10 +114,14 @@ class Controller
             moving_avg_sub = nh.subscribe<std_msgs::Bool>
                     ("stabilize_tag", 10, &Controller::moving_avg_cb,this);
 
+            user_input_sub = nh.subscribe<std_msgs::Int8>
+                            ("user_control", 10, &Controller::usercontrol_cb,this);
+
             local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
                     ("mavros/setpoint_position/local", 10);
             vel_pub = nh.advertise<geometry_msgs::TwistStamped>
                     ("/mavros/setpoint_velocity/cmd_vel", 10);
+
             
             //services
             arming_client = nh.serviceClient<mavros_msgs::CommandBool>
@@ -160,27 +167,25 @@ class Controller
                 float p_x = pid_x.getPID();
                 float p_y = pid_y.getPID();
                 Eigen::Vector2d gain(p_x, p_y);
-
-                check_case();
             
-                switch(decision_case)
-                {
-                    case 1: // we found the tag
+                switch(user_input)
+                {   
+                    case 0:
+                        go_home();
+                        break ;
+                    case 1: // Track 
                         curr_z = go_follow(gain, 4.0);
                         break;
                     case 2: //we can land
                         ROS_INFO("landing");
                         begin_land_protocol(gain);
-                    case 3: //we don't have the tag
+                    case 3: //Land WHere you are at
                         //ROS_INFO("stabilizing");
                         curr_z_ptr = &curr_z;
                         curr_z = go_follow(gain, 4.0);
                         break;
-                    case 4: 
-                        go_home();
-                        break;
                 }
-            
+
                 ros::spinOnce();
                 rate.sleep();
             }       
@@ -230,7 +235,7 @@ class Controller
         dt = 0.1;
 
         //set decision case to go stay where they are at initially
-        decision_case = 4;
+        user_input = 0;
         landing_decision_case = 1;
     }
 
@@ -238,6 +243,12 @@ class Controller
     void state_cb(const mavros_msgs::State::ConstPtr& msg)
     {
         current_state = *msg;
+    }
+
+
+    void usercontrol_cb(const std_msgs::Int8::ConstPtr& msg)
+    {   
+        user_input = msg->data;
     }
 
     void target_found_cb(const std_msgs::Bool::ConstPtr& msg)
@@ -313,23 +324,6 @@ class Controller
                 }
                 last_request = ros::Time::now();
             }
-        }
-    }
-
-    void check_case()
-    {   
-        if(target_found==true and land_permit == false){
-            decision_case = 1; // we found the tag
-        }
-        else if ((land_permit == true) && (avg_stabilize == true)){
-            decision_case = 2; //we can land
-        }
-        else if ((land_permit == true) && (avg_stabilize == false)){
-            //ROS_INFO("too unstablized");
-            decision_case = 3; // we are too unstablized too land
-        }
-        else {
-            decision_case = 4;
         }
     }
     
