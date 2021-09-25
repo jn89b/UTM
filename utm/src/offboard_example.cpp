@@ -10,6 +10,8 @@
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
+#include <geographic_msgs/GeoPoseStamped.h>
+
 
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
@@ -30,7 +32,13 @@ int main(int argc, char **argv)
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
             ("/mavros/cmd/arming");
     ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
+<<<<<<< HEAD
             ("/mavros/set_mode");
+=======
+            ("mavros/set_mode");
+    ros::Publisher global_pos_pub = nh.advertise<geographic_msgs::GeoPoseStamped>
+            ("mavros/setpoint_position/global", 10);
+>>>>>>> origin/develop
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
@@ -46,9 +54,15 @@ int main(int argc, char **argv)
     pose.pose.position.y = 0;
     pose.pose.position.z = 1.0;
 
+    //global offboard test
+    geographic_msgs::GeoPoseStamped target;
+    target.pose.position.latitude = 47.641468;
+    target.pose.position.longitude = -122.140165;
+    target.pose.position.altitude = 122;
+
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i){
-        local_pos_pub.publish(pose);
+        global_pos_pub.publish(pose);
         ros::spinOnce();
         rate.sleep();
     }
@@ -84,7 +98,13 @@ int main(int argc, char **argv)
         vel.twist.linear.x = 1.0;
         vel.twist.linear.y = 0.0;
         vel.twist.linear.z = 0.25;
-        local_vel_pub.publish(vel);
+
+        //how to do gps coordinate command
+        geographic_msgs::GeoPoseStamped target;
+        target.pose.position.latitude = 47.64150;
+        target.pose.position.longitude = -122.140165;
+        target.pose.position.altitude = 125;
+        global_pos_pub.publish(target);
 
         ros::spinOnce();
         rate.sleep();

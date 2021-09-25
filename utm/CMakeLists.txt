@@ -75,21 +75,51 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+## Declare a cpp library
+#add_library(PID src/PID.cpp)
+#target_link_libraries(PID ${catkin_LIBRARIES})
+#add_executable(null_test src/null_test.cpp)
+#add_dependencies(null_test ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(null_test ${catkin_LIBRARIES})
+
+add_executable(main_null src/main_null.cpp src/null_test.cpp)
+add_dependencies(main_null ${catkin_EXPORTED_TARGETS})
+target_link_libraries(main_null  ${catkin_LIBRARIES})
+
+add_executable(test_track src/test_track.cpp src/PID.cpp)
+add_dependencies(test_track ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_track  ${catkin_LIBRARIES})
+
+add_executable(offboard_test src/offboard_test.cpp src/PID.cpp src/moving_avg.cpp)
+add_dependencies(offboard_test ${catkin_EXPORTED_TARGETS})
+target_link_libraries(offboard_test  ${catkin_LIBRARIES})
+
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 
 add_executable(offboard_tracking src/offboard_tracking.cpp)
 target_link_libraries(offboard_tracking ${catkin_LIBRARIES})
-#add_dependencies(offboard_example utm_generate_messages_cpp)
-#add_dependencies(offboard_example $(PROJECT_NAME)_generate_messages_cpp)
-#target_link_libraries(offboard_example utm ${catkin_LIBRARIES})
 
-#install(TARGETS
-#    offboard_example
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-#)
+add_executable(moving_avg_main src/moving_avg_main.cpp src/moving_avg.cpp)
+add_dependencies(moving_avg_main ${catkin_EXPORTED_TARGETS})
+target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
+
+add_executable(test_user src/test_user.cpp )
+add_dependencies(test_user ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_user  ${catkin_LIBRARIES})
+
+
+##################
+##  Install #####
+#################
+
+
+install(TARGETS
+    #TARGETS null_testlogger.
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
 
 catkin_install_python(PROGRAMS
     scripts/drone_image_raw.py
@@ -99,10 +129,19 @@ catkin_install_python(PROGRAMS
     scripts/apriltag_norm.py
     scripts/ekf_tag.py
     scripts/land_permission.py
+    scripts/logger.py
+    scripts/user_control.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Mark cpp header files for installation
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
 )
 
 install(FILES 
