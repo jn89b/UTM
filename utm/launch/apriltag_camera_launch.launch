@@ -8,19 +8,6 @@
     <arg name="image_topic" default="image_rect_color" />
     <arg name="wsl_ip" default="172.28.224.1"/>
 
-    <!--Run image_raw-->
-    <node pkg="airsim_ros_pkgs" type="image_raw.py" name="image_raw"> 
-        <param name="wsl_ip" value="$(arg wsl_ip)"/>
-    </node>
-    
-    <!--Run image proc-->
-    <node 
-    pkg="image_proc" 
-    type="image_proc" 
-    name="image_proc" 
-    ns="/airsim/rgb">
-    </node>
-
     <!--Run apriltag ros-->
     <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
         <arg name="launch_prefix" value="$(arg launch_prefix)" /> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
@@ -29,11 +16,5 @@
         <arg name="camera_frame" value="$(arg camera_frame)" />
         <arg name="image_topic" value="$(arg image_topic)" />
 	</include>
-
-    <!--ekf apriltag estimation-->
-    <node 
-    pkg="utm"
-    type="ekf_tag.py"
-    name="ekf_tag"/>
     
 </launch>       

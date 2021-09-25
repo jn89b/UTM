@@ -2,15 +2,18 @@
 
     <!--args for mavros set the fcu_url and url_ to the respective correct ports
 	and the ip address to the WSL2 internet connection-->
-	<arg name ="host" default ="172.28.224.1"/>
-	<arg name ="host_ip" default ="172.28.224.1"/>
+	<arg name ="host" default ="172.20.112.1"/>
+	<arg name ="host_ip" default ="172.20.112.1"/>
 	<arg name="fcu_url" default="udp://:14540@$(arg host_ip):14557" />
 	<arg name="gcs_url" default="udp://:14556@$(arg host_ip):14551" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
 	<arg name="log_output" default="screen" />
 	<arg name="fcu_protocol" default="v2.0" />
-	<arg name="respawn_mavros" default="false" />    
+	<arg name="respawn_mavros" default="false" />
+
+	<arg name="camera_name" default="/airsim_node/PX4_1/front_center_custom"/>   
+	<arg name="camera_info" default="$(arg camera_name)/camera_info"/>
 
     <!--args for gcs bridge for communication with QGC on Windows OS-->
     <!--https://github.com/mavlink/mavros/issues/574-->
@@ -21,13 +24,13 @@
 	<arg name="publish_clock" default="true"/>
 	<arg name="is_vulkan" default="true"/>
 	
-	
 	<!--Launch Airsim Node-->
+	<remap from="/airsim_node/PX4_1/front_center_custom/Scene/camera_info" to="$(arg camera_info)" />
 	<include file="$(find airsim_ros_pkgs)/launch/airsim_node.launch">
 		<arg name="output" value="screen"/>
 		<arg name="publish_clock" value="true"/>
 		<arg name="is_vulkan" value="true"/>
-		<arg name="host" value="$(arg host)"/>	
+		<arg name="host" value="$(arg host)"/>
 	</include>
 
 	<!--LAUNCH PX4 and MAVROS protocol-->
@@ -47,5 +50,8 @@
         <param name="gcs_url" value="$(arg mavlink_bridge_url)" />
     </node>
 
+	<include file="$(find apriltag_ros)/launch/continuous_detection.launch">
+		<arg name="camera_name" value="$(arg camera_name)"/>
+	</include>
 
 </launch>
