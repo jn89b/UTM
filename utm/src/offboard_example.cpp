@@ -6,12 +6,9 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
-#include <geographic_msgs/GeoPoseStamped.h>
-
 
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
@@ -24,21 +21,13 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
-            ("/mavros/state", 10, state_cb);
+            ("mavros/state", 10, state_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
-            ("/mavros/setpoint_position/local", 10);
-    ros::Publisher local_vel_pub = nh.advertise<geometry_msgs::TwistStamped>
-            ("/mavros/setpoint_velocity/cmd_vel", 10);
+            ("mavros/setpoint_position/local", 10);
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
-            ("/mavros/cmd/arming");
+            ("mavros/cmd/arming");
     ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
-<<<<<<< HEAD
-            ("/mavros/set_mode");
-=======
             ("mavros/set_mode");
-    ros::Publisher global_pos_pub = nh.advertise<geographic_msgs::GeoPoseStamped>
-            ("mavros/setpoint_position/global", 10);
->>>>>>> origin/develop
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
@@ -50,19 +39,13 @@ int main(int argc, char **argv)
     }
 
     geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 2.0;
+    pose.pose.position.x = 0;
     pose.pose.position.y = 0;
-    pose.pose.position.z = 1.0;
-
-    //global offboard test
-    geographic_msgs::GeoPoseStamped target;
-    target.pose.position.latitude = 47.641468;
-    target.pose.position.longitude = -122.140165;
-    target.pose.position.altitude = 122;
+    pose.pose.position.z = 2;
 
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i){
-        global_pos_pub.publish(pose);
+        local_pos_pub.publish(pose);
         ros::spinOnce();
         rate.sleep();
     }
@@ -93,18 +76,8 @@ int main(int argc, char **argv)
                 last_request = ros::Time::now();
             }
         }
-        
-        geometry_msgs::TwistStamped vel;
-        vel.twist.linear.x = 1.0;
-        vel.twist.linear.y = 0.0;
-        vel.twist.linear.z = 0.25;
 
-        //how to do gps coordinate command
-        geographic_msgs::GeoPoseStamped target;
-        target.pose.position.latitude = 47.64150;
-        target.pose.position.longitude = -122.140165;
-        target.pose.position.altitude = 125;
-        global_pos_pub.publish(target);
+        local_pos_pub.publish(pose);
 
         ros::spinOnce();
         rate.sleep();

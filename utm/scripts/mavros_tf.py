@@ -1,4 +1,14 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+import roslib
+import rospy
+import tf
+
+from nav_msgs.msg import Odometry
+from std_msgs.msg import Header
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovariance
+from geometry_msgs.msg import Vector3, Point, PoseStamped, TwistStamped, PointStamped
+
 import roslib
 import rospy
 import tf
@@ -16,11 +26,11 @@ class MavrosTF():
         #init tf broacast
         self.br = tf.TransformBroadcaster()
         #init transformation we will broadcast 
-        self.new_tf = rospy.get_param("~quad_tf", "/drone0_wrt_world")
+        self.new_tf = rospy.get_param("~quad_tf", "/uav0_wrt_world")
         #source tf we will want to make a transformation of Rnew_tf/source_tf
         self.source_tf = rospy.get_param("~world_tf", "world_enu")
         #offset from airsim 
-        self.offset_z = rospy.get_param("~offset_z", 0.6)
+        self.offset_z = rospy.get_param("~offset_z", 0.05)
         # Current drone position (local frame)
         self.drone_pos = [0,0,0,0,0,0,0]
         # Subscriber to current drone's position
@@ -72,5 +82,4 @@ if __name__ == '__main__':
     rospy.init_node("mavros_tf", anonymous=True)
     mavrostf = MavrosTF()
     mavrostf.broadcast_drone_tf()
-
 

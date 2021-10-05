@@ -1,4 +1,4 @@
-#!/usr/bin env python3
+#!/usr/bin/env python
 
 import rospy
 import tf
@@ -34,10 +34,10 @@ class UserControl():
         }
         self.cmd = None
 
-        self.user_control_pub = rospy.Publisher("user_control", Int8, queue_size= 10)
-        self.pub = rospy.Publisher("precland", Bool, queue_size=10)
-        self.sub = rospy.Subscriber("target_found", Bool, self.target_foundcb)
-        quad_odom_sub = rospy.Subscriber("mavros/offset_local_position/pose", PoseStamped, self.quad_odom_cb)
+        self.user_control_pub = rospy.Publisher("uav0/user_control", Int8, queue_size= 10)
+        self.pub = rospy.Publisher("/uav0/precland", Bool, queue_size=10)
+        self.sub = rospy.Subscriber("uav0/target_found", Bool, self.target_foundcb)
+        quad_odom_sub = rospy.Subscriber("uav0/mavros/offset_local_position/pose", PoseStamped, self.quad_odom_cb)
         
         self.user_input = Int8()
         
@@ -86,7 +86,7 @@ class UserControl():
     def run(self):
         rate = 30
         rate = rospy.Rate(rate)
-
+        print("Commands are as follows :", self.user_cmds_dict.keys())
         self.cmd = input("Enter your command: ")
         
         if self.cmd in self.user_cmds_dict:

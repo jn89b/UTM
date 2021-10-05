@@ -11,14 +11,14 @@
 	<arg name="host" default="172.20.112.1" />
 
     <!--args for camera published from airsim so we can map to apriltag-->
-    <arg name="uav_0_camera_name" default="/airsim_node/PX4_1/front_center_custom"/>   
+    <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   
 	<arg name="uav_0_camera_info" default="$(arg uav_0_camera_name)/camera_info"/>
     
-    <arg name="uav_1_camera_name" default="/airsim_node/PX4_2/front_center_custom"/>   
+    <arg name="uav_1_camera_name" default="/airsim_node/PX4_1/downwards_custom_1"/>   
 	<arg name="uav_1_camera_info" default="$(arg uav_1_camera_name)/camera_info"/>
     
-	<remap from="/airsim_node/PX4_1/front_center_custom/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
-    <remap from="/airsim_node/PX4_2/front_center_custom/Scene/camera_info" to="$(arg uav_1_camera_info)"/>
+	<remap from="/airsim_node/PX4_0/downwards_custom_0/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
+    <remap from="/airsim_node/PX4_1/downwards_custom_1/Scene/camera_info" to="$(arg uav_1_camera_info)"/>
 
 	<!--Launch Airsim Node-->
 	<include file="$(find airsim_ros_pkgs)/launch/airsim_node.launch">
@@ -27,7 +27,7 @@
 		<arg name="is_vulkan" value="true"/>
 		<arg name="host" value="$(arg host)" />	
 	</include>
-
+    <!--https://answers.ros.org/question/353634/how-do-we-remap-all-of-the-input-and-ouput-topics-from-a-node-in-a-systematic-way/-->
     <node pkg="mavros" type="gcs_bridge" name="mavlink_bridge">
         <param name="gcs_url" value="$(arg mavlink_bridge_url)" />
     </node>
@@ -37,6 +37,7 @@
         <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
         <arg name="tgt_system" default="1" />
         <arg name="tgt_component" default="1" />
+
         <include file="$(find utm)/launch/mavros_gcs_launch.launch">
             <arg name="fcu_url" value="$(arg fcu_url)" />
             <arg name="gcs_url" value="$(arg gcs_url)"/>
@@ -44,9 +45,15 @@
             <arg name="tgt_component" value="$(arg tgt_component)"/>
         </include>
 
-        <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
+        <include file="$(find utm)/launch/broadcast_tf.launch">
+            <arg name ="tf_quad" value="/uav0_wrt_world"/>
+            <arg name ="world_tf" value="/world_enu"/>
+            <arg name ="rtagdrone" value="/tag_wrt_uav0"/>
             <arg name="camera_name" value="$(arg uav_0_camera_name)"/>
-        </include>        
+            <arg name="uav_name" value="uav0"/>
+        </include>
+
+        <include file="$(find utm)/launch/offboard_launch.launch"/> 
 
     </group>
 

@@ -104,7 +104,7 @@ class Controller
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
                     ("kf_tag/pose", 10, &Controller::kftag_cb,this);
             quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                ("mavros/offset_local_position/pose",15, &Controller::quad_odom_callback, this);
+                ("mavros/local_position/pose",15, &Controller::quad_odom_callback, this);
             true_quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
                             ("mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
@@ -229,8 +229,8 @@ class Controller
         pre_ierror_y = 0.0;
 
         //set this into a text/config file 
-        kp = 0.45;
-        ki = 1E-3;
+        kp = 0.15;
+        ki = 0.0;
         kd = 0.0;
         dt = 0.1;
 
@@ -331,8 +331,8 @@ class Controller
     float go_follow(Eigen::Vector2d gain, float z_cmd)
     {   
         //ROS_INFO("following");
-        pose.pose.position.x = odom_x - gain[0];
-        pose.pose.position.y = odom_y - gain[1];
+        pose.pose.position.x = odom_x + gain[0];
+        pose.pose.position.y = odom_y + gain[1];
         pose.pose.position.z = z_cmd; // just testing the loiter
         local_pos_pub.publish(pose);
         //ros::spinOnce();
@@ -462,5 +462,4 @@ int main(int argc, char **argv)
 
     return 0; 
 }
-
 

@@ -1,12 +1,14 @@
 <launch>
 
     <!--args for mavros tf-->
-    <arg name="tf_quad" default="/drone0_wrt_world"/>
+    <arg name="tf_quad" default="/uav0_wrt_world"/>
     <arg name="world_tf" default="/world_enu"/>
-
+    
     <!--args for apriltag_position_pub.py-->
+    <arg name="uav_name" default=""/>
+    <arg name ="camera_name" default="camera_name"/>
     <arg name="id_tag" default="0"/>
-    <arg name="rtagdrone" default="/tag_wrt_drone0"/>
+    <arg name="rtagdrone" default="/tag_wrt_uav0"/>
     <arg name="frame_tag_id" default="/tag_0"/>
     <arg name="height_from_tag" default="1.0"/>
 
@@ -16,13 +18,20 @@
         <param name="world_tf" value="$(arg world_tf)"/> 
     </node>
 
-    <!--apriltag position pub-->
+    <remap from="/tag_detections" to="/$(arg uav_name)/tag_detections"/>
+    <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
+        <arg name="camera_name" value="$(arg camera_name)"/>
+    </include> 
+
     <node pkg="utm" type="apriltag_position_pub.py" name="apriltag_position_pub">
         <param name="tag_id" value="$(arg id_tag)"/>
         <param name="rtag_drone" value="$(arg rtagdrone)"/>
         <param name="quad_tf" value="$(arg tf_quad)"/>
         <param name="tag_frame_id" value="$(arg frame_tag_id)"/> 
-        <param name="alt_from_tag" value="$(arg height_from_tag)"/>  
+        <param name="alt_from_tag" value="$(arg height_from_tag)"/>    
     </node>
+
+    <node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>
+
 
 </launch>

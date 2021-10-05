@@ -1,4 +1,4 @@
-#!/usr/bin env python3
+#!/usr/bin/env python
 
 import rospy 
 import tf
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 10
+    rate_val = 20
     #init vals
     dt = 1/rate_val
     
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     H = np.array([h_1, h_2])
     print(H.shape)
 
-    Q_fact = 1E-6 # process noise covariance constant 
+    Q_fact = 1E-2 # process noise covariance constant 
     Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
                 [0, Q_fact, 0, 0, 0, 0], 
                 [0, 0, Q_fact, 0, 0, 0], 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     ##################################################
 
     ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
-    R_factor = 0.4 # measurement of camera saying .3m off
+    R_factor = 0.2 # measurement of camera saying .3m off
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class

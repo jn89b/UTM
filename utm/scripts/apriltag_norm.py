@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import roslib
 import rospy
 import tf
@@ -19,7 +19,7 @@ class ApriltagNorm():
         self.new_tf = rospy.get_param("~norm_tag_tf", "/tag_0")
         self.source_tf = rospy.get_param("~cam_tf", "front_center_custom_optical")       
         #self.drone_frame_id_ = rospy.get_param("~quad_tf", "/drone0_wrt_world")
-        self.tags_topic_ = rospy.get_param('~tags_topic', '/tag_detections')
+        self.tags_topic_ = '/tag_detections'
         self.setpoint_topic_ = rospy.get_param('~setpoint_topic', 'setpoint/relative_pos')
         rospy.Subscriber(self.tags_topic_, AprilTagDetectionArray, self.tagsCallback)
         self.tag_norm_pub = rospy.Publisher("tag_norm", PoseStamped,queue_size=10)

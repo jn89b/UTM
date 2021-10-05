@@ -1,4 +1,4 @@
-#!/usr/bin env python3
+#!/usr/bin/env python
 
 import rospy 
 import tf
@@ -11,11 +11,11 @@ class AprilTagPositionPub():
     def __init__(self):
         #apriltag id 
         self.tag_id_ = rospy.get_param("~tag_id",0)
-        self.new_tf = rospy.get_param("~rtag_drone", "/tag_wrt_drone0")       
-        self.drone_frame_id_ = rospy.get_param("~quad_tf", "/drone0_wrt_world")
+        self.new_tf = rospy.get_param("~rtag_drone", "/tag_wrt_uav0")       
+        self.drone_frame_id_ = rospy.get_param("~quad_tf", "/uav0_wrt_world")
         self.tag_frame_id_ = rospy.get_param("~tag_frame_id", "/tag_0")
-        self.tags_topic_ = rospy.get_param('~tags_topic', '/tag_detections')
-        self.setpoint_topic_ = rospy.get_param('~setpoint_topic', 'setpoint/relative_pos')
+        #self.tags_topic_ = rospy.get_param('~tags_topic', '/tag_detections')
+        self.setpoint_topic_ = rospy.get_param('~setpoint_topic', '/setpoint/relative_pos')
         self.tf_listener_ = tf.TransformListener()
         #broadcast tf transform
         self.br = tf.TransformBroadcaster()
@@ -35,11 +35,11 @@ class AprilTagPositionPub():
         self.pose_pub_ = rospy.Publisher('tag/pose', PoseStamped, queue_size=1)
 
         #boolean statement 
-        self.target_pub = rospy.Publisher("/target_found", Bool, queue_size=1)
+        self.target_pub = rospy.Publisher("target_found", Bool, queue_size=1)
         # Subscriber to Kalman filter estimate
         #rospy.Subscriber("kf/estimate", PoseWithCovarianceStamped, self.kfCallback)
 
-        rospy.Subscriber(self.tags_topic_, AprilTagDetectionArray, self.tagsCallback)
+        rospy.Subscriber('tag_detections', AprilTagDetectionArray, self.tagsCallback)
 
     # tags callback
     def tagsCallback(self, msg):
