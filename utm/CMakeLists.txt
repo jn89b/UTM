@@ -131,6 +131,7 @@ catkin_install_python(PROGRAMS
     scripts/land_permission.py
     scripts/logger.py
     scripts/user_control.py
+    scripts/drone_transformation.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple

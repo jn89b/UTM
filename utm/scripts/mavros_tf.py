@@ -30,19 +30,21 @@ class MavrosTF():
         #source tf we will want to make a transformation of Rnew_tf/source_tf
         self.source_tf = rospy.get_param("~world_tf", "world_enu")
         #offset from airsim 
-        self.offset_z = rospy.get_param("~offset_z", 0.05)
+        self.offset_x = rospy.get_param("~offset_x", 0.0)
+        self.offset_y = rospy.get_param("~offset_y", 0.0)
+        self.offset_z = rospy.get_param("~offset_z", -0.05)
         # Current drone position (local frame)
         self.drone_pos = [0,0,0,0,0,0,0]
         # Subscriber to current drone's position
         rospy.Subscriber('mavros/local_position/pose', PoseStamped, self.dronePosCallback)
 
         self.pub = rospy.Publisher("mavros/offset_local_position/pose",PoseStamped, queue_size=10)
-    
+
     def dronePosCallback(self, msg):
-        
-        x = msg.pose.position.x
-        y = msg.pose.position.y
-        z = (msg.pose.position.z)  - self.offset_z
+        """added x to offset_y because offset_y is in NED convention"""
+        x = msg.pose.position.x - float(self.offset_y)
+        y = msg.pose.position.y - float(self.offset_x) 
+        z = (msg.pose.position.z)  + float(self.offset_z)
         qx = msg.pose.orientation.x
         qy = msg.pose.orientation.y
         qz = msg.pose.orientation.z

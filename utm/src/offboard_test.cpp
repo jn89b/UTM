@@ -103,8 +103,8 @@ class Controller
                     ("tag/pose", 10, &Controller::rtagquad_cb,this);
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
                     ("kf_tag/pose", 10, &Controller::kftag_cb,this);
-            quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                ("mavros/local_position/pose",15, &Controller::quad_odom_callback, this);
+            quad_odom_sub = nh.subscribe<nav_msgs::Odometry>
+                ("/mavros/odometry/in",15, &Controller::quad_odom_callback, this);
             true_quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
                             ("mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
@@ -281,11 +281,11 @@ class Controller
         kf_y = msg->pose.position.y;
     }
 
-    void quad_odom_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+    void quad_odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        odom_x = msg->pose.position.x;
-        odom_y = msg->pose.position.y;
-        odom_z = msg->pose.position.z;
+        odom_x = msg->pose.pose.position.x;
+        odom_y = msg->pose.pose.position.y;
+        odom_z = msg->pose.pose.position.z;
 
     }
 

@@ -1,0 +1,5 @@
+<launch>
+<node pkg="tf" type="static_transform_publisher"
+ name="link1_broadcaster" 
+ args="0.0 0.0 0.0 yaw pitch 1.54 PX4_0 downwards_custom_0_body 100" />
+</launch>

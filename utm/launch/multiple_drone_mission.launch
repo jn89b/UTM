@@ -1,0 +1,25 @@
+<launch>
+    <!--send drones on mission-->
+
+    <group ns="uav0">
+        <arg name="offset_ned_x" default="0"/>
+        <arg name="offset_ned_y" default="0"/>
+       <include file="$(find utm)/launch/offboard_launch.launch">
+            <!--offsets from airsim look at json file settings-->
+            <arg name="offset_ned_x" value="$(arg offset_ned_x)"/>
+            <arg name="offset_ned_y" value="$(arg offset_ned_y)"/>
+        </include> 
+    </group>
+
+
+    <group ns="uav1">
+        <arg name="offset_ned_x" default="0"/>
+        <arg name="offset_ned_y" default="0"/>
+       <include file="$(find utm)/launch/offboard_launch.launch">
+            <!--offsets from airsim look at json file settings-->
+            <arg name="offset_ned_x" value="$(arg offset_ned_x)"/>
+            <arg name="offset_ned_y" value="$(arg offset_ned_y)"/>
+        </include> 
+    </group>
+
+</launch>

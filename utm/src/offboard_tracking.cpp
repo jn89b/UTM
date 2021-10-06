@@ -17,7 +17,7 @@ class Controller
 {
     private:
         ros::NodeHandle nh;
-        ros::Publisher local_pos_pub, vel_pub;
+        ros::Publisher local_pos_pub, vel_pub, vision_pos_pub;
         ros::Subscriber state_sub, target_found_sub, rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
         ros::Subscriber rtag_ekf_vel_sub, land_permit_sub, true_quad_odom_sub;
         
@@ -76,38 +76,49 @@ class Controller
         float init_y = 3.0;
         float init_z = 4.0;
 
+        //offsets
+        float offset_x;
+        float offset_y;
+
+
     public:
         Controller()
         {
             //subscribers
             state_sub = nh.subscribe<mavros_msgs::State>
-                    ("uav0/mavros/state", 10, &Controller::state_cb, this);
+                    ("mavros/state", 10, &Controller::state_cb, this);
             target_found_sub = nh.subscribe<std_msgs::Bool>
-                    ("uav0/target_found", 10, &Controller::target_found_cb,this);
+                    ("target_found", 10, &Controller::target_found_cb,this);
             rtag_quad_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/tag/pose", 10, &Controller::rtagquad_cb,this);
+                    ("tag/pose", 10, &Controller::rtagquad_cb,this);
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/kf_tag/pose", 10, &Controller::kftag_cb,this);
-            quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                ("uav0/mavros/offset_local_position/pose",15, &Controller::quad_odom_callback, this);
+                    ("kf_tag/pose", 10, &Controller::kftag_cb,this);
+            quad_odom_sub = nh.subscribe<nav_msgs::Odometry>
+                ("mavros/odometry/in",15, &Controller::quad_odom_callback, this);
             true_quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
                             ("mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
-                ("uav0/kf_tag/vel", 10, &Controller::kftagvel_cb,this);
+                ("kf_tag/vel", 10, &Controller::kftagvel_cb,this);
             land_permit_sub = nh.subscribe<std_msgs::Bool>
-                    ("uav0/precland", 10, &Controller::land_permit_cb,this);
+                    ("precland", 10, &Controller::land_permit_cb,this);
 
             local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
-                    ("uav0/mavros/setpoint_position/local", 10);
+                    ("mavros/setpoint_position/local", 10);
             vel_pub = nh.advertise<geometry_msgs::TwistStamped>
-                    ("uav0/mavros/setpoint_velocity/cmd_vel", 10);
+                    ("mavros/setpoint_velocity/cmd_vel", 10);
             
-
-            //services
+            vision_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
+                    ("mavros/vision_pose/pose", 10);
+                    
             arming_client = nh.serviceClient<mavros_msgs::CommandBool>
-                ("uav0/mavros/cmd/arming");
+                ("mavros/cmd/arming");
             set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
-                    ("uav0/mavros/set_mode");
+                    ("mavros/set_mode");
+
+            //params for offset from mavros
+            nh.getParam("offset_ned_x", offset_y);
+            nh.getParam("offset_ned_y", offset_x);
+            //services
 
             //the setpoint publishing rate MUST be faster than 2Hz
             ros::Rate rate(20.0);
@@ -265,11 +276,11 @@ class Controller
         kf_y = msg->pose.position.y;
     }
 
-    void quad_odom_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+    void quad_odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        odom_x = msg->pose.position.x;
-        odom_y = msg->pose.position.y;
-        odom_z = msg->pose.position.z;
+        odom_x = (msg->pose.pose.position.x); 
+        odom_y = (msg->pose.pose.position.y); 
+        odom_z = msg->pose.pose.position.z;
         //ROS_INFO("odom_x: %f, odom_y:", odom_x, odom_y); 
     }
 
@@ -291,8 +302,9 @@ class Controller
         //target x and target y is the position relative to quad 
         float error_x = target_x;
         float error_y = target_y;
-        std::cout << "error x " << error_x << "error y" << error_y << std::endl;
-
+        //std::cout << "error x " << error_x << "error y" << error_y << std::endl;
+        ROS_INFO("target_x: [%f]", target_x);
+        ROS_INFO("target_y: [%f]", target_y);
         //proportional val
         float Pgain_x = kp * error_x;
         float Pgain_y = kp * error_y;
@@ -361,12 +373,15 @@ class Controller
     //Pointer functions -> probably put in a seperate library like how ardupilot does it
     void go_follow()
     {   
-        ROS_INFO("following");
+        //ROS_INFO("following");
         Eigen::Vector2d gain = calc_PID(kf_x, kf_y, odom_x, odom_y, 0.15);
         //publish position of tag with kalman fitler
         pose.pose.position.x = odom_x + gain[0];
         pose.pose.position.y = odom_y + gain[1];
+        
         //std::cout << "gain:" << gain << std::endl;
+        //ROS_INFO("target_x: [%f]",pose.pose.position.x);
+        //ROS_INFO("target_y: [%f]",pose.pose.position.y);
         pose.pose.position.z = 4.0; // just testing the loiter
         local_pos_pub.publish(pose);
         ros::spinOnce();
@@ -427,8 +442,8 @@ class Controller
     void pre_land_protocol(Eigen::Vector2d some_gain)
     {
         ROS_INFO("Beginning Prelanding");
-        pose.pose.position.x = odom_x - some_gain[0];
-        pose.pose.position.y = odom_y - some_gain[1]; // pretty much keep at where we are 
+        pose.pose.position.x = odom_x + some_gain[0];
+        pose.pose.position.y = odom_y + some_gain[1]; // pretty much keep at where we are 
         pose.pose.position.z = odom_z - 0.001; //keep it at this general area 
     }
 

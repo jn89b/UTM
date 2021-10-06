@@ -37,6 +37,7 @@
         <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
         <arg name="tgt_system" default="1" />
         <arg name="tgt_component" default="1" />
+        <!--<arg name="old_target_tf" default="downwards_custom_0_optical"/>-->
 
         <include file="$(find utm)/launch/mavros_gcs_launch.launch">
             <arg name="fcu_url" value="$(arg fcu_url)" />
@@ -45,16 +46,8 @@
             <arg name="tgt_component" value="$(arg tgt_component)"/>
         </include>
 
-        <include file="$(find utm)/launch/broadcast_tf.launch">
-            <arg name ="tf_quad" value="/uav0_wrt_world"/>
-            <arg name ="world_tf" value="/world_enu"/>
-            <arg name ="rtagdrone" value="/tag_wrt_uav0"/>
-            <arg name="camera_name" value="$(arg uav_0_camera_name)"/>
-            <arg name="uav_name" value="uav0"/>
-        </include>
-
-        <include file="$(find utm)/launch/offboard_launch.launch"/> 
-
+        <!--offsets from airsim look at json file settings-->
+ 
     </group>
 
     <group ns="uav1">
@@ -62,16 +55,13 @@
         <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
         <arg name="tgt_system" default="2" />
         <arg name="tgt_component" default="1" />
+
         <include file="$(find utm)/launch/mavros_gcs_launch.launch">
             <arg name="fcu_url" value="$(arg fcu_url)" />
             <arg name="gcs_url" value="$(arg gcs_url)"/>
             <arg name="tgt_system" value="$(arg tgt_system)" />
             <arg name="tgt_component" value="$(arg tgt_component)"/>
         </include>
-
-        <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
-            <arg name="camera_name" value="$(arg uav_1_camera_name)"/>
-        </include>        
 
     </group>
 

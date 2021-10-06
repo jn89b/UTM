@@ -1,4 +1,11 @@
 <launch>
+        <!--offsets from airsim look at json file settings-->
+        <arg name="offset_ned_x" default="0"/>
+        <arg name="offset_ned_y" default="0"/>
+
         <node pkg="utm" type="offboard_tracking" name="tracking">
+                <param name="offset_ned_x" value="$(arg offset_ned_x)"/>
+                <param name="offset_ned_y" value="$(arg offset_ned_y)"/>
         </node>
+
 </launch>

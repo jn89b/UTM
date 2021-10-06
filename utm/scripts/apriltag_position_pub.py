@@ -52,6 +52,9 @@ class AprilTagPositionPub():
             x = overall_pose.position.x/scale_factor
             y = overall_pose.position.y/scale_factor
             z = overall_pose.position.z/scale_factor
+            
+            self.tf_listener_.waitForTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0), rospy.Duration(2.5))
+
             (trans,rot) = self.tf_listener_.lookupTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0))
             #print(trans,rot)
             target_found = Bool()
@@ -62,7 +65,7 @@ class AprilTagPositionPub():
             target_found = Bool()
             target_found.data = False
             self.target_pub.publish(target_found) 
-            rospy.logwarn("No valid TF for the required tag %s", self.tag_id_)
+            #rospy.logwarn("No valid TF for the required tag %s", self.tag_id_)
             return
 
         if valid: # Publish relative setpoint
