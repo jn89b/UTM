@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   mavros_msgs
+  mongodb_store
   message_generation
   nav_msgs
   # nodelet
