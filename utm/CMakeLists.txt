@@ -133,8 +133,8 @@ catkin_install_python(PROGRAMS
     scripts/logger.py
     scripts/user_control.py
     scripts/drone_transformation.py
-    scripts/mongo_db_test.py
-    scripts/mongo_recieve_info.py
+    tests/mongo_db_test.py
+    tests/mongo_recieve_info.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple
