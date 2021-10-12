@@ -6,7 +6,7 @@ import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
 from mongodb_store.message_store import MessageStoreProxy
 from mongodb_store_msgs.msg import StringPairList, StringPair
-from geometry_msgs.msg import Pose, Point, Quaternion
+from geometry_msgs.msg import Pose, Point, Quaternion, String
 import platform
 if float(platform.python_version()[0:2]) >= 3.0:
     import io
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     rate = rospy.Rate(0.5)
 
-    msg_store = MessageStoreProxy(collection='pose_results')
+    msg_store = MessageStoreProxy(collection='data_serivice')
 
     try:
         """get all information about uav"""
@@ -77,10 +77,12 @@ if __name__ == '__main__':
             some_list.append(item)
         """
         p = Pose(Point(0, 1, 2), Quaternion(3, 4,  5, 6))
-
+        string_msg = String()
+        
         for item,meta in msg_store.query_named("uav0", StringPairList._type, single=False):
             #print(item._id)
             """delete information of drone"""
+            string_msg.data = "hello world" 
             #print(item)
             pose_id = item.pairs[0].second
             point_id = item.pairs[1].second
@@ -109,13 +111,10 @@ if __name__ == '__main__':
             #msg_store.delete(str(id_num))
 
             #print(item.query_id)
-
-        
+                    
         print(len(some_list))
         #print(some_list)
 
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
-
-
 

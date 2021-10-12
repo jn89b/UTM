@@ -135,6 +135,9 @@ catkin_install_python(PROGRAMS
     scripts/drone_transformation.py
     tests/mongo_db_test.py
     tests/mongo_recieve_info.py
+    tests/landing_zone_test.py
+    tests/landing_service_databaseTest.py
+    tests/data_service_providerTest.py
 #    #list of shared libraries
 #    airsim_ros
 #    pd_position_controller_simple
