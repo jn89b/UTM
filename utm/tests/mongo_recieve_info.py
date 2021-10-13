@@ -81,7 +81,6 @@ if __name__ == '__main__':
         
         for item,meta in msg_store.query_named("uav0", StringPairList._type, single=False):
             #print(item._id)
-            """delete information of drone"""
             string_msg.data = "hello world" 
             #print(item)
             pose_id = item.pairs[0].second
@@ -106,6 +105,7 @@ if __name__ == '__main__':
             """
             
             """delete id bundle key of drone"""
+            
             #print(meta.get('_id'))
             #id_num = meta.get('_id')
             #msg_store.delete(str(id_num))

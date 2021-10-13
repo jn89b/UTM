@@ -6,6 +6,7 @@ import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
 from mongodb_store.message_store import MessageStoreProxy
 from geometry_msgs.msg import Pose, Point, Quaternion
+
 import platform
 if float(platform.python_version()[0:2]) >= 3.0:
     import io
@@ -21,11 +22,11 @@ else uav id does not exist in database:
     log new information about uav
 
 UAV information recorded in database: DONE
-    -uav id
+    -uav name which is the id for this situation
     -uav position information, global and local
-    -uav battery
+    -uav battery 
     -uav service request
-    -uav state
+    -uav Mode
 
 third party service sees what information it requests 
 if it requests the service then will publish information/control 
