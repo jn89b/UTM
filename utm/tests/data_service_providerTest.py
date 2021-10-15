@@ -14,6 +14,7 @@ from mongodb_store.message_store import MessageStoreProxy
 from datetime import *
 import platform
 
+from utm import Database
 from geometry_msgs.msg import Pose, Point, Quaternion
 from geographic_msgs.msg import GeoPoseStamped
 from std_msgs.msg import Bool, Int32
@@ -23,56 +24,6 @@ if float(platform.python_version()[0:2]) >= 3.0:
     import io
 else:
     import StringIO
-
-class AbstractDatabaseInfo():
-    """Abstract Database distrubutes information of database 
-    through querys"""
-    def __init__(self):
-        self.sub = None
-
-    def does_object_exist(self):
-        """check if key item exists in database returns True if it does, False if not"""
-        
-class AbstractDatabaseSend():
-    """AbstractDatabaseSend allows writing to database
-    Keyword arguments:
-    string: collection_name -- collection name to access information from 
-    """
-    def __init__(self, collection_name):
-        self.msg_store = MessageStoreProxy(collection= collection_name)
-
-    def update_db_info(self):
-        """update databse"""
-
-    def remove_from_db(self):
-        """removes from database based on some condition"""
-
-    def add_to_db(self, doc_info, meta):
-        """adds the nonexistent item and its information
-        uses helper functions, wrap_database_info, combine_info_ids,
-        and generate_meta_info"""
-        self.msg_store.insert(doc_info, meta)
-
-    def wrap_database_info(self,msg_list):
-        """takes in msg_list which consist of ros messages"""        
-        stored = [] 
-        for msg in msg_list:
-            stored.append([msg._type, self.msg_store.insert(msg)])
-
-        return stored
-
-    def combine_info_ids(self, stored):
-        spl = StringPairList()
-        for pair in stored:
-            spl.pairs.append(StringPair(pair[0], pair[1]))
-        return spl
-
-    def generate_meta_info(self,name):   
-        "name must be type of string"
-        meta = {}
-        meta['name'] = name
-        meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
-        return meta
 
 class TestUAV():
     """this is a test module for UAV to send the respective information to the DataServiceDB
@@ -91,7 +42,7 @@ class TestUAV():
         self.current_pose = self.get_lat_long_msg(current_pose)
         self.wp_dest = self.get_lat_long_msg(wp_dest)
         
-        self.dataService = AbstractDatabaseSend("data_service")
+        self.dataService = Database.AbstractDatabaseSend("data_service")
         self.send_information()
 
     def get_bool_msg(self,bool_statement):
@@ -133,6 +84,7 @@ if __name__ == '__main__':
         #uav_2 = TestUAV("uav2",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,False)
         #uav_3 = TestUAV("uav3",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,True)
         #uav_4 = TestUAV("uav4",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,True)
+        uav_5 = TestUAV("uav5",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,False)
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 

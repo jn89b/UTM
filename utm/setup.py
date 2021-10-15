@@ -1,7 +1,9 @@
-from disutils.core import setup
-from catkin_pkg.python_setup import generate_disutils_setup 
+from distutils.core import setup
+from catkin_pkg.python_setup import generate_distutils_setup
 
-d = generate_disutils_setup(
+d = generate_distutils_setup(
     packages=["utm"],
     package_dir={"":"src"}
 )
+
+setup(**d)
