@@ -42,6 +42,18 @@ class AbstractDatabaseInfo():
         collection = database[collection_name]
 
         return collection 
+
+    def unwrap_info(self, ros_col_prox, meta_info, object_name):
+        """unwrap stringpair list from rosmessageproxy, and the object_name in the meta information"""
+        id_list = []
+        msg_info = []
+        i = 0
+        for item,meta in ros_col_prox.query_named(object_name, StringPairList._type, single=False):
+            print(item.pairs[i].first)
+            msg_info.append(item.pairs[i].first)
+            id_list.append(item.pairs[i].second)
+
+        return id_list, msg_info
           
 class AbstractDatabaseSend():
     """AbstractDatabaseSend allows writing to database
@@ -88,37 +100,115 @@ class AbstractDatabaseSend():
         return meta
 
         
-class UTMDB():
-    def __init__(self):
-        self.dataBaseInfo = AbstractDatabaseInfo()
-        self.dataBaseInfo.retrieve_all_objects()
+class LandingDBNode():
+    """
+    LandingDB appends all UAVs that are requesting the third party landing service
+    assigns initial state of UAV as 0
+
+    Attributes
+    dbInfo : AbstractDatabaseInfo()
+        Instiantes abstract databaseinfo:
+        ip_address : str
+        port_num : int
+        poolsize : int
+    
+    
+    """
+    database_name = "message_store"
+    main_col_name = "data_service"
+    landing_col_name = "landing_service_db"
+
+    def __init__(self, ip_address, port_num,poolsize):
+        
+        #access database
+        self.dbInfo= AbstractDatabaseInfo(ip_address, port_num, poolsize)
+        self.mainDB = self.dbInfo.access_database(self.database_name)
+    
+        #mongodb
+        self.main_collection = self.get_collection(self.mainDB, self.main_col_name)      
+        self.landing_collection = self.get_collection(self.mainDB, self.landing_col_name)
+
+        #ros service proxies with mongodb
+        self.data_srv_col_prox = MessageStoreProxy(collection=self.main_col_name)    
+        self.landing_srv_col_prox = MessageStoreProxy(collection= self.landing_col_name)
+
+        #self.dataBaseInfo.retrieve_all_objects()
         self.sub = None
 
-    def listen_for_incoming(self):
-        """listen for any incoming objects"""
-        pass
+    @classmethod
+    def get_collection(self,database, col_name):
+        """class method that returns collection from mongodb database input and collection name"""
+        collection = database[col_name]
+        return collection
 
     def main(self):
         """main function implementation"""
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(0.25)
         while not rospy.is_shutdown():
-            rospy.sleep(rate)
+            self.listen_for_incoming()
+            rate.sleep()
 
-def does_uav_exist(uav_name, collection):
-    myquery = {"_id": uav_name}
-    cursor = collection.find(myquery)
-    if cursor.count() == 0: #means no uav is in there
-        return False
+    def listen_for_incoming(self):
+        """listen for any incoming objects"""
+        myquery = {"pairs": {"$exists": True}}
 
-def is_collection_empty(collection):
-    """checks if collection has field name 
-    field name is type string
-    return True if it does"""
-    #myquery = {field_name: {"$exists": True}} 
-    if collection.count(()) == 0:
-        return True
+        for doc in self.main_collection.find(myquery):
+            meta_info = doc['_meta']
+            uav_name = meta_info['name']
+            bat_val = self.get_uav_battery_info(uav_name=uav_name)
+
+            if (self.get_uav_srv_info(uav_name) == False) or (self.does_uav_exist(uav_name) == True):
+                continue
+
+            if (self.is_landing_collection_empty()== True) or (self.does_uav_exist(uav_name) == False):
+                self.insert_to_landing_collection(uav_name, bat_val, 0)
+
+    def get_uav_srv_info(self, uav_name):
+        """get uav service request info"""
+        for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+            srv_msg_type = item.pairs[3].first 
+            srv_id = item.pairs[3].second
+            srv_val = self.data_srv_col_prox.query_id(srv_id, srv_msg_type)[0].data
+            if srv_val == False:
+                print(uav_name + " " + "does not want the service\n")
+            return srv_val
+
+    def get_uav_battery_info(self, uav_name):
+        """get battery information"""
+        for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+            batter_msg_type = item.pairs[0].first 
+            battery_id = item.pairs[0].second
+            battery_val = self.data_srv_col_prox.query_id(battery_id, batter_msg_type)[0].data
+
+            return battery_val
+
+    def insert_to_landing_collection(self, uav_name, battery_val, state_val):
+        """insert to landing collection the uav name, battery, and state of service"""
+        post = {"_id": uav_name,
+                "uav_name": uav_name,
+                "battery" : battery_val,
+                "landing_service_status": state_val
+        }
+        self.landing_collection.insert_one(post)
+        print(uav_name + " " + "added to database\n")
+    
+    def is_landing_collection_empty(self):
+        """checks if collection has field name 
+        field name is type string
+        return True if it does"""
+        #myquery = {field_name: {"$exists": True}} 
+        if self.landing_collection.count(()) == 0:
+            return True
+
+    def does_uav_exist(self,uav_name):
+        """check if uav key exists in this database"""
+        myquery = {"_id": uav_name}
+        cursor = self.landing_collection.find(myquery)
+        if cursor.count() == 0: #means no uav is in there
+            return False
+        else:
+            print(uav_name + " " + "exists already in database\n")
         
-
 if __name__ == '__main__':
     """
     listen for uavs that are requesting a service 
@@ -134,68 +224,18 @@ if __name__ == '__main__':
     """
 
     rospy.init_node("landing_service_database")
-    data_srv_col_prox = MessageStoreProxy(collection='data_service')    
-    landing_srv_col_prox = MessageStoreProxy(collection='landing_service_db')
 
     ip_address = "127.0.0.1"
     port_num = 27017
     poolsize = 100
     
-    mainDB = AbstractDatabaseInfo(ip_address, port_num, poolsize)
-    db = mainDB.access_database('message_store')
-    srv_collection = db['data_service'] #go to respective collections
-    landing_srv_collection = db['landing_service_db']
+    landingDBNode  = LandingDBNode(ip_address=ip_address, port_num=port_num, poolsize=poolsize)
+    srv_collection = landingDBNode.main_collection
+    landing_srv_collection = landingDBNode.landing_collection
 
     try:
-        myquery = {"pairs": {"$exists": True}} # {"field name": {"$condition": True}} 
-        """loop through retrieve meta information
-        check name of drone and see if its requesting service"""
-        for doc in srv_collection.find(myquery):
-            #print("doc is", doc)
-            #battery_life = doc['battery']
-            meta_info = doc['_meta']
-            uav_name = meta_info['name']
-            print("checking", uav_name)
-            #check if uav wants to use the service
-            for item,meta in data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
-                srv_id = item.pairs[3].second
-                srv_val = data_srv_col_prox.query_id(srv_id, Bool._type)[0].data
-                print("service val is:",srv_val)
-
-                #if the uav does not want the service then we ignore
-                if srv_val == False:
-                    print(uav_name + " " + "does not want the service\n")
-                    continue
-
-                battery_id = item.pairs[0].second
-                battery_val = data_srv_col_prox.query_id(battery_id, Int32._type)[0].data
-
-                #if collection is empty we slap on that first drone if its requesting info
-                if is_collection_empty(landing_srv_collection):
-                    post = {"_id": uav_name,
-                            "uav_name": uav_name,
-                            "battery" : battery_val,
-                            "landing_service_status": 0
-                    }
-                    landing_srv_collection.insert_one(post)
-                    print(uav_name + " " + "added to database\n")
-                
-                else:
-                    print("database is not empty")
-                    #check if uav is already in database
-                    if does_uav_exist(uav_name, landing_srv_collection) == False:
-                        post = {"_id": uav_name,
-                                "uav_name": uav_name,
-                                "battery" : battery_val,
-                                "landing_service_status": 0
-                        }
-                        landing_srv_collection.insert_one(post)
-                        print(uav_name + " " + "added to database\n")
-                        
-                    else:
-                        print(uav_name + " " + "exists already in database\n")
-
-
+        #landingDBNode.listen_for_incoming()
+        landingDBNode.main()
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
