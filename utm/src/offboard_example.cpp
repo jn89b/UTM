@@ -38,11 +38,17 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
+    float offset_x;
+    float offset_y;
+    nh.getParam("offboard_example/offset_x", offset_x);
+    nh.getParam("offboard_example/offset_y", offset_y);
+    std::cout<<"param x"<<offset_x<<std::endl;
+    
     geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
+    pose.pose.position.x = 0 - offset_x;
+    pose.pose.position.y = 0 - offset_y;
     pose.pose.position.z = 2;
-
+    
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i){
         local_pos_pub.publish(pose);

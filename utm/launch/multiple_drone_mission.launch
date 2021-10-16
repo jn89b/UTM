@@ -1,24 +1,35 @@
 <launch>
     <!--send drones on mission-->
-
+    <!--map your ned_x and ned_y from json file here-->
     <group ns="uav0">
-        <arg name="offset_ned_x" default="0"/>
-        <arg name="offset_ned_y" default="0"/>
+        <arg name="ned_x" default="-20"/>
+        <arg name="ned_y" default="20.0"/>
        <include file="$(find utm)/launch/offboard_launch.launch">
             <!--offsets from airsim look at json file settings-->
-            <arg name="offset_ned_x" value="$(arg offset_ned_x)"/>
-            <arg name="offset_ned_y" value="$(arg offset_ned_y)"/>
+            <arg name="offset_x" value="$(arg ned_y)"/>
+            <arg name="offset_y" value="$(arg ned_x)"/>
+
+            <arg name="init_x" value="0.0"/>
+            <arg name="init_y" value="4.5"/>
+            <arg name="init_z" value="5.0"/>
         </include> 
     </group>
 
 
     <group ns="uav1">
-        <arg name="offset_ned_x" default="0"/>
-        <arg name="offset_ned_y" default="0"/>
+        <arg name="ned_x" default="20.0"/>
+        <arg name="ned_y" default="-20.0"/>
        <include file="$(find utm)/launch/offboard_launch.launch">
             <!--offsets from airsim look at json file settings-->
-            <arg name="offset_ned_x" value="$(arg offset_ned_x)"/>
-            <arg name="offset_ned_y" value="$(arg offset_ned_y)"/>
+            <arg name="offset_x" value="$(arg ned_y)"/>
+            <arg name="offset_y" value="$(arg ned_x)"/>
+
+            <!--this is where the apriltag is at, remember
+            its flipped so x,y in unreal is y,x in ros-->
+            <arg name="init_x" value="5.1"/>
+            <arg name="init_y" value="4.1"/>
+            <arg name="init_z" value="6.0"/>
+
         </include> 
     </group>
 

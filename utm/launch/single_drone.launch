@@ -43,7 +43,7 @@
         </include>
 
         <include file="$(find utm)/launch/broadcast_tf.launch">
-            <arg name ="tf_quad" value="/uav0_wrt_world"/>
+            <arg name ="quad_tf" value="/uav0_wrt_world"/>
             <arg name ="world_tf" value="/world_enu"/>
             <arg name ="rtagdrone" value="/tag_wrt_uav0"/>
             <arg name="camera_name" value="$(arg uav_0_camera_name)"/>

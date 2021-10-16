@@ -61,8 +61,6 @@ class MavrosTF():
 
         self.pub.publish(posestamped)
 
-
-
     def main(self):
         rate = rospy.Rate(20)
         self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(2.5))

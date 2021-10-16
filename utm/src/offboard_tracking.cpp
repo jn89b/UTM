@@ -72,9 +72,9 @@ class Controller
         int landing_decision_case; 
 
         //initial pose commands
-        float init_x = 0.0;
-        float init_y = 3.0;
-        float init_z = 4.0;
+        float init_x; 
+        float init_y;
+        float init_z;
 
         //offsets
         float offset_x;
@@ -116,8 +116,12 @@ class Controller
                     ("mavros/set_mode");
 
             //params for offset from mavros
-            nh.getParam("offset_ned_x", offset_y);
-            nh.getParam("offset_ned_y", offset_x);
+            nh.getParam("offboard_tracking/offset_x", offset_x);
+            nh.getParam("offboard_tracking/offset_y", offset_y);
+            
+            nh.getParam("offboard_tracking/init_x", init_x);
+            nh.getParam("offboard_tracking/init_y", init_y);
+            nh.getParam("offboard_tracking/init_z", init_z);
             //services
 
             //the setpoint publishing rate MUST be faster than 2Hz
@@ -130,8 +134,8 @@ class Controller
             }
 
             //send initial points
-            pose.pose.position.x = init_x;
-            pose.pose.position.y = init_y;
+            pose.pose.position.x = init_x - offset_x;
+            pose.pose.position.y = init_y - offset_y;
             pose.pose.position.z = init_z;
 
             //send a few setpoints before starting
@@ -278,7 +282,7 @@ class Controller
 
     void quad_odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        odom_x = (msg->pose.pose.position.x); 
+        odom_x = (msg->pose.pose.position.x);
         odom_y = (msg->pose.pose.position.y); 
         odom_z = msg->pose.pose.position.z;
         //ROS_INFO("odom_x: %f, odom_y:", odom_x, odom_y); 
@@ -494,8 +498,8 @@ class Controller
 
     void go_home()
     {
-        pose.pose.position.x = init_x;
-        pose.pose.position.y = init_y;
+        pose.pose.position.x = init_x - offset_x;
+        pose.pose.position.y = init_y - offset_y;
         pose.pose.position.z = init_z;
         //std::cout << "no target:" << target_found << std::endl;
         local_pos_pub.publish(pose);
