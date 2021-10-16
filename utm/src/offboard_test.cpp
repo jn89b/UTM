@@ -80,10 +80,13 @@ class Controller
         int landing_decision_case;
 
         //initial pose commands
-        float init_x = 0.0;
-        float init_y = 3.0;
-        float init_z = 4.0;
+        float init_x; 
+        float init_y;
+        float init_z;
 
+        //offsets
+        float offset_x;
+        float offset_y;
         bool avg_stabilize;
         bool begin_land;
 
@@ -104,7 +107,7 @@ class Controller
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
                     ("kf_tag/pose", 10, &Controller::kftag_cb,this);
             quad_odom_sub = nh.subscribe<nav_msgs::Odometry>
-                ("/mavros/odometry/in",15, &Controller::quad_odom_callback, this);
+                ("mavros/odometry/in",15, &Controller::quad_odom_callback, this);
             true_quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
                             ("mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
@@ -132,6 +135,15 @@ class Controller
             //the setpoint publishing rate MUST be faster than 2Hz
             ros::Rate rate(20.0);
 
+            //params for offset from mavros
+            nh.getParam("offboard_test/offset_x", offset_x);
+            nh.getParam("offboard_test/offset_y", offset_y);
+            
+            nh.getParam("offboard_test/init_x", init_x);
+            nh.getParam("offboard_test/init_y", init_y);
+            nh.getParam("offboard_test/init_z", init_z);
+            //services
+
             // wait for FCU connection
             while(ros::ok() && !current_state.connected){
                 ros::spinOnce();
@@ -139,8 +151,8 @@ class Controller
             }
 
             //send initial points
-            pose.pose.position.x = init_x;
-            pose.pose.position.y = init_y;
+            pose.pose.position.x = init_x - offset_x;
+            pose.pose.position.y = init_y - offset_y;
             pose.pose.position.z = init_z;
 
             //send a few setpoints before starting
@@ -346,7 +358,7 @@ class Controller
         while (ros::ok()){
             PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
             PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
-
+            ROS_DEBUG("Hello %s", "Beginning Land");
             float p_x = pid_x.getPID();
             float p_y = pid_y.getPID();
             Eigen::Vector2d gain(p_x, p_y);
@@ -381,8 +393,8 @@ class Controller
 
     void go_home()
     {
-        pose.pose.position.x = init_x;
-        pose.pose.position.y = init_y;
+        pose.pose.position.x = init_x - offset_x;
+        pose.pose.position.y = init_y - offset_y;
         pose.pose.position.z = init_z;
         local_pos_pub.publish(pose);
     }
@@ -419,15 +431,15 @@ class Controller
 
     void pre_land_protocol(Eigen::Vector2d gain, float drop_down_val)
     {
-        pose.pose.position.x = odom_x - gain[0];
-        pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
+        pose.pose.position.x = odom_x + gain[0];
+        pose.pose.position.y = odom_y + gain[1]; // pretty much keep at where we are 
         pose.pose.position.z = odom_z - drop_down_val; //keep it at this general area 
     }
 
     void stabilize(Eigen::Vector2d gain, float current_z)
     {
-        pose.pose.position.x = odom_x - gain[0];
-        pose.pose.position.y = odom_y - gain[1]; // pretty much keep at where we are 
+        pose.pose.position.x = odom_x + gain[0];
+        pose.pose.position.y = odom_y + gain[1]; // pretty much keep at where we are 
         pose.pose.position.z = current_z; //keep it at this general area 
         local_pos_pub.publish(pose);
         ros::spinOnce();

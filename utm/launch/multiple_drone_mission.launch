@@ -2,8 +2,8 @@
     <!--send drones on mission-->
     <!--map your ned_x and ned_y from json file here-->
     <group ns="uav0">
-        <arg name="ned_x" default="-20"/>
-        <arg name="ned_y" default="20.0"/>
+        <arg name="ned_x" default="3.0"/>
+        <arg name="ned_y" default="-3.0"/>
        <include file="$(find utm)/launch/offboard_launch.launch">
             <!--offsets from airsim look at json file settings-->
             <arg name="offset_x" value="$(arg ned_y)"/>
@@ -17,8 +17,8 @@
 
 
     <group ns="uav1">
-        <arg name="ned_x" default="20.0"/>
-        <arg name="ned_y" default="-20.0"/>
+        <arg name="ned_x" default="-6.0"/>
+        <arg name="ned_y" default="6.0"/>
        <include file="$(find utm)/launch/offboard_launch.launch">
             <!--offsets from airsim look at json file settings-->
             <arg name="offset_x" value="$(arg ned_y)"/>

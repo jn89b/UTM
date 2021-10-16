@@ -16,6 +16,7 @@
             <arg name="old_target_tf" value="downwards_custom_0_optical"/>
             <!--<arg name="old_target_tf" value="$(arg old_target_tf)"/>-->
         </include>
+        <node pkg="utm" type="moving_avg_main" name="moving_avg_main"/>
     </group>
 
     <group ns="uav1">
@@ -35,6 +36,7 @@
             <arg name="old_target_tf" value="downwards_custom_1_optical"/>
             <!--<arg name="old_target_tf" value="$(arg old_target_tf)"/>-->
         </include>
+        <node pkg="utm" type="moving_avg_main" name="moving_avg_main"/>
     </group>
 
 </launch>

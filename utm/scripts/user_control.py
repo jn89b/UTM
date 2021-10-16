@@ -37,7 +37,6 @@ class UserControl():
         self.user_control_pub = rospy.Publisher("uav0/user_control", Int8, queue_size= 10)
         self.pub = rospy.Publisher("/uav0/precland", Bool, queue_size=10)
         self.sub = rospy.Subscriber("uav0/target_found", Bool, self.target_foundcb)
-        quad_odom_sub = rospy.Subscriber("uav0/mavros/offset_local_position/pose", PoseStamped, self.quad_odom_cb)
         
         self.user_input = Int8()
         
