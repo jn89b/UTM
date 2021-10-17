@@ -31,7 +31,7 @@
             <arg name="camera_name" value="$(arg uav_1_camera_name)"/>
             <arg name="frame_tag_id" value="/tag_1"/> <!--looking for tag 1-->
 
-            <arg name="id_tag" value="1"/> 
+            <arg name="id_tag" value="  1"/> 
             <arg name="height_from_tag" value="1"/>
             <arg name="old_target_tf" value="downwards_custom_1_optical"/>
             <!--<arg name="old_target_tf" value="$(arg old_target_tf)"/>-->

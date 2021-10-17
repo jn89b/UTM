@@ -9,8 +9,8 @@
             <arg name="offset_x" value="$(arg ned_y)"/>
             <arg name="offset_y" value="$(arg ned_x)"/>
 
-            <arg name="init_x" value="0.0"/>
-            <arg name="init_y" value="4.5"/>
+            <arg name="init_x" value="5.0"/>
+            <arg name="init_y" value="-8.0"/>
             <arg name="init_z" value="5.0"/>
         </include> 
     </group>
@@ -26,8 +26,8 @@
 
             <!--this is where the apriltag is at, remember
             its flipped so x,y in unreal is y,x in ros-->
-            <arg name="init_x" value="5.1"/>
-            <arg name="init_y" value="4.1"/>
+            <arg name="init_x" value="6"/>
+            <arg name="init_y" value="0.0"/>
             <arg name="init_z" value="6.0"/>
 
         </include> 

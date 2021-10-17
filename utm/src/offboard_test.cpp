@@ -358,7 +358,6 @@ class Controller
         while (ros::ok()){
             PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
             PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
-            ROS_DEBUG("Hello %s", "Beginning Land");
             float p_x = pid_x.getPID();
             float p_y = pid_y.getPID();
             Eigen::Vector2d gain(p_x, p_y);

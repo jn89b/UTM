@@ -7,12 +7,14 @@ import rospy
 import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
 
+from utm import Database
 from mongodb_store_msgs.msg import StringPairList, StringPair
 from mongodb_store.message_store import MessageStoreProxy
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Bool
 from datetime import *
 import platform
+
 
 if float(platform.python_version()[0:2]) >= 3.0:
     import io
@@ -50,6 +52,16 @@ def generate_meta_info(name):
     meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
     return meta
 
+def insert_to_landing_zones_col(collection,zone, location, open_close):
+    """insert to landing collection the uav name, battery, and state of service"""
+    post = {"_id": zone,
+            "Zone Number": zone,
+            "location" : location,
+            "Vacant": open_close
+    }
+    collection.insert_one(post)
+    #print(zone + " " + "added to database\n")
+
 if __name__ == '__main__':
     """
     input number of zones 
@@ -59,12 +71,22 @@ if __name__ == '__main__':
     """
     rospy.init_node("landing_zone_db")
     
+    ip_address = "127.0.0.1"
+    port_num = 27017
+    poolsize = 100
+    database_name = "message_store"
+    landing_zone_col_name = "landing_zones"
+
+    dbInfo = Database.AbstractDatabaseInfo(ip_address, port_num, poolsize)
+    mainDB = dbInfo.access_database(database_name)
+    landing_collection = mainDB[landing_zone_col_name]
+
     num_zones = 4
     """need to map this to landing zone bases"""
-    p_0 = Pose(Point(0, 1, 0), Quaternion(0,0,0,1))
-    p_1 = Pose(Point(0, 4, 0), Quaternion(0,0,0,1))
-    p_2 = Pose(Point(1, 0, 0), Quaternion(0,0,0,1))
-    p_3 = Pose(Point(4, 0, 0), Quaternion(0,0,0,1))
+    p_0 = Pose(Point(0, 1, 0), Quaternion(0,0,0,0))
+    p_1 = Pose(Point(0, 4, 0), Quaternion(0,0,0,0))
+    p_2 = Pose(Point(1, 0, 0), Quaternion(0,0,0,0))
+    p_3 = Pose(Point(4, 0, 0), Quaternion(0,0,0,0))
     p_list = [p_0, p_1, p_2, p_3]
     isvacant = Bool(False)
 
@@ -81,11 +103,18 @@ if __name__ == '__main__':
             -is zone vacant or empty 
             -string pair list of id 
         """
+        #map this with airsim location of where the apriltags are 
+        insert_to_landing_zones_col(landing_collection, "Zone_0", [0, 4.5], True)
+        insert_to_landing_zones_col(landing_collection, "Zone_1", [5.7, 4.1], True)
+        insert_to_landing_zones_col(landing_collection, "Zone_2", [0, 0], False)
+        #insert_to_landing_zones_col(landing_collection, "Zone_3", [-10, -4], True)
+        """
         for index, zone in enumerate(zone_names_list):
             stored = wrap_database_info(p_list[index], isvacant, msg_store)
             spl = combine_info_ids(stored)
             meta_info = generate_meta_info(zone)
             msg_store.insert(spl,meta_info) 
+        """
         
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
