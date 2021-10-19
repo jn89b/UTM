@@ -19,7 +19,13 @@ else:
 class LandingDBNode():
     """
     LandingDB appends all UAVs that are requesting the third party landing service
-    assigns initial state of UAV as 0
+    assigns initial state of UAV 
+    String messages from UAV are as follows:
+        -uav battery -- Int32 
+        -uav position information global reference(pose and quat)
+        -uav waypoint waypoint position as tuple(pose and quat)
+        -uav service request -- Bool
+        -uav state -- String
 
     Attributes
     dbInfo : Database.AbstractDatabaseInfo()
@@ -65,7 +71,7 @@ class LandingDBNode():
             rate.sleep()
 
     def listen_for_incoming(self):
-        """listen for any incoming objects"""
+        """listen for any incoming uavs"""
         myquery = {"pairs": {"$exists": True}}
 
         for doc in self.main_collection.find(myquery):
@@ -73,7 +79,7 @@ class LandingDBNode():
             uav_name = meta_info['name']
             bat_val = self.get_uav_battery_info(uav_name=uav_name)
             uav_cur_loc = self.get_uav_info(uav_name, 1)
-            #print(uav_cur_loc)
+            print(uav_cur_loc)
 
             if (self.get_uav_srv_info(uav_name) == False) or (self.does_uav_exist(uav_name) == True):
                 continue

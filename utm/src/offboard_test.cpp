@@ -139,9 +139,6 @@ class Controller
             set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
                     ("uav0/mavros/set_mode");
 
-            //the setpoint publishing rate MUST be faster than 2Hz
-            ros::Rate rate(20.0);
-
             //params for offset from mavros
             nh.getParam("uav0/offboard_landing/offset_x", offset_x);
             nh.getParam("uav0/offboard_landing/offset_y", offset_y);
@@ -150,6 +147,9 @@ class Controller
             nh.getParam("uav0/offboard_landing/init_y", init_y);
             nh.getParam("uav0/offboard_landing/init_z", init_z);
             //services
+
+            //the setpoint publishing rate MUST be faster than 2Hz
+            ros::Rate rate(20.0);
 
             // wait for FCU connection
             while(ros::ok() && !current_state.connected){
@@ -198,11 +198,12 @@ class Controller
                     case 2: //we can land
                         ROS_INFO("landing");
                         begin_land_protocol(gain);
-                    case 3: //Land WHere you are at
-                        //ROS_INFO("stabilizing");
-                        curr_z_ptr = &curr_z;
-                        curr_z = go_follow(gain, 4.0);
                         break;
+                    case 3: //Land WHere you are at
+                        ROS_INFO("sending home");
+                        rearm_send_home();
+                        //
+                        //break;
                     case 4:
                         go_home();
                         break;
@@ -364,9 +365,7 @@ class Controller
         pose.pose.position.x = utm_x - offset_x;;
         pose.pose.position.y = utm_y - offset_y;
         pose.pose.position.z = utm_z;
-
         local_pos_pub.publish(pose);
-
     }
 
     //Pointer functions -> probably put in a seperate library like how ardupilot does it
@@ -385,14 +384,13 @@ class Controller
     // this function is too long 
     void begin_land_protocol(Eigen::Vector2d gain )
     {   
-        while (ros::ok()){
+        {
             PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
             PID pid_y(kp, ki, kd, dt, kf_y, odom_y);
             float p_x = pid_x.getPID();
             float p_y = pid_y.getPID();
             Eigen::Vector2d gain(p_x, p_y);
             check_landing_cases(); 
-            ros::Rate rate(20.0);
             switch(landing_decision_case)
             {
                 case 1: //drop slowly to landing target
@@ -413,8 +411,6 @@ class Controller
                     break;
             }
             local_pos_pub.publish(pose);
-            ros::spinOnce();
-            rate.sleep();  
         }
     }
 
@@ -431,10 +427,6 @@ class Controller
         local_pos_pub.publish(pose);
     }
     
-    void go_find()
-    {   
-        printf("I'm lost");
-    }
 
     void check_landing_cases()
     {
@@ -479,11 +471,8 @@ class Controller
 
     void land_disarm_protcol()
     {   // need to clean this up or check if you're out of sight...
-        while(ros::ok())
-        {
             //ROS_INFO("Beginning Land");
             ros::Rate rate(20.0);
-
             //set to prelanding hover/ hover to around 
             set_mode.request.custom_mode = "AUTO.LAND";
             arm_cmd.request.value = false;
@@ -494,7 +483,43 @@ class Controller
                 setmode_arm(last_request, "AUTO.LAND", arm_cmd);
                 ros::spinOnce();
                 rate.sleep();
+                ROS_INFO("I have disarmed");
+                if (service_input == 3) 
+                {
+                    ROS_INFO("I hear a post flight");
+                    break;
+                }
             }
+    }
+
+    void rearm_send_home()
+    {
+        ros::Rate rate(20.0);
+        while(ros::ok() && !current_state.connected){
+            ros::spinOnce();
+            rate.sleep();
+        }
+        
+        //send initial points
+        pose.pose.position.x = init_x - offset_x;
+        pose.pose.position.y = init_y - offset_y;
+        pose.pose.position.z = init_z;
+                    
+        for(int i = 100; ros::ok() && i > 0; --i){
+            local_pos_pub.publish(pose);
+            ros::spinOnce();
+            rate.sleep();
+        }
+
+        ros::Time last_request = ros::Time::now();
+        set_mode.request.custom_mode = "OFFBOARD";
+        arm_cmd.request.value = true;
+
+        while(ros::ok()){
+            setmode_arm(last_request, "OFFBOARD", arm_cmd);
+            waypoint_assignment();
+            ros::spinOnce();
+            rate.sleep();
         }
     }
 };

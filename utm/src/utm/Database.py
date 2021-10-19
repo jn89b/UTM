@@ -154,13 +154,6 @@ class ZonePlanner():
         
         return zone_coords
 
-    def plan_uav_path(self):
-        """takes in uav"""
-        pass
-
-    def send_wp_cmds(self):
-        """open up multiple threads to send waypoints to drones"""
-
     def generate_publishers(self, uavs):
         uavObject_list = []
         for uav in uavs:
@@ -178,9 +171,6 @@ class ZonePlanner():
             return True
         else:
             return False
-
-    def check_valid_uav_coords(uav_coords):
-        """make sure uav coords are not none type"""
 
     def update_uav_state(self, uav_name, new_status):
         self.landing_service_col.update({"uav_name": uav_name},

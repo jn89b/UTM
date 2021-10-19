@@ -147,6 +147,7 @@ catkin_install_python(PROGRAMS
     scripts/landing_service_nodes/pre_landing_service.py
     scripts/landing_service_nodes/path_planner_service.py
     scripts/landing_service_nodes/landing_state_service.py
+    scripts/landing_service_nodes/post_flight_service.py
 
     tests/mongo_db_test.py
     tests/mongo_recieve_info.py

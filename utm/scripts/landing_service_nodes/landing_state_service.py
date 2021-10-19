@@ -30,16 +30,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         for idx, uav in enumerate(uav_class_list[:]):
             uav.send_utm_state_command(2)
-            
             print(uav.name)
-            #landingStateService.update_uav_state(uav.name)
-
-            #print(uav_class_list[i].uav_pos_pub)
-            #uav_class_list[i].send_waypoint_command(zone_coord_list[i])
-            #t = threading.Thread(target=uav.send_utm_state_command(2), args=(idx,))
-            #t.start()
-            #threads.append(t)
-        #rospy.spin()
         rate.sleep()
 
 
