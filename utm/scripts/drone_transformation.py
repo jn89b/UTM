@@ -37,7 +37,7 @@ class MavrosTF():
 
     #convert transformation R mavros/px4 odom
     def broadcast_drone_tf(self):
-
+ 
         now = rospy.Time.now()
         self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(2.5))
         (trans,rot) = self.tf_listener_.lookupTransform(self.new_source_tf,self.old_target_tf,rospy.Time(0))
@@ -49,7 +49,7 @@ class MavrosTF():
         self.br.sendTransform((x,y,z),(rot[0],rot[1],rot[2],rot[3]),now,self.new_tf, self.new_source_tf)
         #publish posestamped
         posestamped = PoseStamped()
-        posestamped.header.frame_id = "drone_offset"
+        posestamped.header.frame_id = self.new_tf
         posestamped.pose.position.x = x
         posestamped.pose.position.y = y
         posestamped.pose.position.z = z
@@ -62,14 +62,15 @@ class MavrosTF():
         self.pub.publish(posestamped)
 
     def main(self):
-        rate = rospy.Rate(20)
+        rate = rospy.Rate(10)
         self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(2.5))
         while not rospy.is_shutdown():
             try:
                 self.broadcast_drone_tf()
                 rate.sleep()
             except (tf.LookupException, tf.ConnectivityException):
-                rate.sleep()
+                continue
+                #rate.sleep()
 
             
 if __name__ == '__main__':

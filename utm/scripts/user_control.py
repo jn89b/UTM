@@ -34,7 +34,7 @@ class UserControl():
         }
         self.cmd = None
 
-        self.user_control_pub = rospy.Publisher("uav0/user_control", Int8, queue_size= 10)
+        self.user_control_pub = rospy.Publisher("uav0/utm_control", Int8, queue_size= 10)
         self.pub = rospy.Publisher("/uav0/precland", Bool, queue_size=10)
         self.sub = rospy.Subscriber("uav0/target_found", Bool, self.target_foundcb)
         

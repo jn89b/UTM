@@ -53,7 +53,7 @@ class AprilTagPositionPub():
             y = overall_pose.position.y/scale_factor
             z = overall_pose.position.z/scale_factor
             
-            self.tf_listener_.waitForTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0), rospy.Duration(2.5))
+            self.tf_listener_.waitForTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0), rospy.Duration(5.5))
 
             (trans,rot) = self.tf_listener_.lookupTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0))
             #print(trans,rot)

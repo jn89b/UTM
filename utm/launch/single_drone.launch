@@ -13,8 +13,7 @@
     <!--args for camera published from airsim so we can map to apriltag-->
     <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   
 	<arg name="uav_0_camera_info" default="$(arg uav_0_camera_name)/camera_info"/>
-    
-    
+
 	<remap from="/airsim_node/PX4_0/downwards_custom_0/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
 
 	<!--Launch Airsim Node-->

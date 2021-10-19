@@ -25,7 +25,7 @@ class Controller
         ros::Publisher local_pos_pub, vel_pub;
         ros::Subscriber state_sub, target_found_sub, rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
         ros::Subscriber rtag_ekf_vel_sub, land_permit_sub, true_quad_odom_sub;
-        ros::Subscriber moving_avg_sub, user_input_sub;
+        ros::Subscriber moving_avg_sub, service_input_sub,utm_position_cmd_sub;
         
         //mavros service clients for arming and setting modes
         ros::ServiceClient arming_client, set_mode_client;
@@ -90,7 +90,11 @@ class Controller
         bool avg_stabilize;
         bool begin_land;
 
-        int user_input = 0;
+        int service_input = 4;
+        //utm stuff
+        float utm_x;
+        float utm_y;
+        float utm_z;
         //class pid
         //PID(float kp, float ki, float kd, float dt, float target, float current);
 
@@ -99,49 +103,52 @@ class Controller
         {
             //subscribers
             state_sub = nh.subscribe<mavros_msgs::State>
-                    ("mavros/state", 10, &Controller::state_cb, this);
+                    ("uav0/mavros/state", 10, &Controller::state_cb, this);
             target_found_sub = nh.subscribe<std_msgs::Bool>
-                    ("target_found", 10, &Controller::target_found_cb,this);
+                    ("uav0/target_found", 10, &Controller::target_found_cb,this);
             rtag_quad_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("tag/pose", 10, &Controller::rtagquad_cb,this);
+                    ("uav0/tag/pose", 10, &Controller::rtagquad_cb,this);
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("kf_tag/pose", 10, &Controller::kftag_cb,this);
+                    ("uav0/kf_tag/pose", 10, &Controller::kftag_cb,this);
             quad_odom_sub = nh.subscribe<nav_msgs::Odometry>
-                ("mavros/odometry/in",15, &Controller::quad_odom_callback, this);
+                ("uav0/mavros/odometry/in",15, &Controller::quad_odom_callback, this);
             true_quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                            ("mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
+                            ("uav0/mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
-                ("kf_tag/vel", 10, &Controller::kftagvel_cb,this);
+                ("uav0/kf_tag/vel", 10, &Controller::kftagvel_cb,this);
             land_permit_sub = nh.subscribe<std_msgs::Bool>
-                    ("precland", 10, &Controller::land_permit_cb,this);
+                    ("uav0/precland", 10, &Controller::land_permit_cb,this);
             moving_avg_sub = nh.subscribe<std_msgs::Bool>
-                    ("stabilize_tag", 10, &Controller::moving_avg_cb,this);
+                    ("uav0/stabilize_tag", 10, &Controller::moving_avg_cb,this);
 
-            user_input_sub = nh.subscribe<std_msgs::Int8>
-                            ("user_control", 10, &Controller::usercontrol_cb,this);
+            service_input_sub = nh.subscribe<std_msgs::Int8>
+                            ("uav0/utm_control", 10, &Controller::landing_service_cb,this);
+
+            utm_position_cmd_sub = nh.subscribe<geometry_msgs::PoseStamped>
+                    ("uav0/utm/mavros/setpoint_position/local", 10, &Controller::utm_cb,this);
 
             local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
-                    ("mavros/setpoint_position/local", 10);
+                    ("uav0/mavros/setpoint_position/local", 10);
             vel_pub = nh.advertise<geometry_msgs::TwistStamped>
-                    ("/mavros/setpoint_velocity/cmd_vel", 10);
+                    ("uav0/mavros/setpoint_velocity/cmd_vel", 10);
 
             
             //services
             arming_client = nh.serviceClient<mavros_msgs::CommandBool>
-                ("mavros/cmd/arming");
+                ("uav0/mavros/cmd/arming");
             set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
-                    ("mavros/set_mode");
+                    ("uav0/mavros/set_mode");
 
             //the setpoint publishing rate MUST be faster than 2Hz
             ros::Rate rate(20.0);
 
             //params for offset from mavros
-            nh.getParam("offboard_test/offset_x", offset_x);
-            nh.getParam("offboard_test/offset_y", offset_y);
+            nh.getParam("uav0/offboard_landing/offset_x", offset_x);
+            nh.getParam("uav0/offboard_landing/offset_y", offset_y);
             
-            nh.getParam("offboard_test/init_x", init_x);
-            nh.getParam("offboard_test/init_y", init_y);
-            nh.getParam("offboard_test/init_z", init_z);
+            nh.getParam("uav0/offboard_landing/init_x", init_x);
+            nh.getParam("uav0/offboard_landing/init_y", init_y);
+            nh.getParam("uav0/offboard_landing/init_z", init_z);
             //services
 
             // wait for FCU connection
@@ -180,11 +187,11 @@ class Controller
                 float p_y = pid_y.getPID();
                 Eigen::Vector2d gain(p_x, p_y);
             
-                switch(user_input)
+                switch(service_input)
                 {   
-                    case 0:
-                        go_home();
-                        break ;
+                    case 0: 
+                        waypoint_assignment();
+                        break;
                     case 1: // Track 
                         curr_z = go_follow(gain, 4.0);
                         break;
@@ -195,6 +202,9 @@ class Controller
                         //ROS_INFO("stabilizing");
                         curr_z_ptr = &curr_z;
                         curr_z = go_follow(gain, 4.0);
+                        break;
+                    case 4:
+                        go_home();
                         break;
                 }
 
@@ -246,8 +256,9 @@ class Controller
         kd = 0.0;
         dt = 0.1;
 
+
         //set decision case to go stay where they are at initially
-        user_input = 0;
+        service_input = 4;
         landing_decision_case = 1;
     }
 
@@ -258,9 +269,17 @@ class Controller
     }
 
 
-    void usercontrol_cb(const std_msgs::Int8::ConstPtr& msg)
+    void landing_service_cb(const std_msgs::Int8::ConstPtr& msg)
     {   
-        user_input = msg->data;
+        service_input = msg->data;
+    }
+
+    void utm_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+    {
+        utm_x = msg->pose.position.x;
+        utm_y = msg->pose.position.y;
+        utm_z = msg->pose.position.z;
+
     }
 
     void target_found_cb(const std_msgs::Bool::ConstPtr& msg)
@@ -339,6 +358,17 @@ class Controller
         }
     }
     
+    void waypoint_assignment()
+    {   
+        //listen to utm waypoint commands 
+        pose.pose.position.x = utm_x - offset_x;;
+        pose.pose.position.y = utm_y - offset_y;
+        pose.pose.position.z = utm_z;
+
+        local_pos_pub.publish(pose);
+
+    }
+
     //Pointer functions -> probably put in a seperate library like how ardupilot does it
     float go_follow(Eigen::Vector2d gain, float z_cmd)
     {   
@@ -367,15 +397,18 @@ class Controller
             {
                 case 1: //drop slowly to landing target
                     ROS_INFO("dropping down slowly");
-                    pre_land_protocol(gain, 1E-4);
+                    pre_land_protocol(gain, 0.35);
                     break;
                 case 2:
+                    ROS_INFO("disarming");
                     land_disarm_protcol();
                     break;
                 case 3:
+                    ROS_INFO("already landed");
                     already_landed();
                     break;
                 case 4:
+                    ROS_INFO("stablizing");
                     stabilize(gain, odom_z);
                     break;
             }
@@ -406,15 +439,15 @@ class Controller
     void check_landing_cases()
     {
         // should be a hashtable or struct
-        const float pre_land = 0.9; //this is an offset from the actual height
-        const float z_land = 0.65; //need to set this as offset
+        const float z_land = 0.80; //this is an offset from the actual height
+        //const float z_land = 0.9;    //need to set this as offset
         float tol = 0.1;
         
-        if ((odom_z < pre_land) && (odom_z > z_land))
+        if (odom_z >= z_land)
         {
             landing_decision_case = 1; // drop down slowly
         }
-        else if ((odom_z < z_land))
+        else if (odom_z <= z_land)
         {
             landing_decision_case = 2; // begin landing
         }

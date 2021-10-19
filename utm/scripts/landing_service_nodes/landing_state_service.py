@@ -5,9 +5,7 @@ from bson.objectid import ObjectId
 
 import rospy
 import threading
-import numpy as np
-from utm import Database
-from utm import UAVGen
+from utm import Database, UAVGen
 from scipy import spatial
 
 from geometry_msgs.msg import PoseStamped
@@ -16,13 +14,11 @@ from mongodb_store_msgs.msg import StringPairList
 from mongodb_store.message_store import MessageStoreProxy
 from datetime import *
 
-
-class PathPlanner():
+class LandingStateService():
     """
-    Look for drones at state 0 and have an assigned waypoint from waypoint collections
-    Plan their path trajectories based on where they are at and their current waypoint
-    Open up multiple threads to send location waypoints to these drones 
-    Once at goal waypoint set UAV state to 1
+    Looks for Drones who are in State 1 and are close to the location assigned,
+    if close we allow the UAV to begin to land 
+    once drones have landed we set the state to 2 
     """
     ip_address = "127.0.0.1"
     port_num = 27017
@@ -32,7 +28,6 @@ class PathPlanner():
     landing_zone_col_name = "landing_zones"
 
     def __init__(self):
-        
         #access database
         self.dbInfo = Database.AbstractDatabaseInfo(self.ip_address, self.port_num, self.poolsize)
         self.mainDB = self.dbInfo.access_database(self.database_name)
@@ -41,15 +36,14 @@ class PathPlanner():
         self.landing_service_col = self.mainDB[self.landing_srv_col_name]
         self.landing_zone_col = self.mainDB[self.landing_zone_col_name]
 
-        #ros proxy messages
-        self.control_dict = {}
-
     def find_assigned_zones(self, service_num):
-        """check if uav has an assigned location and if they are at state 0"""
+        """check if uav has an assigned location and if they are at state 1
+        refactor this code landing state service and path planner are basically
+        the same except we are looking for landing_service_status val"""
         #myquery = {"Zone Assignment": {"$exists": True}}
         uavs = []
         zones = []
-        myquery = {"$and": [{"landing_service_status":service_num}, 
+        myquery = {"$and": [{"landing_service_status": service_num}, 
                     {"Zone Assignment": {'$exists': True}}]}
         cursor = self.landing_service_col.find(myquery)
         for document in cursor:
@@ -73,13 +67,6 @@ class PathPlanner():
         
         return zone_coords
 
-    def plan_uav_path(self):
-        """takes in uav"""
-        pass
-
-    def send_wp_cmds(self):
-        """open up multiple threads to send waypoints to drones"""
-
     def generate_publishers(self, uavs):
         uavObject_list = []
         for uav in uavs:
@@ -88,19 +75,6 @@ class PathPlanner():
         
         return uavObject_list
 
-    def is_arrived_to_zone(self, zone_coords, uav_coords):
-        print(uav_coords)
-        dist = abs(np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
-        #print(dist)
-        print(dist)
-        if dist <= 0.25:
-            return True
-        else:
-            return False
-
-    def check_valid_uav_coords(uav_coords):
-        """make sure uav coords are not none type"""
-
     def update_uav_state(self, uav_name, new_status):
         self.landing_service_col.update({"uav_name": uav_name},
         {"$set":{
@@ -108,13 +82,16 @@ class PathPlanner():
         }})
 
 if __name__ == '__main__':
-    rospy.init_node('utm_path_planner')
-    pathPlanner = PathPlanner()
-    uavs,zone_names = pathPlanner.find_assigned_zones(0)
-    zone_coord_list = pathPlanner.get_zone_wp_list(zone_names)
-    uav_class_list = pathPlanner.generate_publishers(uavs)
+    rospy.init_node('landing_state_service')
+    landingStateService = LandingStateService()
+    uavs,zone_names = landingStateService.find_assigned_zones(0)
+    zone_coord_list = landingStateService.get_zone_wp_list(zone_names)
+    uav_class_list = landingStateService.generate_publishers(uavs)
+    print(uav_class_list)
+
     """generate publishers and begin sending waypoint commands to drones""" 
     threads = []
+    print("Hello")
     #open multiple threads to begin publising the waypoint command to the drone
 
     rate_val = 10
@@ -122,18 +99,23 @@ if __name__ == '__main__':
 
     """wrap this guy in main function"""
     while not rospy.is_shutdown():
-        """need to check when the class is empty, if empty we listen for more drones"""
-        #for i in range(len(uav_class_list)):
         for idx, uav in enumerate(uav_class_list[:]):
-            uav.send_utm_state_command(0)
-            uav.send_waypoint_command(zone_coord_list[idx])
+            uav.send_utm_state_command(2)
+            
+            print(uav.name)
+            #landingStateService.update_uav_state(uav.name)
 
-        if uav_class_list is None:
-            uavs,zone_names = pathPlanner.find_assigned_zones()
-            zone_coord_list = pathPlanner.get_zone_wp_list(zone_names)
-            uav_class_list = pathPlanner.generate_publishers(uavs)
+            #print(uav_class_list[i].uav_pos_pub)
+            #uav_class_list[i].send_waypoint_command(zone_coord_list[i])
+            #t = threading.Thread(target=uav.send_utm_state_command(2), args=(idx,))
+            #t.start()
+            #threads.append(t)
+        #rospy.spin()
         rate.sleep()
 
 
 
+    
+
+    
 
