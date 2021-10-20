@@ -126,7 +126,8 @@ class ZonePlanner():
         self.control_dict = {}
 
     def find_assigned_zones(self, service_num):
-        """check if uav has an assigned location and if they are at state 0"""
+        """check if uav has an assigned location and get information 
+        based on a state service"""
         #myquery = {"Zone Assignment": {"$exists": True}}
         uavs = []
         zones = []
@@ -168,6 +169,16 @@ class ZonePlanner():
         #print(dist)
         print(dist)
         if dist <= 0.25:
+            return True
+        else:
+            return False
+
+    def has_left_zone(self, zone_coords, uav_coords):
+        print(uav_coords)
+        dist = abs(np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
+        #print(dist)
+        print(dist)
+        if dist >= 1.0:
             return True
         else:
             return False

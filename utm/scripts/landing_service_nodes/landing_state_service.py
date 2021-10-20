@@ -9,29 +9,63 @@ from utm import Database
 
 from datetime import *
 
+class LandingStateService():
+    
+    """
+    LandingStateService listens for uavs that are at state 1
+    if so check if they are at the correct location 
+    and allow permission to land
+
+    needs to keep listening 
+    check uav at location
+    allow uav to land by setting uav command to 2
+    once landed and disarmed we set to state 3
+    check if drone has left area if so, update the landing zone as vacant 
+    and remove uav 
+    """
+    previous_service_number = 1
+    update_service_number = 2
+
+    def __init__(self):
+        self.landingPlanner = Database.ZonePlanner()
+
+    def main(self):
+        uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
+        print(uavs)
+        zone_coord_list = self.landingPlanner.get_zone_wp_list(zone_names)
+        uav_class_list = self.landingPlanner.generate_publishers(uavs)
+        
+        rate_val = 1
+        rate = rospy.Rate(rate_val)
+
+        while not rospy.is_shutdown():
+
+            if not uav_class_list:
+                print("Waiting for uavs to request to land")
+                rospy.sleep(5)
+                uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
+                uav_class_list = self.landingPlanner.generate_publishers(uavs)
+            else:
+                for idx, uav in enumerate(uav_class_list[:]):
+                    print("Controling ", uav.name)
+                    #rospy.sleep(1) #wait for a couple of seconds
+                    uav.send_utm_state_command(self.update_service_number)
+                    #print("sending landing")
+                    if uav.mode == "AUTO.LAND" and uav.armed == False:
+                        self.landingPlanner.update_uav_state(uav.name, self.update_service_number)
+                        uav_class_list.remove(uav)
+                        #print(uav.name + " has landed")
+
+                    if not uav_class_list:
+                        break
+
+            rate.sleep()
 
 if __name__ == '__main__':
     rospy.init_node('landing_state_service')
-    landingStateService = Database.ZonePlanner()
-    uavs,zone_names = landingStateService.find_assigned_zones(0)
-    zone_coord_list = landingStateService.get_zone_wp_list(zone_names)
-    uav_class_list = landingStateService.generate_publishers(uavs)
-    print(uav_class_list)
+    landingStateService = LandingStateService()
+    landingStateService.main()
 
-    """generate publishers and begin sending waypoint commands to drones""" 
-    threads = []
-    print("Hello")
-    #open multiple threads to begin publising the waypoint command to the drone
-
-    rate_val = 10
-    rate = rospy.Rate(rate_val)
-
-    """wrap this guy in main function"""
-    while not rospy.is_shutdown():
-        for idx, uav in enumerate(uav_class_list[:]):
-            uav.send_utm_state_command(2)
-            print(uav.name)
-        rate.sleep()
 
 
 

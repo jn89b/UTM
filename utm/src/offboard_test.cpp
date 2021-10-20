@@ -501,8 +501,8 @@ class Controller
         }
         
         //send initial points
-        pose.pose.position.x = init_x - offset_x;
-        pose.pose.position.y = init_y - offset_y;
+        pose.pose.position.x = offset_x;
+        pose.pose.position.y = offset_y;
         pose.pose.position.z = init_z;
                     
         for(int i = 100; ros::ok() && i > 0; --i){
