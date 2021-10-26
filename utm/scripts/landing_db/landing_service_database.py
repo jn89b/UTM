@@ -33,8 +33,7 @@ class LandingDBNode():
         ip_address : str
         port_num : int
         poolsize : int
-    
-    
+
     """
     database_name = "message_store"
     main_col_name = "data_service"
@@ -88,10 +87,10 @@ class LandingDBNode():
                 self.insert_to_landing_collection(uav_name, bat_val, 0)
 
     def get_uav_srv_info(self, uav_name):
-        """get uav service request info"""
+        """check if uav wants to use the landing service"""
         for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
-            srv_msg_type = item.pairs[3].first 
-            srv_id = item.pairs[3].second
+            srv_msg_type = item.pairs[4].first 
+            srv_id = item.pairs[4].second
             srv_val = self.data_srv_col_prox.query_id(srv_id, srv_msg_type)[0].data
             if srv_val == False:
                 print(uav_name + " " + "does not want the service\n")
@@ -134,7 +133,7 @@ class LandingDBNode():
             return True
 
     def does_uav_exist(self,uav_name):
-        """check if uav key exists in this database"""
+        """check if uav key already exists in the landing collection"""
         myquery = {"_id": uav_name}
         cursor = self.landing_collection.find(myquery)
         if cursor.count() == 0: #means no uav is in there

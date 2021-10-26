@@ -51,13 +51,20 @@ class PostFlightService():
                     rospy.sleep(0.5) #wait for a couple of seconds
                     #print(uav.coords)
                     uav.send_utm_state_command(self.update_service_number)
-                    uav.send_waypoint_command([0,0,0])
+                    home_waypoint = self.postFlight.find_uav_homeposition(uav.name)
+                    uav.send_waypoint_command([home_waypoint[0],home_waypoint[1],10])
 
                     if self.postFlight.has_left_zone(zone_coord_list[idx], uav.coords):
                         self.postFlight.update_uav_state(uav.name,self.update_service_number)
                         uav_class_list.remove(uav)
+                        self.postFlight.update_landing_zone(zone_names[idx])
+                        #update landing zone collection Vacant to True
+                        
+                        #update landing collection by removing uav from landing zone collection
+                        self.postFlight.remove_uav(uav.name)
+                        
                         print(uav.name + " has left the area")
- 
+    
                     if not uav_class_list:
                         break
 

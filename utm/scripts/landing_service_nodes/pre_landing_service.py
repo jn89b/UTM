@@ -90,8 +90,8 @@ class PreLandingService():
         uav_locations = []
         for uav_name in uav_list:
             for item, meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
-                msg_type = item.pairs[1].first 
-                msg_id = item.pairs[1].second
+                msg_type = item.pairs[2].first 
+                msg_id = item.pairs[2].second
                 pose = self.data_srv_col_prox.query_id(msg_id, msg_type)[0].pose
                 x = pose.position.longitude
                 y = pose.position.latitude
@@ -99,7 +99,23 @@ class PreLandingService():
                 locs = [x,y]
                 uav_locations.append(locs)
 
-        return uav_locations           
+        return uav_locations
+
+    def get_uav_home(self, uav_list):
+        """need to refactor this with uav locations its the same thing"""
+        uav_home_location = []
+        for uav_name in uav_list:
+            for item, meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+                msg_type = item.pairs[1].first 
+                msg_id = item.pairs[1].second
+                pose = self.data_srv_col_prox.query_id(msg_id, msg_type)[0].pose
+                x = pose.position.longitude
+                y = pose.position.latitude
+                z = pose.position.altitude
+                locs = [x,y]
+                uav_home_location.append(locs)
+
+        return uav_home_location              
 
     def find_closest_zone(self, uav_loc, landing_zones):
         """find closest zone index to uav location"""
@@ -108,7 +124,7 @@ class PreLandingService():
 
         return dist, zone_index
 
-    def assign_uav_zone(self,uav_name, zone_name):
+    def assign_uav_zone(self,uav_name, zone_name, uav_home_list):
         """assigns uav to zone and sets the landing zone as false, so no longer vacant"""
         self.landing_zone_col.update({"Zone Number": zone_name},
             { "$set": { 
@@ -117,8 +133,8 @@ class PreLandingService():
 
         self.landing_service_col.update({"_id": uav_name},
             { "$set": { 
-                "Zone Assignment": zone_name }})
-
+                "Zone Assignment": zone_name,
+                "Home Position": uav_home_list}})
         print("Assigned", uav_name + " to landing zone ", zone_name)
 
 
@@ -129,12 +145,14 @@ if __name__ == '__main__':
     if preLandingService.check_open_zones() == False:
         print("No open zones")
     else:
+        print("assigning")
         uav_names, uav_battery = preLandingService.get_uavs()
         uav_loc_list = preLandingService.get_uav_location(uav_names)
-        for idx, uav_loc in enumerate(uav_loc_list): 
+        uav_home_list = preLandingService.get_uav_home(uav_names)
+        for idx, uav_loc in enumerate(uav_loc_list):
             zone_names, zone_coordinates = preLandingService.find_open_zones()
             print("uav location", uav_loc)
             dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_coordinates)
-            preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx])
+            preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
 
         

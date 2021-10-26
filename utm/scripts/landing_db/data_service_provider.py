@@ -28,19 +28,21 @@ else:
 class TestUAV():
     """this is a test module for UAV to send the respective information to the DataServiceDB
         -uav battery -- Int32 
-        -uav position information global reference(pose and quat)
+        -uav home position information global refererence()
+        -uav current position information global reference(pose and quat)
         -uav waypoint waypoint position as tuple(pose and quat)
         -uav service request -- Bool
         -uav state -- String
     """
-    def __init__(self, name, current_pose, wp_dest, battery, service_request):
+    def __init__(self, name, home_position, current_pose, wp_dest, battery, service_request):
         self.name = name  #string
         
         """for these get messages it will be using ROS's callback functions"""
-        self.srv_req = self.get_bool_msg(service_request) #boolean
         self.battery_msg = self.get_battery_msg(battery)
+        self.home_position = self.get_lat_long_msg(home_position)
         self.current_pose = self.get_lat_long_msg(current_pose)
         self.wp_dest = self.get_lat_long_msg(wp_dest)
+        self.srv_req = self.get_bool_msg(service_request) #boolean
         
         self.dataService = Database.AbstractDatabaseSend("data_service")
         self.send_information()
@@ -69,7 +71,7 @@ class TestUAV():
     def send_information(self):
         """send information to dataservice need to check if uav is already in database 
         if so we just update the respective information such as position, battery life,etc"""
-        msg_list = [self.battery_msg,self.current_pose, self.wp_dest, self.srv_req]
+        msg_list = [self.battery_msg, self.home_position, self.current_pose, self.wp_dest, self.srv_req]
         self.stored = self.dataService.wrap_database_info(msg_list)
         self.spl = self.dataService.combine_info_ids(self.stored)
         self.meta = self.dataService.generate_meta_info(self.name)
@@ -79,12 +81,10 @@ if __name__ == '__main__':
 
     rospy.init_node("uav_sending_info")
     try:
-        uav_0 = TestUAV("uav0",[[3, 0, 50],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 82,True)
-        uav_1 = TestUAV("uav1",[[-3, 0, 50],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 100,True)
-        uav_2 = TestUAV("uav2",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55, False)
-        #uav_3 = TestUAV("uav3",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,True)
-        #uav_4 = TestUAV("uav4",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,True)
-        #uav_5 = TestUAV("uav5",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,False)
+        uav_0 = TestUAV("uav0",[[-10, 15, 50],[0,0,0,1]],[[3, 0, 50],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 82,True)
+        uav_1 = TestUAV("uav1",[[-20, 10, 50],[0,0,0,1]],[[3, 0, 50],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 82,True)
+        uav_2 = TestUAV("uav2",[[10, 20, 50],[0,0,0,1]],[[3, 0, 50],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 82,False)
+
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 

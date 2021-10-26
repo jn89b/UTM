@@ -140,13 +140,21 @@ class ZonePlanner():
 
         return uavs,zones
 
+    def find_uav_homeposition(self, uav_name):
+        myquery = {"uav_name" : uav_name}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            home_position = document["Home Position"]
+
+        return home_position
+
     def find_zone_waypoints(self, zone_number):
         myquery = {"Zone Number": zone_number}
         cursor = self.landing_zone_col.find(myquery)
         for document in cursor:
             zone_coordinates = document["location"]
 
-        return zone_coordinates
+        return zone_coordinates     
 
     def get_zone_wp_list(self, zone_names):
         zone_coords = []
@@ -188,3 +196,17 @@ class ZonePlanner():
         {"$set":{
             "landing_service_status": new_status
         }})
+
+    def update_landing_zone(self, zone_number):
+        self.landing_zone_col.update({"_id": zone_number},
+        {"$set":{
+            "Vacant": True
+        }})
+        print("Landing ", zone_number + " is now vacant")
+
+    def remove_uav(self, uav_name):
+        """remove uav from landing service collection """
+        myquery = {"uav_name": uav_name}
+        self.landing_service_col.delete_one(myquery)
+
+        print("Removed ", uav_name + " from landing service collection")
