@@ -20,8 +20,7 @@ class LandingStateService():
     check uav at location
     allow uav to land by setting uav command to 2
     once landed and disarmed we set to state 3
-    check if drone has left area if so, update the landing zone as vacant 
-    and remove uav 
+ 
     """
     previous_service_number = 1
     update_service_number = 2
@@ -39,7 +38,6 @@ class LandingStateService():
         rate = rospy.Rate(rate_val)
 
         while not rospy.is_shutdown():
-
             if not uav_class_list:
                 print("Waiting for uavs to request to land")
                 rospy.sleep(5)
@@ -58,7 +56,6 @@ class LandingStateService():
 
                     if not uav_class_list:
                         break
-
             rate.sleep()
 
 if __name__ == '__main__':

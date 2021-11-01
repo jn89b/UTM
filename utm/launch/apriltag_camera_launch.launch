@@ -6,7 +6,7 @@
     <arg name="camera_name" default="/airsim/rgb" />
     <arg name="camera_frame" default="front_center_custom_optical" />
     <arg name="image_topic" default="image_rect_color" />
-    <arg name="wsl_ip" default="172.19.64.1"/>
+    <arg name="wsl_ip" default="172.22.208.1"/>
 
     <!--Run apriltag ros-->
     <include file="$(find apriltag_ros)/launch/continuous_detection.launch">

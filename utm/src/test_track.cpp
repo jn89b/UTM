@@ -1,120 +1,93 @@
-#include <iostream>
+/**
+ * @file offb_node.cpp
+ * @brief Offboard control example node, written with MAVROS version 0.19.x, PX4 Pro Flight
+ * Stack and tested in Gazebo SITL
+ */
+
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <PID.h>
+#include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/SetMode.h>
+#include <mavros_msgs/State.h>
 
-using std::string;
-
-class TestTrack
-{
-   private:
-        ros::NodeHandle nh;
-        ros::Subscriber rtag_ekf_sub, rtag_quad_sub, quad_odom_sub;
-        
-        //Position vectors 
-        float r_x; // x tag wrt quad 
-        float r_y; // y tag wrt quad
-        float r_z; // z tag wrt quad -> Don't really need this can use actual quad to true ground
-        // Quaternion orientation vectors
-        float r_qx;
-        float r_qy;                 
-        float r_qz;
-        float r_qw;
-
-        //kalman filter estimate
-        float kf_x;
-        float kf_y;
-
-        //Odometry of quad with offset because Airsim does not like to play nice
-        float odom_x;
-        float odom_y;
-        float odom_z;
-
-    public:
-        TestTrack()
-        {
-            rtag_quad_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                ("tag/pose", 10, &TestTrack::rtagquad_cb,this);
-            rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("kf_tag/pose", 10, &TestTrack::kftag_cb,this);     
-            quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                ("mavros/offset_local_position/pose",15, &TestTrack::quad_odom_callback, this);
-
-            ros::Rate rate(20);
-            init_vals();
-
-            while(ros::ok())
-            {
-                request_gains();
-                ros::spinOnce();
-                rate.sleep();
-            }
-        }
-
-    void init_vals()
-    {
-        r_x = 0.0;
-        r_y = 0.0;
-        r_z = 0.0;
-        r_qx = 0.0;
-        r_qy = 0.0;
-        r_qz = 0.0;
-        r_qw = 0.0;  
-
-        //kalman filter estimate
-        kf_x = 0.0;
-        kf_y = 0.0;
-
-        //Odometry of quad with offset because Airsim does not like to play nice
-        odom_x = 0.0;     
-    }
-
-    void request_gains()
-    {   
-        float kp = 0.8;
-        float ki = 0.0;
-        float kd = 0.0;
-        float dt = 0.1;
-        std::cout<<"kf_x: "<< kf_x << std::endl;
-        PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
-        std::cout<<"PID: "<< pid_x.getPID() << std::endl;
-    }
-
-    void rtagquad_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
-    {
-        r_z = msg->pose.position.x;
-        r_y = msg->pose.position.y;
-        r_z = msg->pose.position.z;
-
-        r_qx = msg->pose.orientation.x;
-        r_qy = msg->pose.orientation.y;
-        r_qz = msg->pose.orientation.z;
-        r_qw = msg->pose.orientation.w;
-    }
-
-    void kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
-    {
-        kf_x = msg->pose.position.x;
-        kf_y = msg->pose.position.y;
-
-    }
-
-    void quad_odom_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
-    {
-        odom_x = msg->pose.position.x;
-        odom_y = msg->pose.position.y;
-        odom_z = msg->pose.position.z;
-        //ROS_INFO("odom_x: %f, odom_y:", odom_x, odom_y); 
-    }
-};
+mavros_msgs::State current_state;
+void state_cb(const mavros_msgs::State::ConstPtr& msg){
+    current_state = *msg;
+}
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "test_track");
-    ROS_INFO("starting");
-    TestTrack testtrack;
+    ros::init(argc, argv, "offb_node");
+    ros::NodeHandle nh;
 
+    ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
+            ("mavros/state", 10, state_cb);
+    ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
+            ("mavros/setpoint_position/local", 10);
+    ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
+            ("mavros/cmd/arming");
+    ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
+            ("mavros/set_mode");
 
-    return 0; 
+    //the setpoint publishing rate MUST be faster than 2Hz
+    ros::Rate rate(20.0);
+
+    // wait for FCU connection
+    while(ros::ok() && !current_state.connected){
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    float offset_x;
+    float offset_y;
+    nh.getParam("offboard_example/offset_x", offset_x);
+    nh.getParam("offboard_example/offset_y", offset_y);
+    std::cout<<"param x"<<offset_x<<std::endl;
+    
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = 0 - offset_x;
+    pose.pose.position.y = 0 - offset_y;
+    pose.pose.position.z = 2;
+    
+    //send a few setpoints before starting
+    for(int i = 100; ros::ok() && i > 0; --i){
+        local_pos_pub.publish(pose);
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    mavros_msgs::SetMode offb_set_mode;
+    offb_set_mode.request.custom_mode = "OFFBOARD";
+
+    mavros_msgs::CommandBool arm_cmd;
+    arm_cmd.request.value = true;
+
+    ros::Time last_request = ros::Time::now();
+
+    while(ros::ok()){
+        if( current_state.mode != "OFFBOARD" &&
+            (ros::Time::now() - last_request > ros::Duration(5.0))){
+            if( set_mode_client.call(offb_set_mode) &&
+                offb_set_mode.response.mode_sent){
+                ROS_INFO("Offboard enabled");
+            }
+            last_request = ros::Time::now();
+        } else {
+            if( !current_state.armed &&
+                (ros::Time::now() - last_request > ros::Duration(5.0))){
+                if( arming_client.call(arm_cmd) &&
+                    arm_cmd.response.success){
+                    ROS_INFO("Vehicle armed");
+                }
+                last_request = ros::Time::now();
+            }
+        }
+
+        local_pos_pub.publish(pose);
+
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    return 0;
 }
-
