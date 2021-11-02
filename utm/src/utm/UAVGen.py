@@ -19,6 +19,8 @@ class UAVComms():
         self.uav_loc_sub = self.generate_uav_position_sub(self.name)
         self.coords = [None,None]
         self.three_cords = [None,None,None]
+        self.wp_index = 0
+        self.wp_list = []
 
 
     def generate_uav_pos_command(self, uav_name):

@@ -28,7 +28,9 @@ listen for incoming UAVs and check if landing not avail
 
 class PreLandingService():
     """
-    PreLandingService
+    Pre Landing Service:
+    Assigns Landing Zones with waypoints from 
+    Should probably rename as Pre Flight Planner
     """
     ip_address = "127.0.0.1"
     port_num = 27017
@@ -137,6 +139,17 @@ class PreLandingService():
                 "Home Position": uav_home_list}})
         print("Assigned", uav_name + " to landing zone ", zone_name)
 
+    def find_waypoints(self,uav_loc, zone_location):
+        waypoints_list = []
+        waypoints_list = [uav_loc, [5.0,0], zone_location]
+        print("Waypoints are: ", waypoints_list)
+        return waypoints_list
+
+    def assign_waypoints(self,uav_name, uav_waypoint_list):
+        self.landing_service_col.update({"_id": uav_name},
+            { "$set": { 
+                "Waypoint": uav_waypoint_list}})
+
 
 if __name__ == '__main__':
     rospy.init_node("uav_sending_info")
@@ -149,10 +162,12 @@ if __name__ == '__main__':
         uav_names, uav_battery = preLandingService.get_uavs()
         uav_loc_list = preLandingService.get_uav_location(uav_names)
         uav_home_list = preLandingService.get_uav_home(uav_names)
+        
         for idx, uav_loc in enumerate(uav_loc_list):
-            zone_names, zone_coordinates = preLandingService.find_open_zones()
-            print("uav location", uav_loc)
-            dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_coordinates)
+            zone_names, zone_location = preLandingService.find_open_zones()
+            dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_location)
+            waypoints = preLandingService.find_waypoints(uav_loc, zone_location[zone_idx])
             preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
+            preLandingService.assign_waypoints(uav_names[idx], waypoints)
 
         
