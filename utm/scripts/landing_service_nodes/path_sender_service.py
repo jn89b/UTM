@@ -11,7 +11,7 @@ from utm import Database
 import multiprocessing 
 from threading import Thread
 
-class PathPlannerService():
+class PathSenderService():
     """
     Should rename as PathSender
 
@@ -92,15 +92,12 @@ class PathPlannerService():
 
                 for t in threads:
                     t.join()
-
-
-
-
+                    
             rate.sleep()
 
 
 if __name__ == '__main__':
     rospy.init_node('utm_path_planner')
-    pathPlannerService = PathPlannerService()
+    pathPlannerService = PathSenderService()
     pathPlannerService.main()
 
