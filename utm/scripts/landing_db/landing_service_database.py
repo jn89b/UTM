@@ -80,11 +80,19 @@ class LandingDBNode():
             uav_cur_loc = self.get_uav_info(uav_name, 1)
             print(uav_cur_loc)
 
-            if (self.get_uav_srv_info(uav_name) == False) or (self.does_uav_exist(uav_name) == True):
+            """if uav does not want service then we ignore"""
+            if (self.get_uav_srv_info(uav_name) == False): 
+                continue
+            
+            """uav already exists in the landing service database"""
+            if (self.does_uav_exist(uav_name) == True):
+                print("uav exists already")
                 continue
 
             if (self.is_landing_collection_empty()== True) or (self.does_uav_exist(uav_name) == False):
-                self.insert_to_landing_collection(uav_name, bat_val, 0)
+                uav_loc = self.get_uav_location(uav_name=uav_name)
+                uav_home = self.get_uav_home(uav_name=uav_name)
+                self.insert_to_landing_collection(uav_name, bat_val, 0, uav_loc, uav_home)
 
     def get_uav_srv_info(self, uav_name):
         """check if uav wants to use the landing service"""
@@ -95,6 +103,40 @@ class LandingDBNode():
             if srv_val == False:
                 print(uav_name + " " + "does not want the service\n")
             return srv_val
+
+    def get_uav_location(self, uav_name):
+        """get uav location from dataservice"""
+        for item, meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+            msg_type = item.pairs[2].first 
+            msg_id = item.pairs[2].second
+            pose = self.data_srv_col_prox.query_id(msg_id, msg_type)[0].pose
+            x = pose.position.longitude
+            y = pose.position.latitude
+            z = pose.position.altitude
+            uav_locs = [x,y,z]
+
+            """need to change to an int for grid position formatting"""
+            uav_locs = [int(i) for i in uav_locs]
+            print("insertin", uav_locs)
+
+        return uav_locs
+
+    def get_uav_home(self, uav_name):
+        """need to refactor this with uav locations its the same thing"""
+        for item, meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+            msg_type = item.pairs[1].first 
+            msg_id = item.pairs[1].second
+            pose = self.data_srv_col_prox.query_id(msg_id, msg_type)[0].pose
+            x = pose.position.longitude
+            y = pose.position.latitude
+            z = pose.position.altitude
+            uav_home = [x,y,z]
+
+            """need to change to an int for grid position formatting"""
+            uav_home = [int(i) for i in uav_home]
+            print("insertin", uav_home)
+
+        return uav_home
 
     def get_uav_battery_info(self, uav_name):
         """get battery information"""
@@ -114,11 +156,13 @@ class LandingDBNode():
 
             return val
 
-    def insert_to_landing_collection(self, uav_name, battery_val, state_val):
-        """insert to landing collection the uav name, battery, and state of service"""
+    def insert_to_landing_collection(self, uav_name, battery_val, state_val, uav_loc, uav_home):
+        """this has a lot of coupling"""
         post = {"_id": uav_name,
                 "uav_name": uav_name,
                 "battery" : battery_val,
+                "uav_location": uav_loc,
+                "uav_home": uav_home,
                 "landing_service_status": state_val,
         }
         self.landing_collection.insert_one(post)

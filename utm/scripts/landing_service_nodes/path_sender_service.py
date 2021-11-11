@@ -40,23 +40,16 @@ class PathSenderService():
             if uav.wp_index > (len(waypoint_list)-1):
                 self.pathPlanner.update_uav_state(uav.name,self.update_service_number)
                 uav_class_list.remove(uav)
-                print(uav.name + " has reached the waypoint")
+                print(uav.name + " has reached the final waypoint")
                 break
 
             waypoint = waypoint_list[uav.wp_index]
-
+            
             if self.pathPlanner.is_arrived_to_zone(waypoint, uav.coords) == False:
                 uav.send_waypoint_command(waypoint)
                 print("sending waypoint command: ", waypoint[0], waypoint[1])
-            
-            """
-            if self.pathPlanner.is_arrived_to_zone(zone_coord_list[idx], uav.coords):
-                self.pathPlanner.update_uav_state(uav.name,self.update_service_number)
-                uav_class_list.remove(uav)
-                print(uav.name + " has reached the waypoint")
-            """
 
-            if self.pathPlanner.is_arrived_to_zone(waypoint, uav.coords) == True:
+            else:
                 print("going to next wp")
                 uav.wp_index +=1
             

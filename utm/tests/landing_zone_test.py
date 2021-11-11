@@ -104,9 +104,9 @@ if __name__ == '__main__':
             -string pair list of id 
         """
         #map this with airsim location of where the apriltags are 
-        insert_to_landing_zones_col(landing_collection, "Zone_0", [0, 4.5], True)
-        insert_to_landing_zones_col(landing_collection, "Zone_1", [5.7, 4.1], True)
-        insert_to_landing_zones_col(landing_collection, "Zone_2", [0, 0], False)
+        insert_to_landing_zones_col(landing_collection, "Zone_0", [20, 20,7], True)
+        insert_to_landing_zones_col(landing_collection, "Zone_1", [30, 20,7], True)
+        insert_to_landing_zones_col(landing_collection, "Zone_2", [30, 30,7], False)
         #insert_to_landing_zones_col(landing_collection, "Zone_3", [-10, -4], True)
         """
         for index, zone in enumerate(zone_names_list):

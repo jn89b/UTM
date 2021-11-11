@@ -188,7 +188,7 @@ class ZonePlanner():
         dist = (np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
         #print(dist)
         #print("dist", dist)
-        if dist <= 0.25:
+        if dist <= 1.5:
             return True
         else:
             return False
@@ -200,7 +200,7 @@ class ZonePlanner():
         dist = abs(np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
         #print(dist)
         #print(dist)
-        if dist >= 1.0:
+        if dist >= 0.25:
             return True
         else:
             return False
