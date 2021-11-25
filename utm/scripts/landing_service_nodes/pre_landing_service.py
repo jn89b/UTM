@@ -288,7 +288,6 @@ if __name__ == '__main__':
             for idx, uav_loc in enumerate(uav_loc_list):    
                 zone_names, zone_locations = preLandingService.find_open_zones()
                 dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_locations)
-                preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
                 
                 """generating obstacles"""
                 grid_copy, new_obstacle = preLandingService.get_dynamic_obstacles(idx, uav_path_obs)
@@ -298,16 +297,22 @@ if __name__ == '__main__':
                 # uav_wp = astar.main()
                 uav_wp = preLandingService.find_waypoints(grid_copy, new_obstacle, \
                     uav_loc, zone_locations[zone_idx])
-                path_list.append(uav_wp)
-                
-                """reduce the amount of waypoints we need to send"""
-                filter_wp = preLandingService.reduce_waypoints(uav_wp)
-                preLandingService.insert_waypoints(uav_names[idx], filter_wp)
+                if uav_wp != None:
 
-                """insert raw waypoints for path planning"""
-                preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
-                """this plot is for debugging"""
-                #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations[zone_idx])
+                    preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
+                    path_list.append(uav_wp)
+                    
+                    """reduce the amount of waypoints we need to send"""
+                    filter_wp = preLandingService.reduce_waypoints(uav_wp)
+                    preLandingService.insert_waypoints(uav_names[idx], filter_wp)
+
+                    """insert raw waypoints for path planning"""
+                    preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
+                    """this plot is for debugging"""
+                    #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations[zone_idx])
+                else:
+                    print("cant find waypoint for", uav_names[idx])
+                    continue
         
         rate.sleep()
 

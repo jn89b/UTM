@@ -148,6 +148,23 @@ class ZonePlanner():
 
         return home_position
 
+    def find_uav_zone_loc(self, uav_name):
+        """query where the uav was located at"""
+        myquery = {"Occupied by": uav_name}
+        cursor = self.landing_zone_col.find(myquery)
+        for document in cursor:
+            zone_loc = document["location"]
+
+        return zone_loc
+
+    def find_uav_zone_name(self, uav_name):
+        myquery = {"uav_name" : uav_name}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            zone_assignment = document["Zone Assignment"]
+
+        return zone_assignment
+
     def find_uav_waypoints(self, uav_name):
         """request uav waypoint from database"""
         myquery = {"_id": uav_name}

@@ -43,6 +43,7 @@ class PathSenderService():
 
             waypoint = waypoint_list[uav.wp_index]
             
+            """badly worded this is if we are at some assigned waypoint"""
             if self.zonePlanner.is_arrived_to_zone(waypoint, uav.coords) == False:
                 uav.send_waypoint_command(waypoint)
                 print("sending waypoint command: ", waypoint[0], waypoint[1])

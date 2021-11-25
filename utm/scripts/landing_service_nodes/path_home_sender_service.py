@@ -30,7 +30,7 @@ class PathHomeSenderService():
         uav.send_utm_state_command(self.update_service_number) # want to arm this guy
         """need to open multiple threads and send waypoint commands for drone"""
         waypoint_list = self.zonePlanner.find_uav_home_waypoints(uav.name)
-        
+        zone_name = self.zonePlanner.find_uav_zone_name(uav.name)    
         print("waypoint list", waypoint_list)
         print("len", len(waypoint_list))
         for wp in waypoint_list:
@@ -41,9 +41,14 @@ class PathHomeSenderService():
                 uav_class_list.remove(uav)
                 print(uav.name + " has reached the final waypoint")
                 break
-
-            waypoint = waypoint_list[uav.wp_index]
             
+            waypoint = waypoint_list[uav.wp_index]
+
+            """this is for the landing zone target"""
+            if self.zonePlanner.has_left_zone(self.zonePlanner.find_zone_waypoints(zone_name), uav.coords):
+                self.zonePlanner.update_landing_zone(zone_name)
+            
+            """badly worded this is if we are at some assigned waypoint"""
             if self.zonePlanner.is_arrived_to_zone(waypoint, uav.coords) == False:
                 uav.send_waypoint_command(waypoint)
                 print("sending waypoint command: ", waypoint[0], waypoint[1])
