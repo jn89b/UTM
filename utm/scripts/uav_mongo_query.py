@@ -11,21 +11,19 @@ import threading
 from mongodb_store_msgs.msg import StringPairList, StringPair
 from mongodb_store.message_store import MessageStoreProxy
 
-from datetime import *
-import platform
-
 from utm import Database
-from geometry_msgs.msg import Pose, Point, Quaternion
+from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from geographic_msgs.msg import GeoPoseStamped
 from std_msgs.msg import Bool, Int32
 
 
-if float(platform.python_version()[0:2]) >= 3.0:
-    import io
-else:
-    import StringIO
+"""
+Data that listens for all incoming uavs id 
+If does not exist we will dump them in the overall database 
+else we will just update the information of the uavs
+"""
 
-class TestUAV():
+class UAV():
     """this is a test module for UAV to send the respective information to the DataServiceDB
         -uav battery -- Int32 
         -uav position information global reference(pose and quat)
@@ -33,17 +31,42 @@ class TestUAV():
         -uav service request -- Bool
         -uav state -- String
     """
-    def __init__(self, name, current_pose, wp_dest, battery, service_request):
+    def __init__(self, name, battery, service_request):
         self.name = name  #string
         
         """for these get messages it will be using ROS's callback functions"""
         self.srv_req = self.get_bool_msg(service_request) #boolean
         self.battery_msg = self.get_battery_msg(battery)
-        self.current_pose = self.get_lat_long_msg(current_pose)
-        self.wp_dest = self.get_lat_long_msg(wp_dest)
-        
         self.dataService = Database.AbstractDatabaseSend("data_service")
-        self.send_information()
+        #self.send_information()
+
+        self.position_topic_name = self.name + "mavros/offset_local_position/pose"
+        self.position_sub = rospy.Subscriber(self.position_topic_name, PoseStamped, self.position_cb)
+
+        self.waypoint_topic_name = self.name +"mavros/setpoint_position/local"
+        self.waypoint_sub = rospy.Subscriber(self.waypoint_topic_name, PoseStamped, self.waypoint_cb)
+
+        self.current_pose = None
+        self.wp_dest = None
+
+
+    def position_cb(self, msg):
+        """position callback for my function"""
+        position = msg.pose.position
+        orientation = msg.pose.orientation
+
+        position_vector  = [position.x, position.y, position.z]
+        orientation_vector = [orientation.x, orientation.y, orientation.z, orientation.w]
+        self.current_pose = self.get_lat_long_msg([position_vector, orientation_vector])
+
+    def waypoint_cb(self, msg):
+        """waypoint callback function"""
+        position = msg.pose.position
+        orientation = msg.pose.orientation
+
+        position_vector  = [position.x, position.y, position.z]
+        orientation_vector = [orientation.x, orientation.y, orientation.z, orientation.w]
+        self.wp_dest = self.get_lat_long_msg([position_vector, orientation_vector])
 
     def get_bool_msg(self,bool_statement):
         bool_msg = Bool(bool_statement)
@@ -70,21 +93,27 @@ class TestUAV():
         """send information to dataservice need to check if uav is already in database 
         if so we just update the respective information such as position, battery life,etc"""
         msg_list = [self.battery_msg,self.current_pose, self.wp_dest, self.srv_req]
+        #print("message list", msg_list)
         self.stored = self.dataService.wrap_database_info(msg_list)
         self.spl = self.dataService.combine_info_ids(self.stored)
         self.meta = self.dataService.generate_meta_info(self.name)
         self.dataService.add_to_db(self.spl, self.meta)
-    
+
+    def check_message_valid(self):
+        if self.current_pose == None or self.wp_dest == None:
+            return False
+
 if __name__ == '__main__':
-
     rospy.init_node("uav_sending_info")
-    try:
-        uav_0 = TestUAV("uav0",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 82,False)
-        uav_1 = TestUAV("uav1",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 100,True)
-        #uav_2 = TestUAV("uav2",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,False)
-        uav_3 = TestUAV("uav3",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,True)
-        #uav_4 = TestUAV("uav4",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,True)
-        #uav_5 = TestUAV("uav5",[[47.65, -122.14015, 100],[0,0,0,1]], [[50, -123, 100],[0,0,0,1]], 55,False)
-    except rospy.ServiceException as e:
-        print("Service call failed: %s"%e)
-
+    rate = rospy.Rate(0.01)
+    uav_id = rospy.get_param("~uav_name", "")
+    uav = UAV(uav_id, 82, True)
+    while not rospy.is_shutdown():
+        if uav.check_message_valid() == False:
+            print("invalid message")
+            continue
+        else:
+            print("valid message")
+            uav.send_information()
+        
+        rate.sleep() 

@@ -11,7 +11,7 @@ from utm import Database
 import multiprocessing 
 from threading import Thread
 
-class PathSenderService():
+class PathHomeSenderService():
     """
     Should rename as PathSender
 
@@ -20,20 +20,21 @@ class PathSenderService():
     check if drone has arrived at the waypoint or not
     if drone has reached final waypoint based on distance then update state_service
     """
-    previous_service_number = 0
-    update_service_number = 1
+    previous_service_number = 2
+    update_service_number = 3
 
     def __init__(self):
         self.zonePlanner = Database.ZonePlanner()
 
     def send_wp_commands(self,uav_class_list, uav):
-        uav.send_utm_state_command(self.previous_service_number)
+        uav.send_utm_state_command(self.update_service_number) # want to arm this guy
         """need to open multiple threads and send waypoint commands for drone"""
-        waypoint_list = self.zonePlanner.find_uav_waypoints(uav.name)
+        waypoint_list = self.zonePlanner.find_uav_home_waypoints(uav.name)
         
         print("waypoint list", waypoint_list)
         print("len", len(waypoint_list))
         for wp in waypoint_list:
+            #self.zonePlanner.update_uav_state(uav.name,self.update_service_number)
             print("index", uav.wp_index)
             if uav.wp_index > (len(waypoint_list)-1):
                 self.zonePlanner.update_uav_state(uav.name,self.update_service_number)
@@ -66,7 +67,7 @@ class PathSenderService():
                 print("Waiting for uavs")
                 rospy.sleep(1)
                 uavs,zone_names = self.zonePlanner.find_assigned_zones(self.previous_service_number)
-                zone_coord_list = self.zonePlanner.get_zone_wp_list(zone_names)
+                #zone_coord_list = self.zonePlanner.get_zone_wp_list(zone_names)
                 uav_class_list = self.zonePlanner.generate_publishers(uavs)
             else:
                 threads = []
@@ -87,7 +88,7 @@ class PathSenderService():
 
 
 if __name__ == '__main__':
-    rospy.init_node('utm_path_planner')
-    pathPlannerService = PathSenderService()
-    pathPlannerService.main()
+    rospy.init_node('utm_home_sender')
+    pathHomeSenderService = PathHomeSenderService()
+    pathHomeSenderService.main()
 

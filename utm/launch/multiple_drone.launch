@@ -2,23 +2,55 @@
 
     <!--args for gcs bridge for communication with QGC on Windows OS-->
     <!--https://github.com/mavlink/mavros/issues/574-->
-    <arg name="mavlink_bridge_url" default="udp://@172.29.80.1:14550" />
+    <arg name="mavlink_bridge_url" default="udp://@172.29.128.1:14550" />
 
 	<!--args for airsim_node.launch, set arg host to WSL2 ipaddress config-->
 	<arg name="output" default="screen"/>
 	<arg name="publish_clock" default="true"/>
 	<arg name="is_vulkan" default="true"/>
-	<arg name="host" default="172.29.80.1" />
+	<arg name="host" default="172.29.128.1" />
 
     <!--args for camera published from airsim so we can map to apriltag-->
     <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   
 	<arg name="uav_0_camera_info" default="$(arg uav_0_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_0/downwards_custom_0/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
     
     <arg name="uav_1_camera_name" default="/airsim_node/PX4_1/downwards_custom_1"/>   
 	<arg name="uav_1_camera_info" default="$(arg uav_1_camera_name)/camera_info"/>
-    
-	<remap from="/airsim_node/PX4_0/downwards_custom_0/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
     <remap from="/airsim_node/PX4_1/downwards_custom_1/Scene/camera_info" to="$(arg uav_1_camera_info)"/>
+
+	<arg name="uav_2_camera_name" default="/airsim_node/PX4_2/downwards_custom_2"/>   
+	<arg name="uav_2_camera_info" default="$(arg uav_2_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_2/downwards_custom_2/Scene/camera_info" to="$(arg uav_2_camera_info)"/>
+
+	<arg name="uav_3_camera_name" default="/airsim_node/PX4_3/downwards_custom_3"/>   
+	<arg name="uav_3_camera_info" default="$(arg uav_3_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_3/downwards_custom_3/Scene/camera_info" to="$(arg uav_3_camera_info)"/>
+
+	<arg name="uav_4_camera_name" default="/airsim_node/PX4_4/downwards_custom_4"/>   
+	<arg name="uav_4_camera_info" default="$(arg uav_4_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_4/downwards_custom_4/Scene/camera_info" to="$(arg uav_4_camera_info)"/>
+
+	<arg name="uav_5_camera_name" default="/airsim_node/PX4_5/downwards_custom_5"/>   
+	<arg name="uav_5_camera_info" default="$(arg uav_5_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_5/downwards_custom_5/Scene/camera_info" to="$(arg uav_5_camera_info)"/>
+
+	<arg name="uav_6_camera_name" default="/airsim_node/PX4_6/downwards_custom_6"/>   
+	<arg name="uav_6_camera_info" default="$(arg uav_6_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_6/downwards_custom_6/Scene/camera_info" to="$(arg uav_6_camera_info)"/>
+
+	<arg name="uav_7_camera_name" default="/airsim_node/PX4_7/downwards_custom_7"/>   
+	<arg name="uav_7_camera_info" default="$(arg uav_7_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_7/downwards_custom_7/Scene/camera_info" to="$(arg uav_7_camera_info)"/>
+
+	<arg name="uav_8_camera_name" default="/airsim_node/PX4_8/downwards_custom_8"/>   
+	<arg name="uav_8_camera_info" default="$(arg uav_8_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_8/downwards_custom_8/Scene/camera_info" to="$(arg uav_8_camera_info)"/>
+
+	<arg name="uav_9_camera_name" default="/airsim_node/PX4_9/downwards_custom_9"/>   
+	<arg name="uav_9_camera_info" default="$(arg uav_9_camera_name)/camera_info"/>
+    <remap from="/airsim_node/PX4_9/downwards_custom_9/Scene/camera_info" to="$(arg uav_9_camera_info)"/>
+
 
 	<!--Launch Airsim Node-->
 	<include file="$(find airsim_ros_pkgs)/launch/airsim_node.launch">
@@ -52,7 +84,7 @@
 
     <group ns="uav1">
         <arg name="fcu_url" default="udp://:14541@$(arg host):14558" />
-        <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
+        <arg name="gcs_url" default="udp://:14556@$(arg host):14551"  />
         <arg name="tgt_system" default="2" />
         <arg name="tgt_component" default="1" />
 
@@ -63,6 +95,62 @@
             <arg name="tgt_component" value="$(arg tgt_component)"/>
         </include>
 
+    </group>
+
+    <group ns="uav2">
+        <arg name="fcu_url" default="udp://:14542@$(arg host):14559" />
+        <arg name="gcs_url" default="udp://:14556@$(arg host):14551"  />
+        <arg name="tgt_system" default="3" />
+        <arg name="tgt_component" default="1" />
+
+        <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)"/>
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)"/>
+        </include>
+    </group>
+
+    <group ns="uav3">
+        <arg name="fcu_url" default="udp://:14543@$(arg host):14560" />
+        <arg name="gcs_url" default="udp://:14556@$(arg host):14551"  />
+        <arg name="tgt_system" default="4" />
+        <arg name="tgt_component" default="1" />
+
+        <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)"/>
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)"/>
+        </include>
+    </group>
+
+    <group ns="uav4">
+        <arg name="fcu_url" default="udp://:14544@$(arg host):14561" />
+        <arg name="gcs_url" default="udp://:14556@$(arg host):14551"  />
+        <arg name="tgt_system" default="5" />
+        <arg name="tgt_component" default="1" />
+
+        <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)"/>
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)"/>
+        </include>
+    </group>
+
+    <group ns="uav5">
+        <arg name="fcu_url" default="udp://:14545@$(arg host):14562" />
+        <arg name="gcs_url" default="udp://:14556@$(arg host):14551"  />
+        <arg name="tgt_system" default="6" />
+        <arg name="tgt_component" default="1" />
+
+        <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)"/>
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)"/>
+        </include>
     </group>
 
 

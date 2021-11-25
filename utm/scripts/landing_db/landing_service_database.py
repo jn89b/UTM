@@ -77,9 +77,8 @@ class LandingDBNode():
             meta_info = doc['_meta']
             uav_name = meta_info['name']
             bat_val = self.get_uav_battery_info(uav_name=uav_name)
-            uav_cur_loc = self.get_uav_info(uav_name, 1)
-            print(uav_cur_loc)
-
+            #uav_cur_loc = self.get_uav_info(uav_name, 1)
+            print(uav_name)
             """if uav does not want service then we ignore"""
             if (self.get_uav_srv_info(uav_name) == False): 
                 continue
@@ -97,6 +96,7 @@ class LandingDBNode():
     def get_uav_srv_info(self, uav_name):
         """check if uav wants to use the landing service"""
         for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+            print(item)
             srv_msg_type = item.pairs[4].first 
             srv_id = item.pairs[4].second
             srv_val = self.data_srv_col_prox.query_id(srv_id, srv_msg_type)[0].data
@@ -127,9 +127,9 @@ class LandingDBNode():
             msg_type = item.pairs[1].first 
             msg_id = item.pairs[1].second
             pose = self.data_srv_col_prox.query_id(msg_id, msg_type)[0].pose
-            x = pose.position.longitude
-            y = pose.position.latitude
-            z = pose.position.altitude
+            x = pose.position.longitude #longitude is x
+            y = pose.position.latitude #latitude is y
+            z = pose.position.altitude 
             uav_home = [x,y,z]
 
             """need to change to an int for grid position formatting"""

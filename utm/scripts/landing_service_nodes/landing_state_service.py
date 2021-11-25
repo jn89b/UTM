@@ -31,7 +31,7 @@ class LandingStateService():
     def main(self):
         uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
         print(uavs)
-        zone_coord_list = self.landingPlanner.get_zone_wp_list(zone_names)
+        #zone_coord_list = self.landingPlanner.get_zone_wp_list(zone_names)
         uav_class_list = self.landingPlanner.generate_publishers(uavs)
         
         rate_val = 1

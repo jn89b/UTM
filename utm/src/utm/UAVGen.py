@@ -8,7 +8,7 @@ from mavros_msgs.msg import State
 class UAVComms():
     """uav communication protocol"""
     def __init__(self,name):
-        self.name = name
+        self.name = name 
         self.uav_pos_pub = self.generate_uav_pos_command(self.name)
         self.uav_state_cmd_pub = self.generate_uav_state_command(self.name)
 

@@ -155,7 +155,16 @@ class ZonePlanner():
         for document in cursor:
             uav_waypoints = document["Waypoint"]
 
-        return uav_waypoints     
+        return uav_waypoints
+
+    def find_uav_home_waypoints(self, uav_name):
+        """request uav waypoint from database"""
+        myquery = {"_id": uav_name}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            uav_waypoints = document["Home Waypoints"]
+
+        return uav_waypoints          
 
     def find_zone_waypoints(self, zone_number):
         myquery = {"Zone Number": zone_number}
@@ -183,11 +192,7 @@ class ZonePlanner():
     def is_arrived_to_zone(self, zone_coords, uav_coords):
         zone_coords = np.array(zone_coords)
         uav_coords = np.array(uav_coords)
-        #print("uav", uav_coords)
-        #print("zone", zone_coords)
         dist = (np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
-        #print(dist)
-        #print("dist", dist)
         if dist <= 1.5:
             return True
         else:
@@ -200,7 +205,7 @@ class ZonePlanner():
         dist = abs(np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
         #print(dist)
         #print(dist)
-        if dist >= 0.25:
+        if dist >= 10.0:
             return True
         else:
             return False

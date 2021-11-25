@@ -140,6 +140,7 @@ catkin_install_python(PROGRAMS
     scripts/logger.py
     scripts/user_control.py
     scripts/drone_transformation.py
+    scripts/uav_mongo_query.py
     
     scripts/landing_db/data_service_provider.py
     scripts/landing_db/landing_service_database.py
@@ -148,6 +149,7 @@ catkin_install_python(PROGRAMS
     scripts/landing_service_nodes/path_sender_service.py
     scripts/landing_service_nodes/landing_state_service.py
     scripts/landing_service_nodes/post_flight_service.py
+    scripts/landing_service_nodes/path_home_sender_service.py
 
     tests/mongo_db_test.py
     tests/mongo_recieve_info.py
