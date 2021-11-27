@@ -50,5 +50,20 @@
         </include> 
     </group>
 
+    <group ns="uav3">
+        <arg name="ned_x" default="-25.0"/>
+        <arg name="ned_y" default="-25.0"/>
+       <include file="$(find utm)/launch/offboard_launch.launch">
+            <!--offsets from airsim look at json file settings-->
+            <arg name="offset_x" value="$(arg ned_y)"/>
+            <arg name="offset_y" value="$(arg ned_x)"/>
+
+            <!--sends the actual location need to send this to Database 
+            to make it accurate-->
+            <arg name="init_x" value="15.0"/>
+            <arg name="init_y" value="0.0"/>
+            <arg name="init_z" value="7.0"/>
+        </include> 
+    </group>
 
 </launch>

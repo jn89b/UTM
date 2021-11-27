@@ -144,7 +144,7 @@ class ZonePlanner():
         myquery = {"uav_name" : uav_name}
         cursor = self.landing_service_col.find(myquery)
         for document in cursor:
-            home_position = document["Home Position"]
+            home_position = document["uav_home"]
 
         return home_position
 

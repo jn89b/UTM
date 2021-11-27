@@ -27,7 +27,7 @@
             <arg name ="world_tf" value="/world_enu"/>
             <arg name ="rtagdrone" value="/tag_wrt_uav1"/>
             <arg name="camera_name" value="$(arg uav_1_camera_name)"/>
-            <arg name="frame_tag_id" value="/tag_1"/> <!--looking for tag 1-->
+            <arg name="frame_tag_id" value="/tag_0"/> <!--looking for tag 1-->
 
             <arg name="id_tag" value="0"/> 
             <arg name="height_from_tag" value="1"/>
@@ -47,7 +47,7 @@
 
             <arg name ="rtagdrone" value="/tag_wrt_uav2"/>
             <arg name="camera_name" value="$(arg uav_2_camera_name)"/>
-            <arg name="frame_tag_id" value="/tag_2"/> <!--looking for tag 1-->
+            <arg name="frame_tag_id" value="/tag_0"/> <!--looking for tag 1-->
 
             <arg name="id_tag" value="1"/> 
             <arg name="height_from_tag" value="1"/>
@@ -57,5 +57,22 @@
         <node pkg="utm" type="moving_avg_main" name="moving_avg_main"/>
     </group>
 
+    <group ns="uav3">
+        <arg name="uav_3_camera_name" default="/airsim_node/PX4_3/downwards_custom_3"/> 
+        <include file="$(find utm)/launch/broadcast_tf.launch">
+            <arg name ="quad_tf" value="/uav3_wrt_world"/>
+            <arg name ="world_tf" value="/world_enu"/>
+            <arg name="uav_name" value="uav3"/>
 
+            <arg name ="rtagdrone" value="/tag_wrt_uav3"/>
+            <arg name="camera_name" value="$(arg uav_3_camera_name)"/>
+            <arg name="frame_tag_id" value="/tag_0"/> <!--looking for tag 1-->
+
+            <arg name="id_tag" value="1"/> 
+            <arg name="height_from_tag" value="1"/>
+            <arg name="old_target_tf" value="downwards_custom_3_optical"/>
+            <!--<arg name="old_target_tf" value="$(arg old_target_tf)"/>-->
+        </include>
+        <node pkg="utm" type="moving_avg_main" name="moving_avg_main"/>
+    </group>
 </launch>

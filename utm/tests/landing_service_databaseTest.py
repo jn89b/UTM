@@ -5,10 +5,12 @@ from bson.objectid import ObjectId
 
 import rospy
 import platform
+import math
 
 from utm import Database
 from mongodb_store_msgs.msg import StringPairList
 from mongodb_store.message_store import MessageStoreProxy
+
 from datetime import *
 
 if float(platform.python_version()[0:2]) >= 3.0:
@@ -16,114 +18,83 @@ if float(platform.python_version()[0:2]) >= 3.0:
 else:
     import StringIO
 
-class LandingDBNode():
-    """
-    LandingDB appends all UAVs that are requesting the third party landing service
-    assigns initial state of UAV as 0
+HOME_X = -30
+HOME_Y = -40
 
-    Attributes
-    dbInfo : Database.AbstractDatabaseInfo()
-        Instiantes abstract databaseinfo:
-        ip_address : str
-        port_num : int
-        poolsize : int
-    
-    
+class PreLandingService():
     """
+    Pre Landing Service:
+    Assigns Landing Zones with waypoints from 
+    Should probably rename as Pre Flight Planner
+    """
+    ip_address = "127.0.0.1"
+    port_num = 27017
+    poolsize = 100
     database_name = "message_store"
     main_col_name = "data_service"
-    landing_col_name = "landing_service_db"
-
-    def __init__(self, ip_address, port_num,poolsize):
-        
-        #access database
-        self.dbInfo= Database.AbstractDatabaseInfo(ip_address, port_num, poolsize)
-        self.mainDB = self.dbInfo.access_database(self.database_name)
+    landing_srv_col_name = "landing_service_db"
+    landing_zone_col_name = "landing_zones"
+    geofencing_col = None #need to figure out how to set up geofencing in the area
     
-        #mongodb
-        self.main_collection = self.get_collection(self.mainDB, self.main_col_name)      
-        self.landing_collection = self.get_collection(self.mainDB, self.landing_col_name)
+    def __init__(self):
+
+        #access database
+        self.dbInfo = Database.AbstractDatabaseInfo(self.ip_address, self.port_num, self.poolsize)
+        self.mainDB = self.dbInfo.access_database(self.database_name)
+
+        #collections 
+        self.main_collection = self.mainDB[self.main_col_name]
+        self.landing_service_col = self.mainDB[self.landing_srv_col_name]
+        self.landing_zone_col = self.mainDB[self.landing_zone_col_name]
 
         #ros service proxies with mongodb
-        self.data_srv_col_prox = MessageStoreProxy(collection=self.main_col_name)    
-        self.landing_srv_col_prox = MessageStoreProxy(collection= self.landing_col_name)
+        self.data_srv_col_prox = MessageStoreProxy(collection=self.main_col_name)
 
-        #self.dataBaseInfo.retrieve_all_objects()
-        self.sub = None
+        self.landing_srv_col_prox = MessageStoreProxy(collection=self.landing_srv_col_name)
+        self.landing_zone_col_prox = MessageStoreProxy(collection=self.landing_zone_col_name)
+        self.zonePlanner = Database.ZonePlanner()
 
-    @classmethod
-    def get_collection(self,database, col_name):
-        """class method that returns collection from mongodb database input and collection name"""
-        collection = database[col_name]
-        return collection
+    def find_uavs_needing_wps(self):
+        """find uavs that have a service status of 0 but do not have
+        a waypoint"""
+        uavs = []
+        myquery = {"$and": [{"landing_service_status":0}, 
+                    {"Raw Waypoint": {'$exists': False}}]}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            uavs.append(document["uav_name"])
 
-    def main(self):
-        """main function implementation"""
-        rate = rospy.Rate(0.25)
-        while not rospy.is_shutdown():
-            self.listen_for_incoming()
-            rate.sleep()
+        return uavs
 
-    def listen_for_incoming(self):
-        """listen for any incoming objects"""
-        myquery = {"pairs": {"$exists": True}}
+    def get_uav_info(self, field_name):
+        """return field name info where landing service status is at 0
+        field_name must be type str"""
 
-        for doc in self.main_collection.find(myquery):
-            meta_info = doc['_meta']
-            uav_name = meta_info['name']
-            bat_val = self.get_uav_battery_info(uav_name=uav_name)
+        myquery = {"landing_service_status": 0}
+        uav_info_list = []
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor: 
+            uav_info_list.append(document[field_name])
 
-            if (self.get_uav_srv_info(uav_name) == False) or (self.does_uav_exist(uav_name) == True):
-                continue
+        return uav_info_list
 
-            if (self.is_landing_collection_empty()== True) or (self.does_uav_exist(uav_name) == False):
-                self.insert_to_landing_collection(uav_name, bat_val, 0)
+    def compute_2d_euclidean(self, position, goal_position):
+        """compute euclidiean with position and goal as 2d vector component"""
+        distance =  math.sqrt(((position[0] - goal_position[0]) ** 2) + 
+                        ((position[1] - goal_position[1]) ** 2))
+        
+        return distance
 
-    def get_uav_srv_info(self, uav_name):
-        """get uav service request info"""
-        for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
-            srv_msg_type = item.pairs[3].first 
-            srv_id = item.pairs[3].second
-            srv_val = self.data_srv_col_prox.query_id(srv_id, srv_msg_type)[0].data
-            if srv_val == False:
-                print(uav_name + " " + "does not want the service\n")
-            return srv_val
+    def prioritize_uavs(self, uav_ids):
+        """return sorted dictionary of uavs closest to homebase"""
+        priority_dict = dict.fromkeys(uav_ids)
+        for key in priority_dict:
+            home_position = self.zonePlanner.find_uav_homeposition(key)
+            priority_dict[key] = self.compute_2d_euclidean(home_position, [HOME_X, HOME_Y])
 
-    def get_uav_battery_info(self, uav_name):
-        """get battery information"""
-        for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
-            batter_msg_type = item.pairs[0].first 
-            battery_id = item.pairs[0].second
-            battery_val = self.data_srv_col_prox.query_id(battery_id, batter_msg_type)[0].data
+        priority_dict = sorted(priority_dict.items(), key=lambda x: x[1], reverse=False) 
+        print(priority_dict)
 
-            return battery_val
-
-    def insert_to_landing_collection(self, uav_name, battery_val, state_val):
-        """insert to landing collection the uav name, battery, and state of service"""
-        post = {"_id": uav_name,
-                "uav_name": uav_name,
-                "battery" : battery_val,
-                "landing_service_status": state_val
-        }
-        self.landing_collection.insert_one(post)
-        print(uav_name + " " + "added to database\n")
-    
-    def is_landing_collection_empty(self):
-        """checks if collection has field name 
-        field name is type string
-        return True if it does"""
-        #myquery = {field_name: {"$exists": True}} 
-        if self.landing_collection.count(()) == 0:
-            return True
-
-    def does_uav_exist(self,uav_name):
-        """check if uav key exists in this database"""
-        myquery = {"_id": uav_name}
-        cursor = self.landing_collection.find(myquery)
-        if cursor.count() == 0: #means no uav is in there
-            return False
-        else:
-            print(uav_name + " " + "exists already in database\n")
         
 if __name__ == '__main__':
     """
@@ -145,13 +116,13 @@ if __name__ == '__main__':
     port_num = 27017
     poolsize = 100
     
-    landingDBNode  = LandingDBNode(ip_address=ip_address, port_num=port_num, poolsize=poolsize)
-    srv_collection = landingDBNode.main_collection
-    landing_srv_collection = landingDBNode.landing_collection
+    preLandingService  = PreLandingService()
 
     try:
         #landingDBNode.listen_for_incoming()
-        landingDBNode.main()
+        uav_names = preLandingService.find_uavs_needing_wps()
+        sorted_dict = preLandingService.prioritize_uavs(uav_names)
+        #uav_home_list = preLandingService.get_uav_info("uav_home")
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 

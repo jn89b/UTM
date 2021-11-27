@@ -23,6 +23,10 @@ class UAVComms():
         self.wp_list = []
 
 
+    def get_uav_coords(self):
+        """accessor"""
+        return self.coords
+
     def generate_uav_pos_command(self, uav_name):
         """generate a ros publisher with str:uav name"""
         topic_name = uav_name+"/utm/mavros/setpoint_position/local"

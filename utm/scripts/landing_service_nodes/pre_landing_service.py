@@ -69,12 +69,15 @@ class PreLandingService():
 
         self.landing_srv_col_prox = MessageStoreProxy(collection=self.landing_srv_col_name)
         self.landing_zone_col_prox = MessageStoreProxy(collection=self.landing_zone_col_name)
+        self.zonePlanner = Database.ZonePlanner()
 
     def check_open_zones(self):
         myquery = {"Vacant": True}
         cursor = self.landing_zone_col.find(myquery)
         if cursor.count() == 0:
             return False
+
+        return True
 
     def find_open_zones(self):
         """requests query for open landing zones"""
@@ -83,7 +86,6 @@ class PreLandingService():
         open_zone_coordinates= []
         cursor = self.landing_zone_col.find(myquery)
         for document in cursor:
-            #print(document['Zone Number'])
             open_zone_names.append(document['Zone Number'])
             open_zone_coordinates.append(tuple(document['location']))
 
@@ -133,13 +135,14 @@ class PreLandingService():
 
         return dist, zone_index
 
-    def assign_uav_zone(self,uav_name, zone_name, uav_home_list):
+    def set_zone_occupied(self,uav_name, zone_name):
         """assigns uav to zone and sets the landing zone as false, so no longer vacant"""
         self.landing_zone_col.update({"Zone Number": zone_name},
             { "$set": { 
                 "Occupied by": uav_name,
                 "Vacant": False }})
 
+    def assign_uav_zone(self,uav_name, zone_name, uav_home_list):
         self.landing_service_col.update({"_id": uav_name},
             { "$set": { 
                 "Zone Assignment": zone_name,
@@ -185,7 +188,7 @@ class PreLandingService():
     def add_obstacles(self,grid, obstacle_list):
         """"add obstacles to grid location"""
         for obstacle in obstacle_list:
-            #print(obstacle)
+            print(obstacle)
             (grid[obstacle[2],obstacle[0], obstacle[1]]) = 1
             
         return obstacle_list
@@ -202,6 +205,7 @@ class PreLandingService():
             new_obstacle = obstacle_list + \
                 self.return_unassigned_list(zone_locations[:], zone_idx) + \
                 self.return_unassigned_list(uav_loc_list[:], idx) + flat_list
+
         grid_copy = grid.copy()
         new_obstacle = self.add_obstacles(grid_copy, new_obstacle)
 
@@ -230,13 +234,15 @@ class PreLandingService():
             if (cross_product[0] == 0 and cross_product[1] == 0
             and cross_product[2] == 0):
                 continue
-                #print("collinear")
             else:
                 print("not collinear")
                 filtered_waypoints.append(waypoint)
                 filtered_waypoints.append(waypoint_list[i+2])
                 
         return filtered_waypoints
+
+    def prioritize_uavs(self):
+        """return a sorted list of uavs closest to the homebase"""
 
 def generate_grid(grid_row, grid_col, grid_height):
     grid = []
@@ -250,7 +256,7 @@ def plot_path(grid_z, grid_x, grid_y, waypoint_list, obstacles, goal):
     ax = Axes3D(fig)
     ax.set_xlim([-1, grid_x])
     ax.set_ylim([-1, grid_y])
-    ax.set_zlim([-1, 30])
+    ax.set_zlim([-1, grid_z])
 
     for obstacle in obstacles:
        ax.scatter(obstacle[0],obstacle[1], obstacle[2], color='red')
@@ -283,57 +289,55 @@ if __name__ == '__main__':
         for z in range(25):
             obstacle_list.append((x,y,z))
     obstacle_list = preLandingService.add_obstacles(grid, obstacle_list)
-    
 
-    rate = rospy.Rate(0.25)
+    rate = rospy.Rate(1.0)
     while not rospy.is_shutdown():
         """this is very bloated need to refactor"""
-        if preLandingService.check_open_zones() == False:
-            print("No open zones waiting for uavs to leave")
-        else:
-            print("looking for uavs")
+        if preLandingService.check_open_zones() ==True:
+            uav_path_obs = []
+            path_list = []
+            """probably better to refactor the information as a dictionary and 
+            delete after its done doing its job"""
             uav_names = preLandingService.find_uavs_needing_wps()
-            if uav_names:
-                uav_path_obs = []
-                path_list = []
-
-                """probably better to refactor the information as a dictionary and 
-                delete after its done doing its job"""
-                uav_loc_list = preLandingService.get_uav_info("uav_location")
-                uav_home_list = preLandingService.get_uav_info("uav_home")
-
-                """assigning locations"""
-                for idx, uav_loc in enumerate(uav_loc_list):    
-                    zone_names, zone_locations = preLandingService.find_open_zones()    
-
-                    if not zone_locations or not zone_names:
-                        print("no more zones are availible")
-                        break
-
-                    dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_locations)
+            if not uav_names:
+                continue
+            uav_loc_list = preLandingService.get_uav_info("uav_location")
+            uav_home_list = preLandingService.get_uav_info("uav_home")
+            """assigning locations"""
+            for idx, uav_loc in enumerate(uav_loc_list[:]):
+                zone_names, zone_locations = preLandingService.find_open_zones()
+                if not uav_loc_list or not zone_names:
+                    break 
+                dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_locations)
+                
+                """generating obstacles"""
+                grid_copy, new_obstacle = preLandingService.get_dynamic_obstacles(idx, uav_path_obs)
                     
-                    """generating obstacles"""
-                    grid_copy, new_obstacle = preLandingService.get_dynamic_obstacles(idx, uav_path_obs)
-                        
-                    """apply astar algorithim here"""
-                    uav_wp = preLandingService.find_waypoints(grid_copy, new_obstacle, \
-                        uav_loc, zone_locations[zone_idx])
-                    if uav_wp != None:
-                        preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
-                        path_list.append(uav_wp)
-                        
-                        """reduce the amount of waypoints we need to send"""
-                        filter_wp = preLandingService.reduce_waypoints(uav_wp)
-                        preLandingService.insert_waypoints(uav_names[idx], filter_wp)
-
-                        """insert raw waypoints for path planning"""
-                        preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
-                        """this plot is for debugging"""
-                        #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations[zone_idx])
-                    else:
-                        print("cant find waypoint for", uav_names[idx])
-                        continue
+                """apply astar algorithim here"""
+                uav_wp = preLandingService.find_waypoints(grid_copy, new_obstacle, \
+                    uav_loc, zone_locations[zone_idx])
             
+                if uav_wp != None:    
+                    preLandingService.set_zone_occupied(uav_names[idx], zone_names[zone_idx])
+                    preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
+                    path_list.append(uav_wp)
+                    uav_loc_list.pop(idx)
+                    zone_names.pop(zone_idx)
+                    zone_locations.pop(zone_idx)
+                    """reduce the amount of waypoints we need to send"""
+                    filter_wp = preLandingService.reduce_waypoints(uav_wp)
+                    preLandingService.insert_waypoints(uav_names[idx], filter_wp)
+                    """insert raw waypoints for path planning"""
+                    preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
+                    """this plot is for debugging"""
+                    #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations_copy[zone_idx])
+                else:
+                    print("breaking")
+                    break
+        else:
+            continue
+        
         rate.sleep()
+        
 
         

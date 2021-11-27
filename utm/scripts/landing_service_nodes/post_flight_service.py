@@ -81,12 +81,13 @@ class PostFlightService():
         copy = some_list
         copy.pop(index)
         print("copy", copy)
-        return copy
 
+        return copy
 
     def add_obstacles(self,grid, obstacle_list):
         """"add obstacles to grid location"""
         for obstacle in obstacle_list:
+            print(obstacle)
             (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
             
         return obstacle_list
@@ -96,20 +97,35 @@ class PostFlightService():
         """generate dynamic obstacles from uav waypoints"""
         #should be a function to make dynamic obstacles
         incoming_uav_wp = self.get_incoming_uavs_waypoints(service_num=0)
+        if incoming_uav_wp:
+            incoming_uav_wp = [item for sublist in uav_path_obs for item in sublist]
+        print("incoming uavs", incoming_uav_wp)
         if idx == 0:
             new_obstacle = obstacle_list + incoming_uav_wp + \
                 self.return_unassigned_list(zone_locations[:], zone_idx)
         else:
             if len(uav_path_obs) < idx:
+                print("bad index")
+                uav_locs = self.return_unassigned_list(uav_loc_list[:], idx)
+                if any(isinstance(x, list) for x in uav_locs):
+                    uav_locs = [item for sublist in uav_locs for item in sublist]
+                
                 new_obstacle = obstacle_list + incoming_uav_wp + \
-                    self.return_unassigned_list(uav_loc_list[:], idx)
+                    uav_locs
             else:
+                print("index is good")
                 uav_path_obs.append(path_list[idx-1])
                 flat_list = [item for sublist in uav_path_obs for item in sublist]
+                uav_locs = self.return_unassigned_list(uav_loc_list[:], idx)
+                print(uav_locs)
+                """checking if i have a list of lists inside need to refactor"""
+                if any(isinstance(x, list) for x in uav_locs):
+                    uav_locs = [item for sublist in uav_locs for item in sublist]
+                
                 new_obstacle = obstacle_list + incoming_uav_wp + \
-                    self.return_unassigned_list(zone_locations[:], zone_idx) + \
-                    self.return_unassigned_list(uav_loc_list[:], idx) + flat_list
-        
+                self.return_unassigned_list(zone_locations[:], zone_idx) + uav_locs + \
+                flat_list
+    
         grid_copy = grid.copy()
         print("new obstacle", new_obstacle)
         new_obstacle = self.add_obstacles(grid_copy, new_obstacle)
@@ -158,7 +174,10 @@ class PostFlightService():
             uav_names.append(document["_id"])
             zone_names.append(document["Zone Assignment"])
 
+            print(uav_names)
+
         return uav_names, zone_names
+    
     def main(self):
         """
         keep listening for uavs ready to leave
@@ -169,58 +188,54 @@ class PostFlightService():
         """
 
         uavs, zone_names = self.find_uavs_ready_to_leave(self.previous_service_number)
-        #uavs,zone_names = self.postFlight.find_assigned_zones(self.previous_service_number)
         zone_coord_list = self.postFlight.get_zone_wp_list(zone_names)
         uav_class_list = self.postFlight.generate_publishers(uavs)
         uav_loc_list = self.get_uav_info("uav_location", self.previous_service_number)
         uav_loc_list.append(self.get_uav_info("uav_location", 0)) # for inbound uavs
 
-        rate_val = 10
+        rate_val = 15
         rate = rospy.Rate(rate_val)
 
         while not rospy.is_shutdown():
-            try:
-                if not uav_class_list:
-                    print("Waiting for uavs")
-                    rospy.sleep(0.5)
-                    #keep listening for uavs
-                    uavs, zone_names = self.find_uavs_ready_to_leave(self.previous_service_number)
-                    #uavs,zone_names = self.postFlight.find_assigned_zones(self.previous_service_number)
-                    zone_coord_list = self.postFlight.get_zone_wp_list(zone_names)
-                    uav_class_list = self.postFlight.generate_publishers(uavs)
-                    uav_loc_list = self.get_uav_info("uav_location", self.previous_service_number)
-                    uav_loc_list.append(self.get_uav_info("uav_location", 0)) #for inbound uavs
-                else:
-                    uav_path_obs = []
-                    path_list = []
-                    for idx, uav in enumerate(uav_class_list[:]):
-                        rospy.sleep(0.5) #wait for a couple of seconds                    
-                        #generate obstacles
-                        grid_copy, new_obstacle = self.get_dynamic_obstacles(idx, uav_path_obs, \
-                            zone_coord_list, idx, path_list, uav_loc_list )
-                        #apply astar algorithim
-                        uav_home_path = self.find_home_path(grid_copy, new_obstacle, \
-                            zone_coord_list[idx], uav_loc_list[idx])
-                        #append as dynamic obstacle
-                        path_list.append(uav_home_path)
-                        #reduce amount of waypoints
-                        filter_homepath = self.reduce_waypoints(uav_home_path)
-                        print("path planned is", filter_homepath)
+            if not uav_class_list:
+                print("Waiting for uavs")
+                rospy.sleep(2.0)
+                #keep listening for uavs
+                uavs, zone_names = self.find_uavs_ready_to_leave(self.previous_service_number)
+                #uavs,zone_names = self.postFlight.find_assigned_zones(self.previous_service_number)
+                zone_coord_list = self.postFlight.get_zone_wp_list(zone_names)
+                uav_class_list = self.postFlight.generate_publishers(uavs)
+                uav_loc_list = self.get_uav_info("uav_location", self.previous_service_number)
+                uav_loc_list.append(self.get_uav_info("uav_location", 0)) #for inbound uavs
+            else:
+                uav_path_obs = []
+                path_list = []
+                for idx, uav in enumerate(uav_class_list[:]):
+                    rospy.sleep(0.5) #wait for a couple of seconds                    
+                    #generate obstacles
+                    grid_copy, new_obstacle = self.get_dynamic_obstacles(idx, uav_path_obs, \
+                        zone_coord_list, idx, path_list, uav_loc_list )
+                    #apply astar algorithim
+                    uav_home_path = self.find_home_path(grid_copy, new_obstacle, \
+                        zone_coord_list[idx], uav_loc_list[idx])
+                    #append as dynamic obstacle
+                    path_list.append(uav_home_path)
+                    #reduce amount of waypoints
+                    filter_homepath = self.reduce_waypoints(uav_home_path)
+                    print("path planned is", filter_homepath)
 
-                        home_loc = self.postFlight.find_uav_homeposition(uav.name)
-                        filter_homepath.append(home_loc)
-                        self.insert_waypoints(uav.name, filter_homepath)
-                        self.insert_raw_waypoints(uav.name, uav_home_path)
-                        print("removing uav", uav)
-                        uav_class_list.remove(uav)
-        
-                        if not uav_class_list:
-                            break
+                    home_loc = self.postFlight.find_uav_homeposition(uav.name)
+                    filter_homepath.append(home_loc)
+                    self.insert_waypoints(uav.name, filter_homepath)
+                    self.insert_raw_waypoints(uav.name, uav_home_path)
+                    print("removing uav", uav)
+                    uav_class_list.remove(uav)
+    
+                    if not uav_class_list:
+                        break
 
-                rate.sleep()
+            rate.sleep()
 
-            except rospy.ServiceException as e:
-                logger.exception(e)
 
 def generate_grid(grid_row, grid_col, grid_height):
     grid = []

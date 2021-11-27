@@ -57,7 +57,7 @@ class PathSenderService():
         uavs,zone_names = self.zonePlanner.find_assigned_zones(self.previous_service_number)
         uav_class_list = self.zonePlanner.generate_publishers(uavs)
 
-        rate_val = 15
+        rate_val = 5
         rate = rospy.Rate(rate_val)
 
         while not rospy.is_shutdown():

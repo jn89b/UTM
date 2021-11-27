@@ -64,7 +64,7 @@ class Astar():
         print("start is", start)
         self.goal = goal
         print("goal is", goal)
-        self.collision_bubble = 3.5
+        self.collision_bubble = 4.5
         self.height_boundary = 20
         self.ground_boundary = 5
         
@@ -163,12 +163,13 @@ class Astar():
         #while len(self.openset) > 0:
             count = count + 1
             #print(count)
-            if count >= 4000:
+            if count >= 5000:
                 print("iterations too much")
-                return self.closedset
+                return None
             
             if self.openset.empty():
                 print("No more moves")
+                return None
             
             #pop node off from priority queue and add into closedset
             cost,current_node = self.openset.get()
@@ -236,7 +237,7 @@ class Astar():
                 else:
                     #print(current_node.g)
                     child.g = current_node.g + 1
-                    dynamic_weight = 1.5
+                    dynamic_weight = 15
                     child.h = self.compute_euclidean(child.position, self.end_node)
                     child.f = child.g + (child.h *penalty*dynamic_weight)
                 
