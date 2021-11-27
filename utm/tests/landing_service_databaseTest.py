@@ -93,7 +93,8 @@ class PreLandingService():
             priority_dict[key] = self.compute_2d_euclidean(home_position, [HOME_X, HOME_Y])
 
         priority_dict = sorted(priority_dict.items(), key=lambda x: x[1], reverse=False) 
-        print(priority_dict)
+
+        return priority_dict
 
         
 if __name__ == '__main__':
@@ -122,6 +123,8 @@ if __name__ == '__main__':
         #landingDBNode.listen_for_incoming()
         uav_names = preLandingService.find_uavs_needing_wps()
         sorted_dict = preLandingService.prioritize_uavs(uav_names)
+        print(type(sorted_dict))
+        print(sorted_dict)
         #uav_home_list = preLandingService.get_uav_info("uav_home")
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)

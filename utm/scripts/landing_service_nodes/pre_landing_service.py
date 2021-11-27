@@ -8,7 +8,9 @@ import rospy
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d, Axes3D 
+import operator 
+
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 from utm import Database, HomeBase, PathFinding
 
@@ -37,6 +39,8 @@ BUGS:
 everytime we plan check if landing zone is empty
 
 """
+HOME_X = -50
+HOME_Y = -50
 
 class PreLandingService():
     """
@@ -241,8 +245,30 @@ class PreLandingService():
                 
         return filtered_waypoints
 
-    def prioritize_uavs(self):
-        """return a sorted list of uavs closest to the homebase"""
+    def compute_2d_euclidean(self, position, goal_position):
+        """compute euclidiean with position and goal as 2d vector component"""
+        distance =  math.sqrt(((position[0] - goal_position[0]) ** 2) + 
+                        ((position[1] - goal_position[1]) ** 2))
+        
+        return distance
+
+    def prioritize_uavs(self, uav_ids):
+        """return sorted dictionary of uavs closest to homebase"""
+        priority_dict = dict.fromkeys(uav_ids)
+        for key in priority_dict:
+            home_position = self.zonePlanner.find_uav_homeposition(key)
+            priority_dict[key] = self.compute_2d_euclidean(home_position, [HOME_X, HOME_Y])
+        sorted_list =  sorted(priority_dict.items(), key=operator.itemgetter(1), reverse=False)
+        return sorted_list
+
+    def get_sorted_uav_list(self, field_name, sorted_list):
+        """return a sorted list from dictionary query
+        need to check for pre condition and make sure the field type is not empty""" 
+        info_list = []
+        for val in sorted_list:
+            info_list.append(self.zonePlanner.find_uav_info(val[0], field_name))
+
+        return info_list
 
 def generate_grid(grid_row, grid_col, grid_height):
     grid = []
@@ -299,13 +325,19 @@ if __name__ == '__main__':
             """probably better to refactor the information as a dictionary and 
             delete after its done doing its job"""
             uav_names = preLandingService.find_uavs_needing_wps()
+            
             if not uav_names:
                 continue
-            uav_loc_list = preLandingService.get_uav_info("uav_location")
-            uav_home_list = preLandingService.get_uav_info("uav_home")
+            
+            uavs_sorted = preLandingService.prioritize_uavs(uav_names)
+            uav_loc_list = preLandingService.get_sorted_uav_list("uav_location", uavs_sorted)
+            uav_home_list = preLandingService.get_sorted_uav_list("uav_home", uavs_sorted )
+            #uav_loc_list = preLandingService.get_uav_info("uav_location")
+            #uav_home_list = preLandingService.get_uav_info("uav_home")
             """assigning locations"""
             for idx, uav_loc in enumerate(uav_loc_list[:]):
                 zone_names, zone_locations = preLandingService.find_open_zones()
+                current_uav = uavs_sorted[idx][0]
                 if not uav_loc_list or not zone_names:
                     break 
                 dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_locations)
@@ -318,19 +350,19 @@ if __name__ == '__main__':
                     uav_loc, zone_locations[zone_idx])
             
                 if uav_wp != None:    
-                    preLandingService.set_zone_occupied(uav_names[idx], zone_names[zone_idx])
-                    preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
+                    preLandingService.set_zone_occupied(current_uav, zone_names[zone_idx])
+                    preLandingService.assign_uav_zone(current_uav, zone_names[zone_idx], uav_home_list[idx])
                     path_list.append(uav_wp)
                     uav_loc_list.pop(idx)
                     zone_names.pop(zone_idx)
                     zone_locations.pop(zone_idx)
                     """reduce the amount of waypoints we need to send"""
                     filter_wp = preLandingService.reduce_waypoints(uav_wp)
-                    preLandingService.insert_waypoints(uav_names[idx], filter_wp)
+                    preLandingService.insert_waypoints(current_uav, filter_wp)
                     """insert raw waypoints for path planning"""
-                    preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
+                    preLandingService.insert_raw_waypoints(current_uav, uav_wp)
                     """this plot is for debugging"""
-                    #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations_copy[zone_idx])
+                    #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations_copy[zone_idx])           
                 else:
                     print("breaking")
                     break

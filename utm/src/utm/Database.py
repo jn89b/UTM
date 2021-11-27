@@ -148,6 +148,25 @@ class ZonePlanner():
 
         return home_position
 
+    def find_uav_loiter_position(self, uav_name):
+        myquery = {"uav_name" : uav_name}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            home_position = document["uav_location"]
+
+        return home_position
+
+
+    def find_uav_info(self, uav_name, field_name):
+        """return uav information based on uav name and specific
+        field name this can probably replace the other functions up top"""
+        myquery = {"uav_name" : uav_name}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            uav_info = document[field_name]
+
+        return uav_info
+
     def find_uav_zone_loc(self, uav_name):
         """query where the uav was located at"""
         myquery = {"Occupied by": uav_name}
