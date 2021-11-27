@@ -16,6 +16,13 @@ if float(platform.python_version()[0:2]) >= 3.0:
 else:
     import StringIO
 
+
+"""
+BUGS 
+NEED to check if database is empty
+
+"""
+
 class LandingDBNode():
     """
     LandingDB appends all UAVs that are requesting the third party landing service
@@ -73,12 +80,13 @@ class LandingDBNode():
         """listen for any incoming uavs"""
         myquery = {"pairs": {"$exists": True}}
 
+        
         for doc in self.main_collection.find(myquery):
             meta_info = doc['_meta']
             uav_name = meta_info['name']
             bat_val = self.get_uav_battery_info(uav_name=uav_name)
             #uav_cur_loc = self.get_uav_info(uav_name, 1)
-            print(uav_name)
+            
             """if uav does not want service then we ignore"""
             if (self.get_uav_srv_info(uav_name) == False): 
                 continue
@@ -141,6 +149,8 @@ class LandingDBNode():
     def get_uav_battery_info(self, uav_name):
         """get battery information"""
         for item,meta in self.data_srv_col_prox.query_named(uav_name, StringPairList._type, single=False):
+            print(uav_name)
+            print(item)
             batter_msg_type = item.pairs[0].first 
             battery_id = item.pairs[0].second
             battery_val = self.data_srv_col_prox.query_id(battery_id, batter_msg_type)[0].data

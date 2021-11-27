@@ -216,12 +216,10 @@ class ZonePlanner():
             return False
 
     def has_left_zone(self, zone_coords, uav_coords):
+        """check if uav has left zone in the long and lat distance"""
         zone_coords = np.array(zone_coords)
         uav_coords = np.array(uav_coords)
-        #print(uav_coords)
         dist = abs(np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
-        #print(dist)
-        #print(dist)
         if dist >= 10.0:
             return True
         else:

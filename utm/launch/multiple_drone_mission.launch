@@ -9,9 +9,9 @@
             <arg name="offset_x" value="$(arg ned_y)"/>
             <arg name="offset_y" value="$(arg ned_x)"/>
 
-            <arg name="init_x" value="5.0"/>
-            <arg name="init_y" value="-8.0"/>
-            <arg name="init_z" value="5.0"/>
+            <arg name="init_x" value="0.0"/>
+            <arg name="init_y" value="0.0"/>
+            <arg name="init_z" value="10.0"/>
         </include> 
     </group>
 
@@ -26,11 +26,29 @@
 
             <!--sends the actual location need to send this to Database 
             to make it accurate-->
-            <arg name="init_x" value="6"/>
+            <arg name="init_x" value="10.0"/>
             <arg name="init_y" value="0.0"/>
-            <arg name="init_z" value="6.0"/>
+            <arg name="init_z" value="10.0"/>
 
         </include> 
     </group>
+
+
+    <group ns="uav2">
+        <arg name="ned_x" default="-10.0"/>
+        <arg name="ned_y" default="-10.0"/>
+       <include file="$(find utm)/launch/offboard_launch.launch">
+            <!--offsets from airsim look at json file settings-->
+            <arg name="offset_x" value="$(arg ned_y)"/>
+            <arg name="offset_y" value="$(arg ned_x)"/>
+
+            <!--sends the actual location need to send this to Database 
+            to make it accurate-->
+            <arg name="init_x" value="0.0"/>
+            <arg name="init_y" value="5.0"/>
+            <arg name="init_z" value="10.0"/>
+        </include> 
+    </group>
+
 
 </launch>

@@ -2,13 +2,13 @@
 
     <!--args for gcs bridge for communication with QGC on Windows OS-->
     <!--https://github.com/mavlink/mavros/issues/574-->
-    <arg name="mavlink_bridge_url" default="udp://@172.29.192.1:14550" />
+    <arg name="mavlink_bridge_url" default="udp://@172.20.144.1:14550" />
 
 	<!--args for airsim_node.launch, set arg host to WSL2 ipaddress config-->
 	<arg name="output" default="screen"/>
 	<arg name="publish_clock" default="true"/>
 	<arg name="is_vulkan" default="true"/>
-	<arg name="host" default="172.29.192.1" />
+	<arg name="host" default="172.20.144.1" />
 
     <!--args for camera published from airsim so we can map to apriltag-->
     <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   

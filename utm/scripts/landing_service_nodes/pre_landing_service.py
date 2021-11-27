@@ -33,6 +33,9 @@ set UAV state to 1
 
 listen for incoming UAVs and check if landing not avail
 
+BUGS:
+everytime we plan check if landing zone is empty
+
 """
 
 class PreLandingService():
@@ -108,6 +111,19 @@ class PreLandingService():
             uav_info_list.append(document[field_name])
 
         return uav_info_list
+
+    def find_uavs_needing_wps(self):
+        """find uavs that have a service status of 0 but do not have
+        a waypoint"""
+        uavs = []
+        myquery = {"$and": [{"landing_service_status":0}, 
+                    {"Raw Waypoint": {'$exists': False}}]}
+        cursor = self.landing_service_col.find(myquery)
+        for document in cursor:
+            uavs.append(document["uav_name"])
+
+        return uavs
+
 
     def find_closest_zone(self, uav_loc, landing_zones):
         """find closest zone location to uav location"""
@@ -213,7 +229,8 @@ class PreLandingService():
             cross_product = self.compute_cross_product(vec_start, vec_end)
             if (cross_product[0] == 0 and cross_product[1] == 0
             and cross_product[2] == 0):
-                print("collinear")
+                continue
+                #print("collinear")
             else:
                 print("not collinear")
                 filtered_waypoints.append(waypoint)
@@ -274,46 +291,49 @@ if __name__ == '__main__':
         if preLandingService.check_open_zones() == False:
             print("No open zones waiting for uavs to leave")
         else:
-            print("assigning")
-            uav_path_obs = []
-            path_list = []
+            print("looking for uavs")
+            uav_names = preLandingService.find_uavs_needing_wps()
+            if uav_names:
+                uav_path_obs = []
+                path_list = []
 
-            """probably better to refactor the information as a dictionary and 
-            delete after its done doing its job"""
-            uav_names = preLandingService.get_uav_info("uav_name")
-            uav_loc_list = preLandingService.get_uav_info("uav_location")
-            uav_home_list = preLandingService.get_uav_info("uav_home")
+                """probably better to refactor the information as a dictionary and 
+                delete after its done doing its job"""
+                uav_loc_list = preLandingService.get_uav_info("uav_location")
+                uav_home_list = preLandingService.get_uav_info("uav_home")
 
-            """assigning locations"""
-            for idx, uav_loc in enumerate(uav_loc_list):    
-                zone_names, zone_locations = preLandingService.find_open_zones()
-                dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_locations)
-                
-                """generating obstacles"""
-                grid_copy, new_obstacle = preLandingService.get_dynamic_obstacles(idx, uav_path_obs)
+                """assigning locations"""
+                for idx, uav_loc in enumerate(uav_loc_list):    
+                    zone_names, zone_locations = preLandingService.find_open_zones()    
+
+                    if not zone_locations or not zone_names:
+                        print("no more zones are availible")
+                        break
+
+                    dist, zone_idx = preLandingService.find_closest_zone(uav_loc, zone_locations)
                     
-                """apply astar algorithim here"""
-                # astar = Astar(grid_copy, new_obstacle,  uav_loc, zone_locations[zone_idx])
-                # uav_wp = astar.main()
-                uav_wp = preLandingService.find_waypoints(grid_copy, new_obstacle, \
-                    uav_loc, zone_locations[zone_idx])
-                if uav_wp != None:
+                    """generating obstacles"""
+                    grid_copy, new_obstacle = preLandingService.get_dynamic_obstacles(idx, uav_path_obs)
+                        
+                    """apply astar algorithim here"""
+                    uav_wp = preLandingService.find_waypoints(grid_copy, new_obstacle, \
+                        uav_loc, zone_locations[zone_idx])
+                    if uav_wp != None:
+                        preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
+                        path_list.append(uav_wp)
+                        
+                        """reduce the amount of waypoints we need to send"""
+                        filter_wp = preLandingService.reduce_waypoints(uav_wp)
+                        preLandingService.insert_waypoints(uav_names[idx], filter_wp)
 
-                    preLandingService.assign_uav_zone(uav_names[idx], zone_names[zone_idx], uav_home_list[idx])
-                    path_list.append(uav_wp)
-                    
-                    """reduce the amount of waypoints we need to send"""
-                    filter_wp = preLandingService.reduce_waypoints(uav_wp)
-                    preLandingService.insert_waypoints(uav_names[idx], filter_wp)
-
-                    """insert raw waypoints for path planning"""
-                    preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
-                    """this plot is for debugging"""
-                    #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations[zone_idx])
-                else:
-                    print("cant find waypoint for", uav_names[idx])
-                    continue
-        
+                        """insert raw waypoints for path planning"""
+                        preLandingService.insert_raw_waypoints(uav_names[idx], uav_wp)
+                        """this plot is for debugging"""
+                        #plot_path(grid_z, grid_x, grid_y, uav_wp, new_obstacle, zone_locations[zone_idx])
+                    else:
+                        print("cant find waypoint for", uav_names[idx])
+                        continue
+            
         rate.sleep()
 
         
