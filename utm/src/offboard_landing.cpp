@@ -382,7 +382,7 @@ class Controller
     }
 
     // this function is too long 
-    void begin_land_protocol(Eigen::Vector2d gain )
+    void begin_land_protocol(Eigen::Vector2d gain)
     {   
         {
             PID pid_x(kp, ki, kd, dt, kf_x, odom_x);
@@ -395,7 +395,7 @@ class Controller
             {
                 case 1: //drop slowly to landing target
                     ROS_INFO("dropping down slowly");
-                    pre_land_protocol(gain, 0.35);
+                    pre_land_protocol(gain, 0.50);
                     break;
                 case 2:
                     ROS_INFO("disarming");

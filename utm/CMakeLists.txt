@@ -130,6 +130,7 @@ install(TARGETS
 )
 
 catkin_install_python(PROGRAMS
+    #drone stuff
     scripts/drone_image_raw.py
     scripts/offboard_drone.py
     scripts/apriltag_position_pub.py
@@ -142,15 +143,19 @@ catkin_install_python(PROGRAMS
     scripts/drone_transformation.py
     scripts/uav_mongo_query.py
     
+    #database stuff
     scripts/landing_db/data_service_provider.py
     scripts/landing_db/landing_service_database.py
 
+    #third party landing server
     scripts/landing_service_nodes/pre_landing_service.py
     scripts/landing_service_nodes/path_sender_service.py
     scripts/landing_service_nodes/landing_state_service.py
     scripts/landing_service_nodes/post_flight_service.py
     scripts/landing_service_nodes/path_home_sender_service.py
+    scripts/landing_service_nodes/zone_observer.py
 
+    #test setups
     tests/mongo_db_test.py
     tests/mongo_recieve_info.py
     tests/landing_zone_test.py

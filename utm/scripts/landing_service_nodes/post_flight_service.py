@@ -85,10 +85,15 @@ class PostFlightService():
         return copy
 
     def add_obstacles(self,grid, obstacle_list):
+        #added condition to check values
         """"add obstacles to grid location"""
         for obstacle in obstacle_list:
             print(obstacle)
-            (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
+            if obstacle <= 3:
+                print("invalid obstacle", obstacle)
+                continue
+            else:
+                (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
             
         return obstacle_list
 
@@ -173,7 +178,6 @@ class PostFlightService():
         for document in cursor:
             uav_names.append(document["_id"])
             zone_names.append(document["Zone Assignment"])
-
             print(uav_names)
 
         return uav_names, zone_names
@@ -215,22 +219,33 @@ class PostFlightService():
                     #generate obstacles
                     grid_copy, new_obstacle = self.get_dynamic_obstacles(idx, uav_path_obs, \
                         zone_coord_list, idx, path_list, uav_loc_list )
+                    #get landing and exit location
+                    uav_landing_zone = self.postFlight.find_uav_info(uav.name, "Zone Assignment")
+                    uav_exit_zone = self.postFlight.find_uav_info(uav.name, "uav_location")
+                    zone_loc = self.postFlight.find_zone_waypoints(uav_landing_zone)
+                    #telling the uav to start at the exit entry height
+                    zone_loc[2] = uav_exit_zone[2]
+                    print("zone location is", zone_loc)
                     #apply astar algorithim
                     uav_home_path = self.find_home_path(grid_copy, new_obstacle, \
-                        zone_coord_list[idx], uav_loc_list[idx])
-                    #append as dynamic obstacle
-                    path_list.append(uav_home_path)
-                    #reduce amount of waypoints
-                    filter_homepath = self.reduce_waypoints(uav_home_path)
-                    print("path planned is", filter_homepath)
+                        zone_loc, uav_exit_zone)
+                    #check if we have a path
+                    if uav_home_path:
+                        #append as dynamic obstacle
+                        path_list.append(uav_home_path)
+                        #reduce amount of waypoints
+                        filter_homepath = self.reduce_waypoints(uav_home_path)
+                        print("path planned is", filter_homepath)
+                        home_loc = self.postFlight.find_uav_homeposition(uav.name)
+                        filter_homepath.append(home_loc)
+                        self.insert_waypoints(uav.name, filter_homepath)
+                        self.insert_raw_waypoints(uav.name, uav_home_path)
+                        print("removing uav", uav)
+                        uav_class_list.remove(uav)
+                    else:
+                        print("cant find path")
+                        break
 
-                    home_loc = self.postFlight.find_uav_homeposition(uav.name)
-                    filter_homepath.append(home_loc)
-                    self.insert_waypoints(uav.name, filter_homepath)
-                    self.insert_raw_waypoints(uav.name, uav_home_path)
-                    print("removing uav", uav)
-                    uav_class_list.remove(uav)
-    
                     if not uav_class_list:
                         break
 
@@ -253,7 +268,7 @@ if __name__ == '__main__':
     rospy.init_node('post_flight_service')
     postFlightService = PostFlightService()
 
-    static_obstacle_list = [(30,10)]
+    static_obstacle_list = [(15,40)]
     obstacle_list = []
     for static_obstacle in static_obstacle_list:
         x = static_obstacle[0]

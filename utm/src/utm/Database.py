@@ -156,7 +156,6 @@ class ZonePlanner():
 
         return home_position
 
-
     def find_uav_info(self, uav_name, field_name):
         """return uav information based on uav name and specific
         field name this can probably replace the other functions up top"""
@@ -229,7 +228,7 @@ class ZonePlanner():
         zone_coords = np.array(zone_coords)
         uav_coords = np.array(uav_coords)
         dist = (np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
-        if dist <= 1.5:
+        if dist <= 0.75:
             return True
         else:
             return False

@@ -200,14 +200,24 @@ class PreLandingService():
     def get_dynamic_obstacles(self, idx, uav_path_obs):
         """generate dynamic obstacles from uav waypoints"""
         #should be a function to make dynamic obstacles
+        zone_bounds = self.return_unassigned_list(zone_locations[:], zone_idx) 
+        zone_obstacles = []
+        for zone in zone_bounds:
+            x = static_obstacle[0]
+            y = static_obstacle[1]
+            for z in range(15):
+                zone_obstacles.append((x,y,z))
+                
+        print("zone obstacles", zone_obstacles)
         if idx == 0:
             new_obstacle = obstacle_list + \
-                self.return_unassigned_list(zone_locations[:], zone_idx)
+                self.return_unassigned_list(zone_locations[:], zone_idx) + \
+                    zone_obstacles
         else:
             uav_path_obs.append(path_list[idx-1])
             flat_list = [item for sublist in uav_path_obs for item in sublist]
             new_obstacle = obstacle_list + \
-                self.return_unassigned_list(zone_locations[:], zone_idx) + \
+                zone_obstacles + \
                 self.return_unassigned_list(uav_loc_list[:], idx) + flat_list
 
         grid_copy = grid.copy()

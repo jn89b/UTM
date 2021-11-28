@@ -65,11 +65,11 @@ class MavrosTF():
 
     def main(self):
         rate = rospy.Rate(10)
-        self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(2.5))
+        self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(10.0))
         while not rospy.is_shutdown():
             try:
                 now = rospy.Time.now()
-                self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration())
+                self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(1.0))
                 (trans,rot) = self.tf_listener_.lookupTransform(self.new_source_tf,self.old_target_tf,rospy.Time(0))
                 x = trans[0]
                 y = trans[1]
@@ -91,7 +91,7 @@ class MavrosTF():
 
                 self.pub.publish(posestamped)
                     
-            except (tf.LookupException, tf.ConnectivityException):
+            except (tf.TransformException):
                 continue
                 #rate.sleep()
         rate.sleep()

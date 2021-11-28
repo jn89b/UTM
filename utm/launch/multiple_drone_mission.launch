@@ -45,7 +45,7 @@
             <!--sends the actual location need to send this to Database 
             to make it accurate-->
             <arg name="init_x" value="0.0"/>
-            <arg name="init_y" value="5.0"/>
+            <arg name="init_y" value="30.0"/>
             <arg name="init_z" value="10.0"/>
         </include> 
     </group>
