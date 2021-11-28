@@ -153,5 +153,18 @@
         </include>
     </group>
 
+    <group ns="uav6">
+        <arg name="fcu_url" default="udp://:14546@$(arg host):14563" />
+        <arg name="gcs_url" default="udp://:14556@$(arg host):14551"  />
+        <arg name="tgt_system" default="7" />
+        <arg name="tgt_component" default="1" />
+
+        <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)"/>
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)"/>
+        </include>
+    </group>
 
 </launch>

@@ -39,8 +39,8 @@ BUGS:
 everytime we plan check if landing zone is empty
 
 """
-HOME_X = -50
-HOME_Y = -50
+HOME_X = 25
+HOME_Y = 25
 
 class PreLandingService():
     """

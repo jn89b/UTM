@@ -46,7 +46,6 @@ class PathHomeSenderService():
         """need to open multiple threads and send waypoint commands for drone"""
         waypoint_list = self.zonePlanner.find_uav_home_waypoints(uav.name)
         zone_name = self.zonePlanner.find_uav_zone_name(uav.name)    
-        trigger = False
         
         for wp in waypoint_list:
             #self.zonePlanner.update_uav_state(uav.name,self.update_service_number)
