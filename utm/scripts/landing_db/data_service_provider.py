@@ -81,13 +81,15 @@ if __name__ == '__main__':
     """it would smart to map to some parameters"""
     rospy.init_node("uav_sending_info")
     try:
+        """for gps just sent it lat/long I've already taken care of reversing the orientation to
+        x,y,z wrt global position of homebase"""
         uav_0 = TestUAV("uav0",[[-30, -50, 10],[0,0,0,1]],[[0, 0, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
         uav_1 = TestUAV("uav1",[[-20, 0, 10],[0,0,0,1]],[[10, 0, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
         uav_2 = TestUAV("uav2",[[-40, 10, 10],[0,0,0,1]],[[30, 0, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
         uav_3 = TestUAV("uav3",[[-25, -25, 10],[0,0,0,1]],[[0, 15, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
         uav_4 = TestUAV("uav4",[[100, 75, 10],[0,0,0,1]],[[49, 40, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
-        uav_5 = TestUAV("uav5",[[75, 100, 10],[0,0,0,1]],[[40, 49, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
-        uav_6 = TestUAV("uav6",[[100, 0, 10],[0,0,0,1]],[[49, 0, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
+        uav_5 = TestUAV("uav5",[[100, 75, 10],[0,0,0,1]],[[40, 49, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
+        uav_6 = TestUAV("uav6",[[0, 100, 10],[0,0,0,1]],[[0, 49, 10],[0,0,0,1]], [[10, -123, 100],[0,0,0,1]], 82,True)
     
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)

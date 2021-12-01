@@ -45,15 +45,14 @@ class PathHomeSenderService():
 
         """need to open multiple threads and send waypoint commands for drone"""
         waypoint_list = self.zonePlanner.find_uav_home_waypoints(uav.name)
-        #zone_name = self.zonePlanner.find_uav_zone_name(uav.name)    
-        
+        zone_name = self.zonePlanner.find_uav_zone_name(uav.name)
         for wp in waypoint_list:
             #self.zonePlanner.update_uav_state(uav.name,self.update_service_number)
             print("index", uav.wp_index)
             if uav.wp_index > (len(waypoint_list)-1):
                 self.zonePlanner.update_uav_state(uav.name,self.update_service_number)
+                self.zonePlanner.update_landing_zone(zone_name)
                 uav_class_list.remove(uav)
-                #self.zonePlanner.update_landing_zone(zone_name)
                 print(uav.name + " has reached the final waypoint")
                 break
             
@@ -74,9 +73,7 @@ class PathHomeSenderService():
         rate = rospy.Rate(rate_val)
 
         while not rospy.is_shutdown():
-            """need to check when the class is empty, if empty we listen for more drones"""
-            #for i in range(len(uav_class_list)):
-            if not uav_class_list: #if nothing then we continue to listen for uavs
+            if not uav_class_list: 
                 print("Waiting for uavs")
                 rospy.sleep(2.0)
                 uavs = self.find_uavs_who_have_homepath()

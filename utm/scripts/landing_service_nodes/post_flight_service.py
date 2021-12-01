@@ -79,22 +79,23 @@ class PostFlightService():
     def return_unassigned_list(self,some_list, index):
         """return all other zones or uavs not assigned to uav to make as a no fly zone"""
         copy = some_list
-        copy.pop(index)
-        print("copy", copy)
-
-        return copy
+        if index >= len(copy):
+            return copy
+        else:
+            copy.pop(index)
+            print("copy", copy)
+            return copy
 
     def add_obstacles(self,grid, obstacle_list):
         #added condition to check values
         """"add obstacles to grid location"""
         for obstacle in obstacle_list:
-            print(obstacle)
-            if obstacle <= 3:
-                print("invalid obstacle", obstacle)
-                continue
-            else:
+            if type(obstacle) == list or type(obstacle) == tuple:
                 (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
-            
+            else:
+                print("bad")
+                continue
+                            
         return obstacle_list
 
     def get_dynamic_obstacles(self, idx, uav_path_obs, zone_locations, \

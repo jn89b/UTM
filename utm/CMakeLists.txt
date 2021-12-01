@@ -102,6 +102,10 @@ add_executable(offboard_landing src/offboard_landing.cpp src/PID.cpp src/moving_
 add_dependencies(offboard_landing ${catkin_EXPORTED_TARGETS})
 target_link_libraries(offboard_landing  ${catkin_LIBRARIES})
 
+add_executable(offboard_landing_v2 src/offboard_landing_v2.cpp src/PID.cpp src/moving_avg.cpp)
+add_dependencies(offboard_landing_v2 ${catkin_EXPORTED_TARGETS})
+target_link_libraries(offboard_landing_v2  ${catkin_LIBRARIES})
+
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 

@@ -101,7 +101,9 @@
 
 
     <group ns="uav6">
-        <arg name="ned_x" default="0"/>
+        <!--this is the NED or Unreal Engine Coordinate axis of where 
+        you spawn it from AIRSIM-->
+        <arg name="ned_x" default="0.0"/>
         <arg name="ned_y" default="100"/>
        <include file="$(find utm)/launch/offboard_launch.launch">
             <!--offsets from airsim look at json file settings-->
@@ -110,8 +112,8 @@
 
             <!--sends the actual location need to send this to Database 
             to make it accurate-->
-            <arg name="init_x" value="0"/>
-            <arg name="init_y" value="49"/>
+            <arg name="init_x" value="49"/>
+            <arg name="init_y" value="0"/>
             <arg name="init_z" value="10.0"/>
         </include>  
     </group>

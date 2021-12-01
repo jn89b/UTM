@@ -33,51 +33,62 @@ class ZoneObserver():
 
         return uavs
 
-    def observe_uavs(self,uav_class_list,uav):
-        """observe uavs and see if they have left"""
-        if not uav.coords():
-            uav.get_uav_coords()
-
+    def observe_uavs(self,uav_class_list, uav):
+        #uav.send_utm_state_command(self.previous_service_number)
+        """need to open multiple threads and send waypoint commands for drone"""
+        waypoint_list = self.zonePlanner.find_uav_home_waypoints(uav.name)
         zone_name = self.zonePlanner.find_uav_zone_name(uav.name)
-        zone_coords = self.zonePlanner.find_zone_waypoints(zone_name)
-        
-        if self.zonePlanner.has_left_zone(zone_coords, uav.coords):
-            print("uav has left", uav.name)
-            self.zonePlanner.update_landing_zone(zone_name)
-            uav_class_list.remove(uav)
-            return
+    
+        for wp in waypoint_list:
+            if uav.wp_index > (len(waypoint_list)-2):
+                self.zonePlanner.update_landing_zone(zone_name)
+                uav_class_list.remove(uav)
+                print(uav.name + "has left area")
+                break
 
+            waypoint = waypoint_list[uav.wp_index]
+            
+            """badly worded this is if we are at some assigned waypoint"""
+            if self.zonePlanner.is_arrived_to_zone(waypoint, uav.coords) == False:
+                continue
+            else:
+                uav.wp_index +=1
+
+    def check_valid_uav(self,uav):
+        if uav.coords != [None,None]:
+            return True
+     
     def main(self):
         uavs = self.find_uavs_who_have_homepath()
         uav_class_list = self.zonePlanner.generate_publishers(uavs)
         
-        rate_val = 10 
+        rate_val = 5 
         rate = rospy.Rate(rate_val)
 
         while not rospy.is_shutdown():
             """need to check when the class is empty, if empty we listen for more drones"""
-            #for i in range(len(uav_class_list)):
             if not uav_class_list: #if nothing then we continue to listen for uavs
-                print("Waiting for uavs")
-                rospy.sleep(2.0)
                 uavs = self.find_uavs_who_have_homepath()
-                print("uavs are", uavs)
                 uav_class_list = self.zonePlanner.generate_publishers(uavs)
             else:
-                threads = []
+                processes = []
                 for idx, uav in enumerate(uav_class_list[:]):
-                    print(uav_class_list)
-                    rospy.sleep(1.0) #wait for a couple of seconds
-                    t = multiprocessing.Process(self.observe_uavs(uav_class_list, uav))
-                    t.start()
-                    threads.append(t)
+                    #print("uavs", uav_class_list)
+                    if self.check_valid_uav(uav):
+                        #rospy.sleep(2.0) #wait for a couple of seconds
+                        p = multiprocessing.Process(self.observe_uavs(uav_class_list, uav))
+                        p.start()
+                        processes.append(p)
 
-                    if not uav_class_list:
-                        break
+                        if not uav_class_list:
+                            break
+                    else:
+                        continue
 
-                for t in threads:
-                    t.join()
-                    
+                    for p in processes:
+                        #wait until we finish before continuing 
+                        p.join()
+
             rate.sleep()
 
 if __name__ == '__main__':

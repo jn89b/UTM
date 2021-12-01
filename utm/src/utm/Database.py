@@ -224,11 +224,11 @@ class ZonePlanner():
         
         return uavObject_list
 
-    def is_arrived_to_zone(self, zone_coords, uav_coords):
+    def is_arrived_to_zone(self, zone_coords, uav_coords, tolerance):
         zone_coords = np.array(zone_coords)
         uav_coords = np.array(uav_coords)
         dist = (np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
-        if dist <= 0.75:
+        if dist <= tolerance:
             return True
         else:
             return False
@@ -238,7 +238,7 @@ class ZonePlanner():
         zone_coords = np.array(zone_coords)
         uav_coords = np.array(uav_coords)
         dist = abs(np.sqrt((zone_coords[0]- uav_coords[0])**2+(zone_coords[1]- uav_coords[1])**2))
-        if dist >= 10.0:
+        if dist >= 15:
             return True
         else:
             return False

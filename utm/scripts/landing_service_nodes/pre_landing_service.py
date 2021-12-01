@@ -185,15 +185,20 @@ class PreLandingService():
     def return_unassigned_list(self,some_list, index):
         """return all other zones or uavs not assigned to uav to make as a no fly zone"""
         copy = some_list
-        copy.pop(index)
-        print("copy", copy)
-        return copy
+        if index >= len(copy):
+            return copy
+        else:
+            copy.pop(index)
+            print("copy", copy)
+            return copy
 
     def add_obstacles(self,grid, obstacle_list):
         """"add obstacles to grid location"""
         for obstacle in obstacle_list:
-            print(obstacle)
-            (grid[obstacle[2],obstacle[0], obstacle[1]]) = 1
+            if type(obstacle) != list or type(obstacle) != tuple:
+                continue
+            else:
+                (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
             
         return obstacle_list
 
@@ -203,8 +208,8 @@ class PreLandingService():
         zone_bounds = self.return_unassigned_list(zone_locations[:], zone_idx) 
         zone_obstacles = []
         for zone in zone_bounds:
-            x = static_obstacle[0]
-            y = static_obstacle[1]
+            x = zone[0]
+            y = zone[1]
             for z in range(15):
                 zone_obstacles.append((x,y,z))
                 
@@ -326,7 +331,7 @@ if __name__ == '__main__':
             obstacle_list.append((x,y,z))
     obstacle_list = preLandingService.add_obstacles(grid, obstacle_list)
 
-    rate = rospy.Rate(1.0)
+    rate = rospy.Rate(5.0)
     while not rospy.is_shutdown():
         """this is very bloated need to refactor"""
         if preLandingService.check_open_zones() ==True:
@@ -342,8 +347,6 @@ if __name__ == '__main__':
             uavs_sorted = preLandingService.prioritize_uavs(uav_names)
             uav_loc_list = preLandingService.get_sorted_uav_list("uav_location", uavs_sorted)
             uav_home_list = preLandingService.get_sorted_uav_list("uav_home", uavs_sorted )
-            #uav_loc_list = preLandingService.get_uav_info("uav_location")
-            #uav_home_list = preLandingService.get_uav_info("uav_home")
             """assigning locations"""
             for idx, uav_loc in enumerate(uav_loc_list[:]):
                 zone_names, zone_locations = preLandingService.find_open_zones()

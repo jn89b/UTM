@@ -106,8 +106,8 @@ if __name__ == '__main__':
         #map this with airsim location of where the apriltags are 
         insert_to_landing_zones_col(landing_collection, "Zone_0", [20, 20,7], True)
         insert_to_landing_zones_col(landing_collection, "Zone_1", [30, 20,7], True)
-        insert_to_landing_zones_col(landing_collection, "Zone_2", [30, 30,7], False)
-        #insert_to_landing_zones_col(landing_collection, "Zone_3", [-10, -4], True)
+        insert_to_landing_zones_col(landing_collection, "Zone_2", [30, 30,7], True)
+        insert_to_landing_zones_col(landing_collection, "Zone_3", [20, 30,7], True)
         """
         for index, zone in enumerate(zone_names_list):
             stored = wrap_database_info(p_list[index], isvacant, msg_store)

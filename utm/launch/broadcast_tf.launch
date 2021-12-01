@@ -16,10 +16,11 @@
 
     <arg name="old_target_tf" default="downwards_custom_0_optical"/>
     
+    <!--
     <remap from="/tag_detections" to="/$(arg uav_name)/tag_detections"/>
     <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
         <arg name="camera_name" value="$(arg camera_name)"/>
-    </include> 
+    </include>--> 
 
     <node pkg="utm" type="drone_transformation.py" name="drone_transformation">
         <param name="quad_tf" value="$(arg quad_tf)"/>
@@ -27,14 +28,19 @@
         <param name="world_tf" value="$(arg world_tf)"/>
     </node>
 
+    <!--
     <node pkg="utm" type="apriltag_position_pub.py" name="apriltag_position_pub">
         <param name="tag_id" value="$(arg id_tag)"/>
         <param name="rtag_drone" value="$(arg rtagdrone)"/>
         <param name="quad_tf" value="$(arg quad_tf)"/>
         <param name="tag_frame_id" value="$(arg frame_tag_id)"/> 
         <param name="alt_from_tag" value="$(arg height_from_tag)"/>    
-    </node>
+    </node>-->
 
-    <node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>
+    <!--<node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>-->
+
+    <node pkg="utm" type="logger.py" name="logger">
+        <param name ="uav_id" value="$(arg uav_name)"/>
+    </node>
 
 </launch>

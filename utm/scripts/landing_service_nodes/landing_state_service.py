@@ -30,18 +30,26 @@ class LandingStateService():
 
     def main(self):
         uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
-        print(uavs)
+        
+        rate_val = 5
+        rate = rospy.Rate(rate_val)
+
+        if len(uavs) == 1:
+            print("seeing if we have more uavs")
+            rospy.sleep(5.0)
+            uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
+        
         #zone_coord_list = self.landingPlanner.get_zone_wp_list(zone_names)
         uav_class_list = self.landingPlanner.generate_publishers(uavs)
         
-        rate_val = 1
-        rate = rospy.Rate(rate_val)
-
         while not rospy.is_shutdown():
             if not uav_class_list:
-                print("Waiting for uavs to request to land")
-                rospy.sleep(5)
                 uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
+                if len(uavs) == 1:
+                    print("seeing if we have more uavs")
+                    rospy.sleep(5.0)
+                    uavs,zone_names = self.landingPlanner.find_assigned_zones(self.previous_service_number)
+            
                 uav_class_list = self.landingPlanner.generate_publishers(uavs)
             else:
                 for idx, uav in enumerate(uav_class_list[:]):

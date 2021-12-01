@@ -2,13 +2,13 @@
 
     <!--args for gcs bridge for communication with QGC on Windows OS-->
     <!--https://github.com/mavlink/mavros/issues/574-->
-    <arg name="mavlink_bridge_url" default="udp://@172.20.144.1:14550" />
+    <arg name="mavlink_bridge_url" default="udp://@172.28.80.1:14550" />
 
 	<!--args for airsim_node.launch, set arg host to WSL2 ipaddress config-->
 	<arg name="output" default="screen"/>
 	<arg name="publish_clock" default="true"/>
 	<arg name="is_vulkan" default="true"/>
-	<arg name="host" default="172.20.144.1" />
+	<arg name="host" default="172.28.80.1" />
 
     <!--args for camera published from airsim so we can map to apriltag-->
     <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   
@@ -33,7 +33,8 @@
         <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
         <arg name="tgt_system" default="1" />
         <arg name="tgt_component" default="1" />
-
+        <arg name="uav_name" value="uav0"/>
+        
         <include file="$(find utm)/launch/mavros_gcs_launch.launch">
             <arg name="fcu_url" value="$(arg fcu_url)" />
             <arg name="gcs_url" value="$(arg gcs_url)"/>
@@ -46,7 +47,7 @@
             <arg name ="world_tf" value="/world_enu"/>
             <arg name ="rtagdrone" value="/tag_wrt_uav0"/>
             <arg name="camera_name" value="$(arg uav_0_camera_name)"/>
-            <arg name="uav_name" value="uav0"/>
+            
         </include>
 
         <arg name="ned_x" default="3.0"/>
@@ -61,7 +62,7 @@
             <arg name="init_z" value="5.0"/>
         </include> 
         
-        <node pkg="utm" type="uav_mongo_query.py" name="uav_mongo_query"/>
+
         <node pkg="utm" type="moving_avg_main" name="moving_avg_main"/>
     </group>
 
