@@ -21,7 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   nav_msgs
   # nodelet
-  # need to add mavros 
+  # need to add mavros
+  turtlebot 
   roscpp
   rospy
   sensor_msgs

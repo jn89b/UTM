@@ -18,10 +18,12 @@ class UAVComms():
         
         self.uav_loc_sub = self.generate_uav_position_sub(self.name)
         self.coords = [None,None]
-        self.three_cords = [None,None,None]
+        self.three_coords = [None,None,None]
         self.wp_index = 0
         self.wp_list = []
 
+        #self.utm_sub = self.generate_utm_command_sub(self.name)
+        
 
     def get_uav_coords(self):
         """accessor"""
@@ -48,6 +50,13 @@ class UAVComms():
         """generate a ros publisher with str:uav name"""
         topic_name = uav_name+"/utm_control"
         uav_state_cmd_pub = rospy.Publisher(topic_name, Int8, queue_size = 10)
+        #print(uav_state_cmd_pub)
+        return uav_state_cmd_pub
+
+    def generate_utm_command(self, uav_name):
+        """generate a ros publisher with str:uav name"""
+        topic_name = uav_name+"/utm_control"
+        uav_state_cmd_pub = rospy.Sub(topic_name, Int8, queue_size = 10)
         #print(uav_state_cmd_pub)
         return uav_state_cmd_pub
 
@@ -78,8 +87,10 @@ class UAVComms():
         y = msg.pose.position.y
         z = msg.pose.position.z
         self.coords = [x,y]
-        self.three_cords = [x,y,z]
+        self.three_coords = [x,y,z]
         #print(self.coords)  
         #return coords
 
+    def utm_cb(self, msg):
+        self.state_command = msg.data
 

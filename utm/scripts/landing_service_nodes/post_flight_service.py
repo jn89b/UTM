@@ -77,7 +77,7 @@ class PostFlightService():
         return uav_info_list
 
     def return_unassigned_list(self,some_list, index):
-        """return all other zones or uavs not assigned to uav to make as a no fly zone"""
+        """return all other values in list not assigned to the index"""
         copy = some_list
         if index >= len(copy):
             return copy
@@ -87,53 +87,49 @@ class PostFlightService():
             return copy
 
     def add_obstacles(self,grid, obstacle_list):
-        #added condition to check values
         """"add obstacles to grid location"""
         for obstacle in obstacle_list:
-            if type(obstacle) == list or type(obstacle) == tuple:
-                (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
-            else:
-                print("bad")
+            test = np.array(obstacle)
+            if type(obstacle) != list or type(obstacle) != tuple:
                 continue
-                            
+            elif test.ndim > 1:
+                continue
+            else:
+                (grid[int(obstacle[2]),int(obstacle[0]), int(obstacle[1])]) = 1
+            
         return obstacle_list
 
     def get_dynamic_obstacles(self, idx, uav_path_obs, zone_locations, \
         zone_idx, path_list, uav_loc_list):
-        """generate dynamic obstacles from uav waypoints"""
-        #should be a function to make dynamic obstacles
-        incoming_uav_wp = self.get_incoming_uavs_waypoints(service_num=0)
-        if incoming_uav_wp:
-            incoming_uav_wp = [item for sublist in uav_path_obs for item in sublist]
-        print("incoming uavs", incoming_uav_wp)
+        """get location of uavs, 
+        get location of zones not assigned to uavs
+        get flight trajectories, 
+        set as list"""
+
+        zone_bounds = self.return_unassigned_list(zone_locations[:], zone_idx) 
+        zone_obstacles = []
+        for zone in zone_bounds:
+            x = zone[0]
+            y = zone[1]
+            for z in range(15):
+                zone_obstacles.append((x,y,z))
+
         if idx == 0:
-            new_obstacle = obstacle_list + incoming_uav_wp + \
-                self.return_unassigned_list(zone_locations[:], zone_idx)
+            new_obstacle = obstacle_list + \
+                self.return_unassigned_list(zone_locations[:], zone_idx) + \
+                zone_obstacles
         else:
-            if len(uav_path_obs) < idx:
-                print("bad index")
-                uav_locs = self.return_unassigned_list(uav_loc_list[:], idx)
-                if any(isinstance(x, list) for x in uav_locs):
-                    uav_locs = [item for sublist in uav_locs for item in sublist]
-                
-                new_obstacle = obstacle_list + incoming_uav_wp + \
-                    uav_locs
-            else:
-                print("index is good")
-                uav_path_obs.append(path_list[idx-1])
-                flat_list = [item for sublist in uav_path_obs for item in sublist]
-                uav_locs = self.return_unassigned_list(uav_loc_list[:], idx)
-                print(uav_locs)
-                """checking if i have a list of lists inside need to refactor"""
-                if any(isinstance(x, list) for x in uav_locs):
-                    uav_locs = [item for sublist in uav_locs for item in sublist]
-                
-                new_obstacle = obstacle_list + incoming_uav_wp + \
-                self.return_unassigned_list(zone_locations[:], zone_idx) + uav_locs + \
+            uav_path_obs.append(path_list[idx-1])
+            flat_list = [item for sublist in uav_path_obs for item in sublist]
+            uav_loc_flat = self.return_unassigned_list(uav_loc_list[:], idx)
+            #print("uav location list", uav_loc_flat)
+            uav_flat_list  = [item for sublist in uav_loc_flat for item in sublist]
+            #print("uav flat list", uav_flat_list)
+            new_obstacle = obstacle_list + \
+                zone_obstacles + \
                 flat_list
-    
+
         grid_copy = grid.copy()
-        print("new obstacle", new_obstacle)
         new_obstacle = self.add_obstacles(grid_copy, new_obstacle)
 
         return grid_copy, new_obstacle
@@ -219,7 +215,8 @@ class PostFlightService():
                     rospy.sleep(0.5) #wait for a couple of seconds                    
                     #generate obstacles
                     grid_copy, new_obstacle = self.get_dynamic_obstacles(idx, uav_path_obs, \
-                        zone_coord_list, idx, path_list, uav_loc_list )
+                         zone_coord_list, idx, path_list, uav_loc_list)
+                    #grid_copy, new_obstacle = self.get_dynamic_obstacles(idx, uav_path_obs)
                     #get landing and exit location
                     uav_landing_zone = self.postFlight.find_uav_info(uav.name, "Zone Assignment")
                     uav_exit_zone = self.postFlight.find_uav_info(uav.name, "uav_location")

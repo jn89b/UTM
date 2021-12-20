@@ -81,6 +81,7 @@ class Astar():
     
     def find_closest_obstacle(self, obstacles, current_position):
         """find closest obstacle from obstacle list, wrt current position"""
+        #print("obstacles", obstacles)
         tree = spatial.KDTree(obstacles)
         dist, obst_index = tree.query(current_position)   
         

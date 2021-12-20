@@ -39,8 +39,4 @@
 
     <!--<node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>-->
 
-    <node pkg="utm" type="logger.py" name="logger">
-        <param name ="uav_id" value="$(arg uav_name)"/>
-    </node>
-
 </launch>

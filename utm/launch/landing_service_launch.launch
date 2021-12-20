@@ -1,13 +1,9 @@
 <launch>
 
     <node pkg="utm" type="pre_landing_service.py" name="pre_landing_service"/>
-    
     <node pkg="utm" type="path_sender_service.py" name="path_sender_service"/>
-    
     <node pkg="utm" type="landing_state_service.py" name="landing_state_service"/>
-    
     <node pkg="utm" type="post_flight_service.py" name="post_flight_service"/>
-    
     <node pkg="utm" type="path_home_sender_service.py" name="path_home_sender_service"/>
-    
+
 </launch>

@@ -40,9 +40,6 @@ class PathHomeSenderService():
 
     def send_wp_commands(self,uav_class_list, uav):
         uav.send_utm_state_command(self.update_service_number) # want to arm this guy
-        if not uav.coords:
-            uav.get_uav_coords()
-
         """need to open multiple threads and send waypoint commands for drone"""
         waypoint_list = self.zonePlanner.find_uav_home_waypoints(uav.name)
         zone_name = self.zonePlanner.find_uav_zone_name(uav.name)
@@ -58,7 +55,7 @@ class PathHomeSenderService():
             
             waypoint = waypoint_list[uav.wp_index]
             """badly worded this is if we are at some assigned waypoint"""
-            if self.zonePlanner.is_arrived_to_zone(waypoint, uav.coords) == False:
+            if self.zonePlanner.is_arrived_to_zone(waypoint, uav.coords,0.25) == False:
                 uav.send_waypoint_command(waypoint)
             else:
                 #print("going to next wp")

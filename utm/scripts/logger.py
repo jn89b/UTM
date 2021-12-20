@@ -10,36 +10,47 @@ from std_msgs.msg import Int8
 from utm import UAVGen
 from geometry_msgs.msg import PoseStamped
 
-class OdomLoc():
-    def __init__(self,sub_topic):
-        self.x = None
-        self.y = None
-        self.z = None
-        self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb) 
+# class OdomLoc():
+#     def __init__(self,sub_topic):
+#         self.x = None
+#         self.y = None
+#         self.z = None
+#         self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb) 
     
-    def odom_cb(self,msg):
-        self.x = msg.pose.position.x
-        self.y = msg.pose.position.y
-        self.z = msg.pose.position.z
+#     def odom_cb(self,msg):
+#         self.x = msg.pose.position.x
+#         self.y = msg.pose.position.y
+#         self.z = msg.pose.position.z
 
-class UTMStateCB():
-	def __init__(self, sub_topic):
-		self.state_command = None
-		self.sub = rospy.Subscriber(sub_topic, Int8, self.utm_cb)
+# class UTMStateCB():
+# 	def __init__(self, sub_topic):
+# 		self.state_command = None
+# 		self.sub = rospy.Subscriber(sub_topic, Int8, self.utm_cb)
 
-	def utm_cb(self, msg):
-		self.state_command = msg.data
+# 	def utm_cb(self, msg):
+# 		self.state_command = msg.data
 	
 
 if __name__ == '__main__':
-	true_position_topic = "mavros/offset_local_position/pose"
-	true_position = OdomLoc(true_position_topic)
+	uav_list = []
+	for i in range(0,7):
+		uav_name = "uav"+str(i)
+		uav = UAVGen.UAVComms(uav_name)
+		uav_list.append(uav)
+	
+	myData = ["time"]
+	for uav in uav_list:
+		myData.append(uav.name+"_coords")
+		#myData.append(uav.name+"_state")
 
-	relative_position_topic = "mavros/local_position/pose"
-	relative_position = OdomLoc(relative_position_topic)
+	# true_position_topic = "mavros/offset_local_position/pose"
+	# true_position = OdomLoc(true_position_topic)
 
-	utm_command_topic = "utm_control"
-	utm_command_state = UTMStateCB(utm_command_topic)
+	# relative_position_topic = "mavros/local_position/pose"
+	# relative_position = OdomLoc(relative_position_topic)
+
+	# utm_command_topic = "utm_control"
+	# utm_command_state = UTMStateCB(utm_command_topic)
 	
 	# tag_raw_topic = "tag/pose"
 	# tag = OdomLoc(tag_raw_topic)
@@ -50,7 +61,7 @@ if __name__ == '__main__':
 	print(os.getcwd())
 	#---------Logfile Setup-------------#
 	# populate the data header, these are just strings, you can name them anything
-	myData = ["time", "true_quad_x", "true_quad_y", "true_quad_z", "quad x", "quad y", "quad z", "utm command"]
+	#myData = ["time", "uav_0_pos", "", "true_quad_z", "quad x", "quad y", "quad z", "utm command"]
 
 	# this creates a filename which contains the current date/time RaspberryPi does not have a real time clock, the files
 	# will have the correct sequence (newest to oldest is preserved) but unless you set it explicitely the time will not
@@ -82,18 +93,18 @@ if __name__ == '__main__':
 	# this is some ros magic to control the loop timing, you can change this to log data faster/slower as needed
 	# note that the IMU publisher publishes data at a specified rate (500Hz) and while this number could be
 	# changes, in general, you should keep the loop rate for the logger below the loop rate for the IMU publisher
-	rate = rospy.Rate(15) #100 Hz
+	rate = rospy.Rate(10) #100 Hz
 	# try/except block here is a fancy way to allow code to cleanly exit on a keyboard break (ctrl+c)
 	try:
 		while not rospy.is_shutdown():
-
 			# get the current time and subtract off the zero_time offset
 			now = (rospy.get_time()-zero_time)
 			# create the data vector which we will write to the file, remember if you change
 			# something here, but don't change the header string, your column headers won't
 			# match the data
-			myData = [now, true_position.x, true_position.y, true_position.z, \
-				relative_position.x, relative_position.y, relative_position.z, utm_command_state.state_command]
+			myData = [now]
+			for uav in uav_list:
+				myData.append(uav.three_coords)
 
 			# stick everything in the file
 			myFile = open(fileName, 'a')
