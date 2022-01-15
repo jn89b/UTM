@@ -21,8 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   nav_msgs
   # nodelet
-  # need to add mavros
-  turtlebot 
+  # need to add mavros 
   roscpp
   rospy
   sensor_msgs
@@ -117,10 +116,9 @@ add_executable(moving_avg_main src/moving_avg_main.cpp src/moving_avg.cpp)
 add_dependencies(moving_avg_main ${catkin_EXPORTED_TARGETS})
 target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
 
-add_executable(test_user src/test_user.cpp )
+add_executable(test_user src/uas/test_user.cpp )
 add_dependencies(test_user ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_user  ${catkin_LIBRARIES})
-
 
 ##################
 ##  Install #####
@@ -148,6 +146,8 @@ catkin_install_python(PROGRAMS
     scripts/drone_transformation.py
     scripts/uav_mongo_query.py
     
+    scripts/uas/test_airsim_api.py
+
     #database stuff
     scripts/landing_db/data_service_provider.py
     scripts/landing_db/landing_service_database.py
@@ -166,9 +166,6 @@ catkin_install_python(PROGRAMS
     tests/landing_zone_test.py
     tests/landing_service_databaseTest.py
     tests/data_service_providerTest.py
-#    #list of shared libraries
-#    airsim_ros
-#    pd_position_controller_simple
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

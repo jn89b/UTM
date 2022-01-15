@@ -1,6 +1,8 @@
 <launch>
     <!--send drones on mission-->
-    <!--map your ned_x and ned_y from json file here-->
+    <!--map your ned_x and ned_y from json file here
+    there has to be a way to map these offsets to json file scripts through 
+    cpp-->
     <group ns="uav0">
         <arg name="ned_x" default="-10.0"/>
         <arg name="ned_y" default="20.0"/>
@@ -9,7 +11,7 @@
             <arg name="offset_x" value="$(arg ned_y)"/>
             <arg name="offset_y" value="$(arg ned_x)"/>
 
-            <arg name="init_x" value="0.0"/>
+            <arg name="init_x" value="20.0"/>
             <arg name="init_y" value="0.0"/>
             <arg name="init_z" value="10.0"/>
         </include> 
@@ -27,7 +29,7 @@
             <!--sends the actual location need to send this to Database 
             to make it accurate-->
             <arg name="init_x" value="0.0"/>
-            <arg name="init_y" value="10.0"/>
+            <arg name="init_y" value="20.0"/>
             <arg name="init_z" value="10.0"/>
 
         </include> 

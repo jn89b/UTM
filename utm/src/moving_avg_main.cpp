@@ -10,7 +10,6 @@ bool target_found;
 
 std_msgs::Bool stabilize;
 
-
 void init_vals()
 {
     kf_x = 0.0;

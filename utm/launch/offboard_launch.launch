@@ -7,14 +7,13 @@
         <arg name="init_y" default="-8.0"/>
         <arg name="init_z" default="5.0"/>
 
-        <node pkg="utm" type="offboard_landing_v2" name="offboard_landing_v2">
+        <node pkg="utm" type="offboard_test" name="offboard_test">
                 <param name="offset_x" value="$(arg offset_x)"/>
                 <param name="offset_y" value="$(arg offset_y)"/>
 
                 <param name="init_x" value="$(arg init_x)"/>
                 <param name="init_y" value="$(arg init_y)"/>
                 <param name="init_z" value="$(arg init_z)"/>
-                
         </node>
 
 </launch>

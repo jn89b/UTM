@@ -64,7 +64,7 @@ class MavrosTF():
             return 
 
     def main(self):
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(20)
         self.tf_listener_.waitForTransform(self.new_source_tf, self.old_target_tf, rospy.Time(0), rospy.Duration(10.0))
         while not rospy.is_shutdown():
             try:
@@ -90,7 +90,8 @@ class MavrosTF():
                 posestamped.pose.orientation.w = rot[3]
 
                 self.pub.publish(posestamped)
-                    
+                rate.sleep()
+                            
             except (tf.TransformException):
                 continue
                 #rate.sleep()

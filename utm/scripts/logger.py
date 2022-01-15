@@ -41,6 +41,7 @@ if __name__ == '__main__':
 	myData = ["time"]
 	for uav in uav_list:
 		myData.append(uav.name+"_coords")
+		myData.append(uav.name+"_state")
 		#myData.append(uav.name+"_state")
 
 	# true_position_topic = "mavros/offset_local_position/pose"
@@ -93,7 +94,7 @@ if __name__ == '__main__':
 	# this is some ros magic to control the loop timing, you can change this to log data faster/slower as needed
 	# note that the IMU publisher publishes data at a specified rate (500Hz) and while this number could be
 	# changes, in general, you should keep the loop rate for the logger below the loop rate for the IMU publisher
-	rate = rospy.Rate(10) #100 Hz
+	rate = rospy.Rate(20) #100 Hz
 	# try/except block here is a fancy way to allow code to cleanly exit on a keyboard break (ctrl+c)
 	try:
 		while not rospy.is_shutdown():
@@ -104,7 +105,8 @@ if __name__ == '__main__':
 			# match the data
 			myData = [now]
 			for uav in uav_list:
-				myData.append(uav.three_coords)
+				myData.append(uav.mavros_coords)
+				myData.append(uav.state_command)
 
 			# stick everything in the file
 			myFile = open(fileName, 'a')

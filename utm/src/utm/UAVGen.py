@@ -22,6 +22,9 @@ class UAVComms():
         self.wp_index = 0
         self.wp_list = []
 
+        self.mavros_sub = self.generate_mavros_position_cb(self.name)
+        self.mavros_coords = [None, None, None]
+        self.state_command = None 
         #self.utm_sub = self.generate_utm_command_sub(self.name)
         
 
@@ -42,7 +45,7 @@ class UAVComms():
         wp_msg.header.stamp = now
         wp_msg.pose.position.x = wp_coords[0]
         wp_msg.pose.position.y = wp_coords[1]
-        wp_msg.pose.position.z = 5
+        wp_msg.pose.position.z = wp_coords[2]
         #print(wp_msg)
         self.uav_pos_pub.publish(wp_msg)
 
@@ -90,6 +93,19 @@ class UAVComms():
         self.three_coords = [x,y,z]
         #print(self.coords)  
         #return coords
+
+    def generate_mavros_position_cb(self, uav_name):
+        """generates a ros subscriber with str:uav_name"""
+        topic_name = uav_name+"/mavros/local_position/pose"
+        mavros_position_sub = rospy.Subscriber(topic_name, PoseStamped, self.mavros_cb)
+        return mavros_position_sub
+    
+
+    def mavros_cb(self, msg):
+        x = msg.pose.position.x 
+        y = msg.pose.position.y
+        z = msg.pose.position.z
+        self.mavros_coords = [x,y,z]
 
     def utm_cb(self, msg):
         self.state_command = msg.data

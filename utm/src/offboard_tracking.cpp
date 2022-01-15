@@ -498,8 +498,8 @@ class Controller
 
     void go_home()
     {
-        pose.pose.position.x = init_x - offset_x;
-        pose.pose.position.y = init_y - offset_y;
+        pose.pose.position.x = offset_x;
+        pose.pose.position.y = offset_y;
         pose.pose.position.z = init_z;
         //std::cout << "no target:" << target_found << std::endl;
         local_pos_pub.publish(pose);

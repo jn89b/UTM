@@ -23,7 +23,7 @@ class Controller
     private:
         ros::NodeHandle nh;
         ros::Publisher local_pos_pub, vel_pub;
-        ros::Subscriber state_sub, target_found_sub, rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
+        ros::Subscriber state_sub, target_found_sub, rtag_ekf_sub, rtag_quad_sub, quad_odom_sub;
         ros::Subscriber rtag_ekf_vel_sub, land_permit_sub, true_quad_odom_sub;
         ros::Subscriber moving_avg_sub, service_input_sub,utm_position_cmd_sub;
         
@@ -34,9 +34,8 @@ class Controller
         mavros_msgs::SetMode set_mode;
         mavros_msgs::CommandBool arm_cmd;
 
-        //
         geometry_msgs::PoseStamped pose;       
-        
+                
         //apriltag found
         bool target_found;
         bool land_permit;
@@ -103,49 +102,49 @@ class Controller
         {
             //subscribers
             state_sub = nh.subscribe<mavros_msgs::State>
-                    ("uav0/mavros/state", 10, &Controller::state_cb, this);
+                    ("mavros/state", 10, &Controller::state_cb, this);
             target_found_sub = nh.subscribe<std_msgs::Bool>
-                    ("uav0/target_found", 10, &Controller::target_found_cb,this);
+                    ("target_found", 10, &Controller::target_found_cb,this);
             rtag_quad_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/tag/pose", 10, &Controller::rtagquad_cb,this);
+                    ("tag/pose", 10, &Controller::rtagquad_cb,this);
             rtag_ekf_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/kf_tag/pose", 10, &Controller::kftag_cb,this);
+                    ("kf_tag/pose", 10, &Controller::kftag_cb,this);
             quad_odom_sub = nh.subscribe<nav_msgs::Odometry>
-                ("uav0/mavros/odometry/in",15, &Controller::quad_odom_callback, this);
+                ("mavros/odometry/in",15, &Controller::quad_odom_callback, this);
             true_quad_odom_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                            ("uav0/mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
+                            ("mavros/local_position/pose",15, &Controller::true_quad_odom_callback, this);
             rtag_ekf_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>
-                ("uav0/kf_tag/vel", 10, &Controller::kftagvel_cb,this);
+                ("kf_tag/vel", 10, &Controller::kftagvel_cb,this);
             land_permit_sub = nh.subscribe<std_msgs::Bool>
-                    ("uav0/precland", 10, &Controller::land_permit_cb,this);
+                    ("precland", 10, &Controller::land_permit_cb,this);
             moving_avg_sub = nh.subscribe<std_msgs::Bool>
-                    ("uav0/stabilize_tag", 10, &Controller::moving_avg_cb,this);
+                    ("stabilize_tag", 10, &Controller::moving_avg_cb,this);
 
             service_input_sub = nh.subscribe<std_msgs::Int8>
-                            ("uav0/utm_control", 10, &Controller::landing_service_cb,this);
+                            ("utm_control", 10, &Controller::landing_service_cb,this);
 
             utm_position_cmd_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/utm/mavros/setpoint_position/local", 10, &Controller::utm_cb,this);
+                    ("utm/mavros/setpoint_position/local", 10, &Controller::utm_cb,this);
 
             local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
-                    ("uav0/mavros/setpoint_position/local", 10);
+                    ("mavros/setpoint_position/local", 10);
             vel_pub = nh.advertise<geometry_msgs::TwistStamped>
-                    ("uav0/mavros/setpoint_velocity/cmd_vel", 10);
+                    ("mavros/setpoint_velocity/cmd_vel", 10);
 
             
             //services
             arming_client = nh.serviceClient<mavros_msgs::CommandBool>
-                ("uav0/mavros/cmd/arming");
+                ("mavros/cmd/arming");
             set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
-                    ("uav0/mavros/set_mode");
+                    ("mavros/set_mode");
 
             //params for offset from mavros
-            nh.getParam("uav0/offboard_landing/offset_x", offset_x);
-            nh.getParam("uav0/offboard_landing/offset_y", offset_y);
+            nh.getParam("offboard_test/offset_x", offset_x);
+            nh.getParam("offboard_test/offset_y", offset_y);
             
-            nh.getParam("uav0/offboard_landing/init_x", init_x);
-            nh.getParam("uav0/offboard_landing/init_y", init_y);
-            nh.getParam("uav0/offboard_landing/init_z", init_z);
+            nh.getParam("offboard_test/init_x", init_x);
+            nh.getParam("offboard_test/init_y", init_y);
+            nh.getParam("offboard_test/init_z", init_z);
             //services
 
             //the setpoint publishing rate MUST be faster than 2Hz
@@ -526,7 +525,7 @@ class Controller
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "offboard_tracking");
+    ros::init(argc, argv, "offboard_test");
     Controller control;
 
     return 0; 
