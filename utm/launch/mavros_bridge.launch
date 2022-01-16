@@ -1,0 +1,9 @@
+<launch>
+
+    <arg name="host_ip" default="$(env WSL_HOST_IP)" />
+    <!--https://answers.ros.org/question/353634/how-do-we-remap-all-of-the-input-and-ouput-topics-from-a-node-in-a-systematic-way/-->
+    <node pkg="mavros" type="gcs_bridge" name="mavlink_bridge">
+        <param name="gcs_url" value="udp://:14540@$(arg host_ip):14557" />
+    </node>
+
+</launch>

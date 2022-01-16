@@ -12,11 +12,10 @@
             <arg name="offset_y" value="$(arg ned_x)"/>
 
             <arg name="init_x" value="20.0"/>
-            <arg name="init_y" value="0.0"/>
+            <arg name="init_y" value="20.0"/>
             <arg name="init_z" value="10.0"/>
         </include> 
     </group>
-
 
     <group ns="uav1">
         <arg name="ned_x" default="-20.0"/>
@@ -31,7 +30,6 @@
             <arg name="init_x" value="0.0"/>
             <arg name="init_y" value="20.0"/>
             <arg name="init_z" value="10.0"/>
-
         </include> 
     </group>
 

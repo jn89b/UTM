@@ -1,0 +1,19 @@
+<launch>
+
+    <arg name="namespace" default="uav0"/>
+    <arg name="ControlPortLocal" default="14540"/>
+    <arg name="ControlPortExit" default="14557"/>
+    <arg name="host" default="$(env WSL_HOST_IP)" />
+    <arg name="tgt_system" default="1" />
+
+    <group ns="$(arg namespace)">
+        <arg name="tgt_component" default="1" />
+        <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+            <arg name="fcu_url" value="udp://:$(arg ControlPortLocal)@$(arg host):$(arg ControlPortExit)"/>
+            <arg name="gcs_url" value="udp://:14556@$(arg host):14551" />
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)"/>
+        </include>
+    </group>
+
+</launch>

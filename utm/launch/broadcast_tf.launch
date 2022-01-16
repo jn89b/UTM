@@ -16,7 +16,6 @@
 
     <arg name="old_target_tf" default="downwards_custom_0_optical"/>
 
-
     <node pkg="utm" type="drone_transformation.py" name="drone_transformation">
         <param name="quad_tf" value="$(arg quad_tf)"/>
         <param name="old_target_tf" value="$(arg old_target_tf)"/>

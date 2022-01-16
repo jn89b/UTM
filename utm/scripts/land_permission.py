@@ -39,7 +39,6 @@ class PrecLand():
             self.allow_land.data = False
             self.pub.publish(self.allow_land)
     
-    
 if __name__=='__main__':
     rospy.init_node("land_permission", anonymous=True)
     

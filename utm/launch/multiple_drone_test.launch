@@ -10,48 +10,6 @@
 	<arg name="is_vulkan" default="true"/>
 	<arg name="host" default="172.30.192.1" />
 
-    <!--args for camera published from airsim so we can map to apriltag-->
-    <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   
-	<arg name="uav_0_camera_info" default="$(arg uav_0_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_0/downwards_custom_0/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
-    
-    <arg name="uav_1_camera_name" default="/airsim_node/PX4_1/downwards_custom_1"/>   
-	<arg name="uav_1_camera_info" default="$(arg uav_1_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_1/downwards_custom_1/Scene/camera_info" to="$(arg uav_1_camera_info)"/>
-
-	<arg name="uav_2_camera_name" default="/airsim_node/PX4_2/downwards_custom_2"/>   
-	<arg name="uav_2_camera_info" default="$(arg uav_2_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_2/downwards_custom_2/Scene/camera_info" to="$(arg uav_2_camera_info)"/>
-
-	<arg name="uav_3_camera_name" default="/airsim_node/PX4_3/downwards_custom_3"/>   
-	<arg name="uav_3_camera_info" default="$(arg uav_3_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_3/downwards_custom_3/Scene/camera_info" to="$(arg uav_3_camera_info)"/>
-
-	<arg name="uav_4_camera_name" default="/airsim_node/PX4_4/downwards_custom_4"/>   
-	<arg name="uav_4_camera_info" default="$(arg uav_4_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_4/downwards_custom_4/Scene/camera_info" to="$(arg uav_4_camera_info)"/>
-
-	<arg name="uav_5_camera_name" default="/airsim_node/PX4_5/downwards_custom_5"/>   
-	<arg name="uav_5_camera_info" default="$(arg uav_5_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_5/downwards_custom_5/Scene/camera_info" to="$(arg uav_5_camera_info)"/>
-
-	<arg name="uav_6_camera_name" default="/airsim_node/PX4_6/downwards_custom_6"/>   
-	<arg name="uav_6_camera_info" default="$(arg uav_6_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_6/downwards_custom_6/Scene/camera_info" to="$(arg uav_6_camera_info)"/>
-
-	<arg name="uav_7_camera_name" default="/airsim_node/PX4_7/downwards_custom_7"/>   
-	<arg name="uav_7_camera_info" default="$(arg uav_7_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_7/downwards_custom_7/Scene/camera_info" to="$(arg uav_7_camera_info)"/>
-
-	<arg name="uav_8_camera_name" default="/airsim_node/PX4_8/downwards_custom_8"/>   
-	<arg name="uav_8_camera_info" default="$(arg uav_8_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_8/downwards_custom_8/Scene/camera_info" to="$(arg uav_8_camera_info)"/>
-
-	<arg name="uav_9_camera_name" default="/airsim_node/PX4_9/downwards_custom_9"/>   
-	<arg name="uav_9_camera_info" default="$(arg uav_9_camera_name)/camera_info"/>
-    <remap from="/airsim_node/PX4_9/downwards_custom_9/Scene/camera_info" to="$(arg uav_9_camera_info)"/>
-
-
 	<!--Launch Airsim Node-->
 	<include file="$(find airsim_ros_pkgs)/launch/airsim_node.launch">
 		<arg name="output" value="screen"/>
