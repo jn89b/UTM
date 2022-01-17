@@ -132,8 +132,11 @@ if __name__ == "__main__":
     
     launch.parent = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
     launch.start()
-    time.sleep(2)
-    
+
+    ## RUN MY ROSWRAPPER
+    node = roslaunch.core.Node('utm', 'test_airsim_api.py')
+    launch.launch(node)
+
     try:
         launch.spin()
     finally:

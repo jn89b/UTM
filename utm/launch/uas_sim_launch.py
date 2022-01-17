@@ -44,17 +44,22 @@ if __name__ == "__main__":
     launch = roslaunch.scriptapi.ROSLaunch()
 
     launch_files = []
-    ## UAS OPERATOR
+    ## TRANSFORMATIONS FOR FIDUCIAL TAGS
+    """
+    transformations of the tags are currently set to uav_name+_wrap
+    """
     for idx, uav in df.iterrows():
         uav_name = uav['uav_name']
         client_args = ['utm', 'tag_transform.launch', 
-                    'namespace:=uav'+str(idx), 'camera_name:=/airsim_node/'+str(uav_name)+'/downwards_custom_'+   str(idx)]
+                    'namespace:=uav'+str(idx), 
+                    'camera_name:=/airsim_node/'+str(uav_name)+'/downwards_custom_'+ str(idx),
+                    'quad_tf:='+str(uav_name)+'_wrap',
+                    'rtag_drone:=/tag_wrt_'+str(uav_name)]
         uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
         launch_files.append(uas_launch)
 
     launch.parent = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
     launch.start()
-    time.sleep(2)
     
     try:
         launch.spin()

@@ -149,7 +149,7 @@ def get_uav_names(dataframe):
     return df['uav_name'].to_list()
 
 if __name__ == '__main__':    
-    rospy.init_node("test_airsim_wrap", anonymous=True)
+    rospy.init_node("test_airsim_api", anonymous=True)
     wsl_ip = os.getenv('WSL_HOST_IP')
     df = pd.read_csv(FILEPATH+FILENAME)
     uav_name_list = get_uav_names(df)

@@ -11,7 +11,7 @@ class AprilTagPositionPub():
     def __init__(self):
         #apriltag id 
         self.tag_id_ = rospy.get_param("~tag_id",0)
-        self.new_tf = rospy.get_param("~rtag_drone", "/tag_wrt_uav0")       
+        self.new_tf = rospy.get_param("~rtag_drone", "tag_wrt_uav0")       
         self.drone_frame_id_ = rospy.get_param("~quad_tf", "/uav0_wrt_world")
         self.tag_frame_id_ = rospy.get_param("~tag_frame_id", "/tag_0")
         #self.tags_topic_ = rospy.get_param('~tags_topic', '/tag_detections')
@@ -96,10 +96,3 @@ if __name__ == '__main__':
     
     sp_o = AprilTagPositionPub()
     rospy.spin()
-    #while not rospy.is_shutdown():
-
-        #sp_o = AprilTagPositionPub()
-
-        #rospy.loginfo("tag_setpoint_publisher_node is started")
-
-        #rate.sleep()
