@@ -33,7 +33,6 @@
         </include> 
     </group>
 
-
     <group ns="uav2">
         <arg name="ned_x" default="-40.0"/>
         <arg name="ned_y" default="10.0"/>

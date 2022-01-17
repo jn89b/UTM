@@ -6,9 +6,9 @@
 	<arg name="output" default="screen"/>
 	<arg name="publish_clock" default="true"/>
 	<arg name="is_vulkan" default="true"/>
-	<arg name="host" default="$(env WSL_HOST_IP)" />
-
-    <arg name="mavlink_bridge_url" default="udp://@$(host):14550" />
+	<arg name="host" default="172.17.16.1" />
+    
+    <arg name="mavlink_bridge_url" default="udp://:14540@$(arg host):14557" />
 
 	<!--Launch Airsim Node-->
 	<include file="$(find airsim_ros_pkgs)/launch/airsim_node.launch">

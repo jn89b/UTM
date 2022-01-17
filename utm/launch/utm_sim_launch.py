@@ -14,21 +14,23 @@ import std_msgs.msg
 import datetime
 import rospkg
 
+import subprocess
+
 """
 to do:
     -read csv files
     -get the wsl ip address
-    -launch airsim node:
+    -launch airsim node: -DONE 
         - set the host ip as the wsl ip address
         - for n drones remap the camera topic:
         <arg name="uav_0_camera_name" default="/airsim_node/PX4_0/downwards_custom_0"/>   
         <arg name="uav_0_camera_info" default="$(arg uav_0_camera_name)/camera_info"/>
         <remap from="/airsim_node/PX4_0/downwards_custom_0/Scene/camera_info" to="$(arg uav_0_camera_info)"/>
 
-    = run n mavros nodes
-
-    - run my custom ros wrapper node:
-        -set the directory of the CSV file? 
+    = run n mavros nodes - DONE
+    - run my custom ros wrapper node -DONE:
+        -set the directory of the CSV file?
+    - run n offboard nodes for uavs 
 """
 class RosLaunchFile():
     def __init__(self, pkg_name, launch_file_name):
@@ -90,18 +92,23 @@ def get_mavros_launch(package_name):
     return mavros_launch_file, mavros_launch_args
     
 if __name__ == "__main__":
-    rospy.init_node('utm_sim_launch', anonymous=True)
+    rospy.init_node('utm_sim_launch', anonymous=False)
+    
     wsl_ip = os.getenv('WSL_HOST_IP')
     df = pd.read_csv(config.FILEPATH+config.FILENAME)
-    uav_name_list = get_uav_names(df)
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    roslaunch.configure_logging(uuid)
+    uav_name_list = get_uav_names(df)
+    launch = roslaunch.scriptapi.ROSLaunch()
+
     host_arg = 'host:='+str(wsl_ip)
 
     #airsim launch file
     airsim_pkg = 'airsim_ros_pkgs' 
     airsim_launch = 'airsim_node.launch'
     airsim_args = [airsim_pkg , airsim_launch]
+
     #mavros
     utm_pkg_name = 'utm'
     mavros_launch = 'mavros_bridge.launch'
@@ -113,24 +120,52 @@ if __name__ == "__main__":
 
     launch_files = [roslaunch_file1, roslaunch_file2]
 
+    ## MAVROS COMMUNICATION BRIDGE
     controlportlocal = 14540
     controlportexit = 14557
     tgt_system = 1
-
-    uav_bridge_list = []
     for idx, uav_name in enumerate(uav_name_list):
-        print(idx)
         client_args = ['utm', 'mavros_communication.launch', 
         'namespace:=uav'+str(idx), 'ControlPortLocal:='+str(controlportlocal+idx),
         'ControlPortLocal:='+str(controlportlocal+idx), 
         'tgt_system:='+str(tgt_system+idx)]
         mavros_bridge_file = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
-
         launch_files.append(mavros_bridge_file)
 
-    print("launch files are", launch_files)
-    launch = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
+    # offboard_launch = []
+    ## UAS OPERATOR
+    # for idx, uav in df.iterrows():
+    #     x_spawn = uav['spawn_x']
+    #     #y_spawn = uav['spawn_y']
+    #     y_spawn = uav['spawn_x']
+    #     z_spawn = uav['spawn_z']
+    #     init_x = uav['init_x']
+    #     init_y = uav['init_y']
+    #     init_z = uav['init_z']
+
+    #     client_args = ['utm', 'uas_operator.launch', 
+    #                 'namespace:=uav'+str(idx), 'offset_x:='+str(y_spawn),
+    #                 'offset_y:='+str(x_spawn), 'init_x:='+str(init_x),
+    #                 'init_y:='+str(init_y), 'init_z:='+str(init_z)]
+    #     uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
+    #     launch_files.append(uas_launch)
+    #     # node = roslaunch.core.Node('utm', 'offboard_test', 
+    #     #          namespace='/uav'+str(idx), args='offboard_test/offset_x:='+str(y_spawn))
+
+
+    launch.parent = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
     launch.start()
+    time.sleep(2)
+    
+    #launch.launch.start(node)
+    ## BEGIN launching filles
+    #launch = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
+    #launch.launch(uas_launch_file)
+
+    ## terminal command for PX4
+    #p = subprocess.Popen([command, argument1,...], cwd=working_directory)
+    #subprocess.check_call(['your_command', 'arg 1', 'arg 2'], cwd=working_dir)
+    #p = subprocess.check_output(['sh','./Tools/sitl_multiple_run.sh '], cwd=config.PX4PATH)
 
     try:
         launch.spin()
