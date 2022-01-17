@@ -16,6 +16,17 @@ import rospkg
 
 import subprocess
 
+"""
+- run tag detection
+    - remap topic name
+    - insert camera name argument
+- run apriltag transformation
+    - tag_id
+    - tag_wrt_uav
+    - tag_frame_id
+    
+"""
+
 def get_uav_names(dataframe):
     """return list of uav names from dataframe"""
 
@@ -35,38 +46,16 @@ if __name__ == "__main__":
     launch_files = []
     ## UAS OPERATOR
     for idx, uav in df.iterrows():
-        x_spawn = uav['spawn_x']
-        #y_spawn = uav['spawn_y']
-        y_spawn = uav['spawn_y']
-        z_spawn = uav['spawn_z']
-        init_x = uav['init_x']
-        init_y = uav['init_y']
-        init_z = uav['init_z']
-
-        client_args = ['utm', 'uas_operator.launch', 
-                    'namespace:=uav'+str(idx), 'offset_x:='+str(y_spawn),
-                    'offset_y:='+str(x_spawn), 'init_x:='+str(init_x),
-                    'init_y:='+str(init_y), 'init_z:='+str(init_z)]
+        uav_name = uav['uav_name']
+        client_args = ['utm', 'tag_transform.launch', 
+                    'namespace:=uav'+str(idx), 'camera_name:=/airsim_node/'+str(uav_name)+'/downwards_custom_'+   str(idx)]
         uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
         launch_files.append(uas_launch)
-        # node = roslaunch.core.Node('utm', 'offboard_test', 
-        #          namespace='/uav'+str(idx), args='offboard_test/offset_x:='+str(y_spawn))
-
 
     launch.parent = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
     launch.start()
     time.sleep(2)
     
-    #launch.launch.start(node)
-    ## BEGIN launching filles
-    #launch = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
-    #launch.launch(uas_launch_file)
-
-    ## terminal command for PX4
-    #p = subprocess.Popen([command, argument1,...], cwd=working_directory)
-    #subprocess.check_call(['your_command', 'arg 1', 'arg 2'], cwd=working_dir)
-    #p = subprocess.check_output(['sh','./Tools/sitl_multiple_run.sh '], cwd=config.PX4PATH)
-
     try:
         launch.spin()
     finally:

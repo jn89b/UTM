@@ -70,11 +70,6 @@ if __name__ == "__main__":
     launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file1)
     launch.start()
 
-    # roslaunch.configure_logging(uuid)
-    # launch_path_name = [str(pkg_path)+"/launch/freaking_send_it.launch"]
-    # launch = roslaunch.scriptapi.ROSLaunch()
-    # launch.parent = roslaunch.parent.ROSLaunchParent(uuid, launch_path_name)
-    # launch.start()
     """this is where you make sure the launch file keeps runnings"""
     try:
         launch.spin()

@@ -23,10 +23,10 @@
     </node>
 
     <!--comment this out if you don't want apriltag tag detection-->
-    <remap from="/tag_detections" to="/$(arg uav_name)/tag_detections"/>
+    <!-- <remap from="/tag_detections" to="/$(arg uav_name)/tag_detections"/>
     <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
         <arg name="camera_name" value="$(arg camera_name)"/>
-    </include>
+    </include> -->
 
     <!--comment this out if you don't want apriltag tag detection-->
     <node pkg="utm" type="apriltag_position_pub.py" name="apriltag_position_pub">

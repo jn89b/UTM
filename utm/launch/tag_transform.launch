@@ -1,0 +1,25 @@
+<launch>
+
+    <arg name="namespace" default="uav0"/>
+    <arg name="camera_name" default="camera_name"/>
+
+    <remap from="/tag_detections" to="/$(arg namespace)/tag_detections"/>
+    <!--apriltag detection-->
+    <group ns="$(arg namespace)">
+        <include file="$(find apriltag_ros)/launch/continuous_detection.launch">        
+            <arg name="camera_name" value="/$(arg camera_name)"/>
+        </include>
+        
+        <!--remap these params to my ros wrapper-->
+        <node pkg="utm" type="apriltag_position_pub.py" name="apriltag_position_pub">
+            <param name="tag_id" value="$(arg id_tag)"/>
+            <param name="rtag_drone" value="$(arg rtagdrone)"/>
+            <param name="quad_tf" value="$(arg quad_tf)"/>
+            <param name="tag_frame_id" value="$(arg frame_tag_id)"/> 
+            <param name="alt_from_tag" value="$(arg height_from_tag)"/>    
+        </node>
+        <!--comment this out if you don't want apriltag tag detection-->
+        <node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>
+    </group>
+
+</launch>
