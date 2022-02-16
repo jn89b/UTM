@@ -30,6 +30,8 @@ What is the best way to do this? I want to make a better wrapper for Airsim
 The big problem is I don't want to publish this as a for loop I want to do this
 at same time relatively basically multi thread or multiprocess, lets try this first
 and evaluate the scalibility of this method
+
+PUBLISH THE 
 """
 
 """c drive is equalivant to /mnt/c/"""
@@ -59,7 +61,7 @@ class AirsimROSWrapper():
         """convert ned convention of airsim to ned for ROS publishing"""
         enu_x = ned_pose.position.y_val
         enu_y = ned_pose.position.x_val
-        enu_z = -ned_pose.position.z_val
+        enu_z = -ned_pose.position.z_val - 0.8
         enu_quat_x =  ned_pose.orientation.y_val
         enu_quat_y =  ned_pose.orientation.x_val
         enu_quat_z =  -ned_pose.orientation.x_val
@@ -86,6 +88,7 @@ class AirsimROSWrapper():
                 airsim_drone = AirsimDroneROS(name = uav_name)
                 ned_pose = self.__get_global_uav_location(uav_name)
                 enu_position, enu_quat = self.__convert_ned_to_enu(ned_pose)        
+                #print("enu position", enu_position)
                 airsim_drone.publish_global_position(enu_position, enu_quat)
             rate.sleep()
 
@@ -155,6 +158,7 @@ if __name__ == '__main__':
     uav_name_list = get_uav_names(df)
 
     #ros wrapper
+    print("hello")
     airsim_ros_wrap = AirsimROSWrapper(wsl_ip)
     airsim_ros_wrap.main(uav_name_list=uav_name_list, rate_val=20)
 

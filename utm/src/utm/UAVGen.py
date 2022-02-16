@@ -27,7 +27,6 @@ class UAVComms():
         self.state_command = None 
         #self.utm_sub = self.generate_utm_command_sub(self.name)
         
-
     def get_uav_coords(self):
         """accessor"""
         return self.coords

@@ -147,6 +147,7 @@ catkin_install_python(PROGRAMS
     scripts/uav_mongo_query.py
     
     scripts/uas/test_airsim_api.py
+    scripts/uas/simple_flight_drone.py
 
     #database stuff
     scripts/landing_db/data_service_provider.py

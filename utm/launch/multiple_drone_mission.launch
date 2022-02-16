@@ -9,7 +9,7 @@
        <include file="$(find utm)/launch/offboard_launch.launch">
             <!--offsets from airsim look at json file settings-->
             <arg name="offset_x" value="$(arg ned_y)"/>
-            <arg name="offset_y" value="$(arg ned_x)"/>
+                <arg name="offset_y" value="$(arg ned_x)"/>
 
             <arg name="init_x" value="20.0"/>
             <arg name="init_y" value="20.0"/>
