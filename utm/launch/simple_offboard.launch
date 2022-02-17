@@ -2,18 +2,22 @@
         <!--offsets from airsim look at json file settings-->
         <arg name="offset_x" default="0.0"/>
         <arg name="offset_y" default="0.0"/>
-        
-        <arg name="init_val" default="5.0"/>
+        <arg name="init_vel" default="5.0"/>
 
         <arg name="init_x" default="5.0"/>
         <arg name="init_y" default="-8.0"/>
         <arg name="init_z" default="5.0"/>
+        
+        <arg name="veh_name" default="PX4_0"/>
+        <arg name="api_port" default="41451"/>
 
         <node pkg="utm" type="simple_flight_drone.py" name="simple_flight">
                 <param name="offset_x" value="$(arg offset_x)"/>
                 <param name="offset_y" value="$(arg offset_y)"/>
-                <param name="init_val" value="$(arg init_val)"/>
-                
+                <param name="init_vel" value="$(arg init_vel)"/>
+                <param name="veh_name" value="$(arg veh_name)"/>
+                <param name="api_port" value="$(arg api_port)"/>
+
                 <param name="init_x" value="$(arg init_x)"/>
                 <param name="init_y" value="$(arg init_y)"/>
                 <param name="init_z" value="$(arg init_z)"/>

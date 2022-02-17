@@ -84,12 +84,16 @@ class AirsimROSWrapper():
         rate = rospy.Rate(rate_val)
         
         while not rospy.is_shutdown():
+            
             for uav_name in uav_name_list:
+                print("uav name", uav_name)
                 airsim_drone = AirsimDroneROS(name = uav_name)
                 ned_pose = self.__get_global_uav_location(uav_name)
                 enu_position, enu_quat = self.__convert_ned_to_enu(ned_pose)        
-                #print("enu position", enu_position)
+                print("enu position", enu_position)
                 airsim_drone.publish_global_position(enu_position, enu_quat)
+            
+            print("testing")
             rate.sleep()
 
 class AirsimDroneROS():

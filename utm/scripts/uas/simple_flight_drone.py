@@ -16,11 +16,11 @@ from geometry_msgs.msg import PoseStamped
 
 class SimpleFlightDrone():
     """Control the SimpleFlight AirsimDrone"""
-    def __init__(self, vehicle_name, wsl_ip):
-        self.client = airsim.MultirotorClient(ip=str(wsl_ip))
+    def __init__(self, vehicle_name, wsl_ip, api_port):
+        self.client = airsim.MultirotorClient(ip=str(wsl_ip), port=api_port)
         self.vehicle_name = vehicle_name
 
-        self.global_pos_sub = rospy.Subscriber(vehicle_name+"/global_position/pose", 
+        self.global_pos_sub = rospy.Subscriber("/"+vehicle_name+"/global_position/pose", 
                                         PoseStamped,self.global_pos_cb)    
         
         self.offset_x = rospy.get_param("~offset_x", 30)
@@ -75,8 +75,8 @@ class SimpleFlightDrone():
 
     def init_drone(self):
         self.client.confirmConnection()
-        self.client.enableApiControl(True)
-        self.client.armDisarm(True)
+        self.client.enableApiControl(True, self.vehicle_name)
+        self.client.armDisarm(True, self.vehicle_name)
         self.takeoff_drone()
         self.send_enu_waypoint([self.init_x, self.init_y, self.init_z], self.init_vel)
 
@@ -84,7 +84,7 @@ class SimpleFlightDrone():
         """send global commands have to subtract the offsets"""
         enu_global_x = enu_wp[0] - self.offset_x
         enu_global_y = enu_wp[1] - self.offset_y
-        enu_global_z = enu_wp[2] - 0.8
+        enu_global_z = enu_wp[2] - 0.8 #add these height offset because it can be weird
         return [enu_global_x, enu_global_y, enu_global_z]
  
     def send_enu_waypoints(self, enu_waypoints,velocity):
@@ -101,22 +101,23 @@ if __name__ == '__main__':
     #should take in a ros param for veh_name
     veh_name = rospy.get_param("~veh_name", 'PX4_0')
     wsl_ip = os.getenv('WSL_HOST_IP')
+    api_port = rospy.get_param("~api_port", 41451)
     
-    simple_drone = SimpleFlightDrone(veh_name, wsl_ip)
+    simple_drone = SimpleFlightDrone(veh_name, wsl_ip, api_port)
     simple_drone.init_drone()
     rate_val = 20
     vel = 5
     rate = rospy.Rate(rate_val)
 
-    enu_waypoint = [[-40,30,10], [30,15,10]]
+    enu_waypoint = [[-10,10,10], [30,15,10]]
     
     check_done = False
     while not rospy.is_shutdown():
-        if check_done == False:
-            print("going to waypoints")
-            check_done = simple_drone.send_enu_waypoints(enu_waypoint,vel)
-        else:
-            pass
+        # if check_done == False:
+        #     print("going to waypoints")
+        #     check_done = simple_drone.send_enu_waypoints(enu_waypoint,vel)
+        # else:
+        #     pass
         rate.sleep()
 
 

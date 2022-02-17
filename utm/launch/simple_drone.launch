@@ -1,16 +1,19 @@
 <launch>
-    <arg name="namespace" default="PX4_0"/>
+    <arg name="veh_name" default="PX4_0"/>
     <arg name="offset_x" default="0.0"/>
     <arg name="offset_y" default="0.0"/>
     <arg name="init_x" default="0.0"/>
     <arg name="init_y" default="0.0"/>
     <arg name="init_z" default="10.0"/>
+    <arg name="api_port" default="41451"/>
 
-    <group ns="$(arg namespace)">
+    <group ns="$(arg veh_name)">
        <include file="$(find utm)/launch/simple_offboard.launch">
             <!--offsets from airsim look at json file settings-->
             <arg name="offset_x" value="$(arg offset_x)"/>
             <arg name="offset_y" value="$(arg offset_y)"/>
+            <arg name="veh_name" value="$(arg veh_name)"/>
+            <arg name="api_port" default="$(arg api_port)"/>"/>
 
             <arg name="init_x" value="$(arg init_x)"/>
             <arg name="init_y" value="$(arg init_y)"/>
