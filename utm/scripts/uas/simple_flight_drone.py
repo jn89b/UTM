@@ -90,7 +90,6 @@ class SimpleFlightDrone():
     def send_enu_waypoints(self, enu_waypoints,velocity):
         """send a list of waypoints for drone to fly to"""
         for enu_wp in enu_waypoints:
-            #print("global position is", self.global_enu_pos)
             self.send_enu_waypoint(enu_wp, velocity)
 
         return True
@@ -109,15 +108,17 @@ if __name__ == '__main__':
     vel = 5
     rate = rospy.Rate(rate_val)
 
-    enu_waypoint = [[-10,10,10], [30,15,10]]
+    """waypoints are to be sent by the USS Path Planning Service """
+    # enu_waypoint = [[-10,10,10], [30,15,10]]
     
     check_done = False
     while not rospy.is_shutdown():
-        # if check_done == False:
-        #     print("going to waypoints")
-        #     check_done = simple_drone.send_enu_waypoints(enu_waypoint,vel)
-        # else:
-        #     pass
+        if check_done == False:
+            print("going to waypoints")
+            check_done = simple_drone.send_enu_waypoints(enu_waypoint,vel)
+        else:
+            pass
+
         rate.sleep()
 
 

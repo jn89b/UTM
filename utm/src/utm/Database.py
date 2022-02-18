@@ -56,9 +56,9 @@ class AbstractDatabaseInfo():
             id_list.append(item.pairs[i].second)
 
         return id_list, msg_info
-          
+    
 class AbstractDatabaseSend():
-    """AbstractDatabaseSend allows writing to database
+    """AbstractDatabaseSend allows writing to database as ROS protocol
     Keyword arguments:
     string: name -- name used to send to Mongodb, needs to be a string
     string: collection_name -- collection name to access information from 
@@ -97,6 +97,7 @@ class AbstractDatabaseSend():
         meta = {}
         meta['name'] = name
         meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
+
         return meta
 
 class ZonePlanner():

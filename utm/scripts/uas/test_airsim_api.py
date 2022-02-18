@@ -166,5 +166,7 @@ if __name__ == '__main__':
     airsim_ros_wrap = AirsimROSWrapper(wsl_ip)
     airsim_ros_wrap.main(uav_name_list=uav_name_list, rate_val=20)
 
+    
+
 
 
