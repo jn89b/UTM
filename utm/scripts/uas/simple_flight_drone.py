@@ -13,6 +13,7 @@ import os
 import rospy
 import airsim
 from geometry_msgs.msg import PoseStamped
+from utm import Database
 
 class SimpleFlightDrone():
     """Control the SimpleFlight AirsimDrone"""
@@ -89,10 +90,12 @@ class SimpleFlightDrone():
  
     def send_enu_waypoints(self, enu_waypoints,velocity):
         """send a list of waypoints for drone to fly to"""
-        for enu_wp in enu_waypoints:
+        for i,enu_wp in enumerate(enu_waypoints):
+            print("going to", enu_wp)
             self.send_enu_waypoint(enu_wp, velocity)
 
-        return True
+            # if i == len(enu_waypoints):
+            #     return True
 
 if __name__ == '__main__':
     
@@ -109,15 +112,21 @@ if __name__ == '__main__':
     rate = rospy.Rate(rate_val)
 
     """waypoints are to be sent by the USS Path Planning Service """
-    # enu_waypoint = [[-10,10,10], [30,15,10]]
+    path_planning_service = Database.PathPlannerService()
     
     check_done = False
+
     while not rospy.is_shutdown():
-        if check_done == False:
+        waypoints = path_planning_service.query_waypoints(veh_name)
+        if not waypoints:
+            continue
+        elif waypoints and check_done == False:
             print("going to waypoints")
-            check_done = simple_drone.send_enu_waypoints(enu_waypoint,vel)
-        else:
-            pass
+            check_done = simple_drone.send_enu_waypoints(waypoints,vel)
+        else: #waypoints and check_done == True:
+            print("im done")
+        # else:
+        #     pass
 
         rate.sleep()
 

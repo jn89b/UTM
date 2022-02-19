@@ -263,3 +263,81 @@ class ZonePlanner():
         self.landing_service_col.delete_one(myquery)
 
         print("Removed ", uav_name + " from landing service collection")
+
+
+class PathPlannerService(AbstractDatabaseInfo):
+    """
+    Path Planner Service takes in all information of UAS queries to request 
+    a path to be sent from start point to goal point
+
+    """
+    database_name = "pathPlanningService"
+    path_planning_col_name = "uas_path_planning"
+    ip = "127.0.0.1"
+    port_num = 27017
+    poolsize = 100
+
+    def __init__(self):
+        super().__init__(self.ip,self.port_num,self.poolsize)
+        self.mainDB = self.access_database(self.database_name)  
+
+        #collection names
+        self.path_planning_col = self.mainDB[self.path_planning_col_name]
+
+
+    def request_path(self,uav_name, start_point, end_point):
+        """request path to db"""
+        uav_info = {#"_id": uav_name,
+                    "uav_name": uav_name,
+                    "start_point": start_point,
+                    "end_point": end_point
+                    }
+
+        self.path_planning_col.insert(uav_info)
+        print("updated collection with", uav_info)
+                   
+    def find_path_planning_clients(self):
+        """find uas operators who do not have a waypoint and returns as list of lists"""
+        uavs = []
+        myquery = {"waypoints": {'$exists': False}}
+        cursor = self.path_planning_col.find(myquery)
+        for document in cursor:
+            #print(document["uav_name"])
+            uav = [document["uav_name"], document["start_point"],
+            document["end_point"]]
+            uavs.append(uav)
+
+        return uavs
+    
+    def prioritize_uas(self,uav_list):
+        """Takes in start list, and goal list and 
+        prioritizes UAS based on highest distance to be traversed"""
+        
+        dist_list = []
+        for uav in uav_list:
+            dist_val = compute_actual_euclidean(uav[1], uav[2])
+            print("distance val", dist_val)
+            dist_list.append((dist_val,uav[1], uav[2], uav[0]))
+
+        ##setting reverse to false sets to min first, true max first
+        final_list = sorted(dist_list, key=lambda x: x[0], reverse=True)
+        sorted_start = [start[1] for i, start in enumerate(final_list)]
+        sorted_goal = [goal[2] for i, goal in enumerate(final_list)]
+        sorted_uavs = [uav_name[3] for i, uav_name in enumerate(final_list)]
+
+        return final_list, sorted_start, sorted_goal, sorted_uavs
+
+    def insert_waypoints(self, uav_name, waypoint_list):
+        self.path_planning_col.update({"uav_name": uav_name},
+        {"$set":{
+            "waypoints": waypoint_list}})
+
+    def query_waypoints(self, uav_name):
+        """need to check if i have a waypoint allocated"""
+        myquery = {"uav_name": uav_name}
+        cursor = self.path_planning_col.find(myquery)
+        myquery = {"waypoints": {'$exists': False}}
+        for document in cursor:
+            uav_waypoints = document["waypoints"]
+        return uav_waypoints
+

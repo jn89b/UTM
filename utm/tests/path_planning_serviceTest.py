@@ -4,14 +4,16 @@ from __future__ import print_function
 from bson.objectid import ObjectId
 from utm import Database
 from utm import HiearchialSearch
+from utm import config
 
 import rospy
+import os
 import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
 import pymongo
 import json
 import numpy as np
-
+import pandas as pd
 
 class UASTest():
     """
@@ -65,24 +67,73 @@ class PathPlannerService(Database.AbstractDatabaseInfo):
             uavs.append(uav)
 
         return uavs
+    
+    def prioritize_uas(self,uav_list):
+        """Takes in start list, and goal list and 
+        prioritizes UAS based on highest distance to be traversed"""
+        
+        dist_list = []
+        for uav in uav_list:
+            dist_val = compute_actual_euclidean(uav[1], uav[2])
+            print("distance val", dist_val)
+            dist_list.append((dist_val,uav[1], uav[2], uav[0]))
+
+        ##setting reverse to false sets to min first, true max first
+        final_list = sorted(dist_list, key=lambda x: x[0], reverse=True)
+        sorted_start = [start[1] for i, start in enumerate(final_list)]
+        sorted_goal = [goal[2] for i, goal in enumerate(final_list)]
+        sorted_uavs = [uav_name[3] for i, uav_name in enumerate(final_list)]
+
+        return final_list, sorted_start, sorted_goal, sorted_uavs
+
+    def insert_waypoints(self, uav_name, waypoint_list):
+        self.path_planning_col.update({"uav_name": uav_name},
+        {"$set":{
+            "waypoints": waypoint_list}})
+
+
+def compute_actual_euclidean(position, goal):
+    distance =  (((position[0] - goal[0]) ** 2) + 
+                        ((position[1] - goal[1]) ** 2) +
+                        ((position[2] - goal[2]) ** 2))**(1/2)
+    
+    return distance
+
+def get_uav_names(dataframe):
+    """return list of uav names from dataframe"""
+
+    return df['uav_name'].to_list()
 
 if __name__=='__main__':
 
     path_planning_service = PathPlannerService()
-    
+    wsl_ip = os.getenv('WSL_HOST_IP')
+    df = pd.read_csv(config.FILEPATH+config.FILENAME)
+
     #print(path_planning_service.path_planning_col)
     #test inserting to waypoint
-    uav_name_test = "PX4_0"
-    uav_start = [4,2,5]
-    uav_end = [15,10,5]
+    # uav_name_test = "PX4_0"
+    # uav_start = [4,2,5]
+    # uav_end = [15,10,5]
+    # uav_test = UASTest(uav_name_test, uav_start, uav_end)
+    
+    for idx, uav in df.iterrows():
+        uav_name = uav['uav_name']
+        init_x = uav['init_x']
+        init_y = uav['init_y']
+        init_z = uav['init_z']
+        goal_x = uav['goal_x']
+        goal_y = uav['goal_y']
+        goal_z = uav['goal_z']
 
-    uav_test = UASTest(uav_name_test, uav_start, uav_end)
-    path_planning_service.request_path(uav_name_test, uav_start, uav_end)
+        path_planning_service.request_path(uav_name, [init_x, init_y,
+                                        init_z], [goal_x,goal_y, goal_z])
 
+                                        
     """test if I have any clients"""
     uav_list = path_planning_service.find_path_planning_clients()
 
-    #### MAP and Grid Need to make this as a configuration    
+    ####### MAP and Grid Need to make this as a configuration    
     ## PARAMS
     x_size = 100
     y_size = 100
@@ -119,16 +170,25 @@ if __name__=='__main__':
         graph.build_graph()    
         graph.build_intra_edges()        
         HiearchialSearch.set_obstacles_to_grid(grid=annotated_map, obstacle_list=random_obstacles)
-
-    # start_list = uav_list[1]
-    # goal_list = uav_list[2]
-    start_list = [uav_start]
-    goal_list = [uav_end]
     
-    obst_coords = annotated_map._Map__obstacles #i don't 
+    obst_coords = annotated_map._Map__obstacles 
     col_bubble = 4
     weighted_h = 10
-    
+
+    """this needs a refactor"""
+    final_list,sorted_start, sorted_goal, uav_name = path_planning_service.prioritize_uas(uav_list)
+
     ####-------BEGIN SEARCH
-    hiearch_search = HiearchialSearch.begin_higher_search(start_list, goal_list,
+    hiearch_search = HiearchialSearch.begin_higher_search(sorted_start, sorted_goal,
                      graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h)
+    
+
+    uav_waypoints= hiearch_search[1]
+
+    for i, waypoints in enumerate(uav_waypoints):
+        #print("uav name", uav_name[i])
+        waypoints = [list(ele) for ele in waypoints]
+        waypoints = np.array(waypoints).astype(int)
+
+        path_planning_service.insert_waypoints(uav_name[i], waypoints.tolist())
+        
