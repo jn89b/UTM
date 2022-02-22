@@ -8,13 +8,12 @@ from utm import config
 
 import rospy
 import os
+import pickle
 import mongodb_store_msgs.srv as dc_srv
-import mongodb_store.util as dc_util
 import pymongo
 import json
 import numpy as np
 import pandas as pd
-
         
 def compute_actual_euclidean(position, goal):
     distance =  (((position[0] - goal[0]) ** 2) + 
@@ -28,14 +27,93 @@ def get_uav_names(dataframe):
 
     return df['uav_name'].to_list()
 
+
+class USSPathPlanner(Database.PathPlannerService):
+    def __init__(self):
+        super().__init__()
+
+        #self.HiearchialSearch = HiearchialSearch 
+
+    def init_reserve_table(self):
+        """intialize reservation table queries for any reserved waypoints
+        from collection and appends if there are any"""
+        reserved = self.get_reserved_waypoints()
+        if not reserved:
+            print("reserved is empty")
+            reservation_table = set()
+        else:
+            reservation_table = set()
+            for waypoint in reserved:
+                reservation_table.update(tuple(waypoint))
+
+        return reservation_table
+    
+    def set_start_goal(self, start, goal, bubble_bounds, reservation_table):
+        """insert start and goal points into reservation table with its inflated 
+        areas as well based on the collision bubble"""
+        HiearchialSearch.insert_desired_to_set(start, reservation_table)
+        HiearchialSearch.insert_inflated_waypoints(
+            start, bubble_bounds, reservation_table)
+
+        HiearchialSearch.insert_desired_to_set(goal, reservation_table)
+        HiearchialSearch.insert_inflated_waypoints(
+            goal, bubble_bounds, reservation_table)
+    
+    
+    
+    def main(self):
+        """main implementation"""
+        """test if I have any clients"""
+        rate_val = 20
+        rate = rospy.Rate(rate_val)
+        interval_time = 5.0
+
+        while not rospy.is_shutdown():
+            rospy.sleep(interval_time) #waiting for more queries 
+            uav_list = self.find_path_planning_clients()
+            print("uav list is", uav_list)
+            if uav_list:
+
+                final_list,sorted_start, sorted_goal, uav_name = self.prioritize_uas(uav_list)  
+                
+                ####-------BEGIN SEARCH, need to decouple this
+                col_radius = col_bubble/2
+                bubble_bounds = list(np.arange(-col_radius, col_radius+1, 1))
+                
+                reservation_table = self.init_reserve_table()            
+                
+                self.set_start_goal(sorted_start, sorted_goal,
+                                    bubble_bounds, reservation_table)
+                
+                for start,goal,uav_id in zip(sorted_start, sorted_goal, uav_name):
+                    
+                    hiearch_search = HiearchialSearch.begin_higher_search(start,goal,
+                                    graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h,
+                                    reservation_table)
+                            
+                    uav_waypoints= hiearch_search
+                    uav_waypoints = [list(ele) for ele in hiearch_search]
+                
+                    inflated_list = HiearchialSearch.insert_inflated_waypoints(
+                        uav_waypoints, bubble_bounds , reservation_table)
+                    
+                    ## put into database
+                    waypoints = np.array(uav_waypoints).astype(int)
+                    #inflated = np.array(inflated_list).astype(int)
+                    self.insert_uav_to_reservation(uav_id, inflated_list)
+                    self.insert_waypoints(uav_id, waypoints.tolist())               
+                                
+            rate.sleep()
+
+
 if __name__=='__main__':
-    rospy.init_node("path_planning_service", anonymous=False)
+    rospy.init_node("self", anonymous=False)
     
     wsl_ip = os.getenv('WSL_HOST_IP')
     df = pd.read_csv(config.FILEPATH+config.FILENAME)
 
-    ####### MAP and Grid Need to make this as a configuration    
-    ## PARAMS
+    ###### MAP and Grid Need to make this as a configuration    
+    # PARAMS
     x_size = 100
     y_size = 100
     z_size = 75
@@ -74,65 +152,5 @@ if __name__=='__main__':
     col_bubble = 4
     weighted_h = 10
     
-
-    #Need to do class implementation here?
-    path_planning_service = Database.PathPlannerService()
-    """test if I have any clients"""
-    rate_val = 20
-    vel = 5
-    rate = rospy.Rate(rate_val)
-    interval_time = 5.0
-
-    while not rospy.is_shutdown():
-        #rospy.sleep(interval_time) #waiting for more queries 
-        uav_list = path_planning_service.find_path_planning_clients()
-        #print("uav list is", uav_list)
-        if uav_list:
-            
-            final_list,sorted_start, sorted_goal, uav_name = path_planning_service.prioritize_uas(uav_list)  
-            
-            ####-------BEGIN SEARCH, need to decouple this
-            col_radius = col_bubble/2
-            bubble_bounds = list(np.arange(-col_radius, col_radius+1, 1))
-        
-            reserved = path_planning_service.get_reserved_waypoints()
-            if not reserved:
-                print("reserved is empty")
-                reservation_table = set()
-            else:
-                reservation_table = set()
-                for waypoint in reserved:
-                    reservation_table.update(tuple(waypoint))
-
-            HiearchialSearch.insert_desired_to_set(sorted_start, reservation_table)
-            HiearchialSearch.insert_inflated_waypoints(
-                sorted_start, bubble_bounds, reservation_table)
-
-            HiearchialSearch.insert_desired_to_set(sorted_goal, reservation_table)
-            HiearchialSearch.insert_inflated_waypoints(
-                sorted_goal, bubble_bounds, reservation_table)
-            
-            for start,goal,uav_id in zip(sorted_start, sorted_goal, uav_name):
-                
-                hiearch_search = HiearchialSearch.begin_higher_search(start,goal,
-                                graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h,
-                                reservation_table)
-                        
-                uav_waypoints= hiearch_search
-                uav_waypoints = [list(ele) for ele in hiearch_search]
-            
-                inflated_list = HiearchialSearch.insert_inflated_waypoints(
-                    uav_waypoints, bubble_bounds , reservation_table)
-                
-                ## put into database
-                waypoints = np.array(uav_waypoints).astype(int)
-                #inflated = np.array(inflated_list).astype(int)
-                path_planning_service.insert_uav_to_reservation(uav_id, inflated_list)
-                path_planning_service.insert_waypoints(uav_id, waypoints.tolist())
-            
-            continue          
-        else:
-            #print("searching")
-            continue
-
-        rate.sleep()
+    uss_path_planner = USSPathPlanner()  
+    uss_path_planner.main()  

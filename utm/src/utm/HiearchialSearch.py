@@ -709,6 +709,7 @@ def generate_random_uav_coordinates(radius, x_bounds, y_bounds,  z_bounds, n_coo
         z = random.randint(z_bounds[0], z_bounds[1])
         if (x,y,z) in excluded or (x,y,z) in obst_set: 
             continue
+            
         randPoints.append([x,y,z])
         i += 1
         excluded.update((x+dx, y+dy, z+dy) for (dx,dy,dz) in deltas)
@@ -723,79 +724,6 @@ def insert_desired_to_set(coord_list, reservation_table):
     tuple_point = [tuple(coord) for coord in coord_list]
     reservation_table.update(tuple_point)
 
-
-# def begin_higher_search(start_list, goal_list, graph, grid, obst_coords,
-#                         col_bubble, weighted_h):
-#     """begin higher search for n uavs -> probably better to use a dataframe?"""
-#     reservation_table = set()
-#     overall_paths = []
-#     abstract_paths = []
-#     iter_cnt_list = []
-#     search_space_list = []
-#     time_list = []
-    
-#     col_radius = col_bubble/2
-#     bubble_bounds = list(np.arange(-col_radius, col_radius+1, 1))
-    
-#     insert_desired_to_set(start_list, reservation_table)
-#     insert_inflated_waypoints(start_list, bubble_bounds, reservation_table)
-    
-#     insert_desired_to_set(goal_list, reservation_table)
-#     insert_inflated_waypoints(goal_list, bubble_bounds, reservation_table)
-    
-#     cnt = 0
-#     for start, goal in zip(start_list, goal_list):
-                    
-#         #determine regions of coordinates on the cluster
-#         cluster_start = graph.determine_cluster(start)
-#         cluster_goal = graph.determine_cluster(goal)
-        
-#         #remove the values from the reservation table for now
-#         # if tuple(start) in reservation_table:
-#         reservation_table.remove(tuple(start))
-#         start_bubble = inflate_location(start, bubble_bounds)
-#         remove_inflate_waypoints(start_bubble, bubble_bounds, reservation_table)
-        
-#         # if tuple(goal) in reservation_table:
-#         reservation_table.remove(tuple(goal))
-#         goal_bubble = inflate_location(goal, bubble_bounds)
-#         remove_inflate_waypoints(goal_bubble, bubble_bounds, reservation_table)
-        
-#         #time code 
-#         start_time = timer()
-#         #check if in same region
-#         if cluster_start == cluster_goal:
-#             #print("same region")
-#             abstract_path = [start,goal]
-#             waypoint_coords, iter_cnt, search_cnt = get_refine_path(
-#                                     grid, abstract_path,reservation_table, obst_coords,
-#                                     col_bubble, weighted_h)
-#         else:
-#             graph.insert_temp_nodes(start, 1, start)
-#             graph.insert_temp_nodes(goal, 1, goal)
-#             abstract_path = get_abstract_path(start, goal, reservation_table, graph)
-#             waypoint_coords,iter_cnt, search_cnt = get_refine_path(
-#                                     grid, abstract_path,reservation_table, obst_coords, 
-#                                     col_bubble, weighted_h)
-        
-#         end_time = timer()
-#         time_diff = end_time-start_time
-#         #print("time to find solution", time_diff)
-        
-#         cnt+=1
-#         gc.collect()
-        
-#         #need to add inflation so with each waypoint add +1 -> l collision bubble
-#         # for x, y, z then insert to set
-#         #add_to_reservation_table(waypoint_coords, reservation_table)
-#         insert_inflated_waypoints(waypoint_coords, bubble_bounds , reservation_table)
-#         abstract_paths.append(abstract_path)
-#         overall_paths.append(waypoint_coords)
-#         iter_cnt_list.append(iter_cnt)
-#         search_space_list.append(search_cnt)
-#         time_list.append(time_diff)
-        
-#     return reservation_table, overall_paths, abstract_paths, iter_cnt_list, search_space_list, time_list
 
 def begin_higher_search(start, goal, graph, grid, obst_coords,
                         col_bubble, weighted_h, reservation_table):
@@ -815,7 +743,7 @@ def begin_higher_search(start, goal, graph, grid, obst_coords,
     if start == goal:
         print("you're already there")
         return start
-        
+
     #determine regions of coordinates on the cluster
     cluster_start = graph.determine_cluster(start)
     cluster_goal = graph.determine_cluster(goal)

@@ -29,6 +29,7 @@ AC:
             - bad situation: don't remove from reservation table 
  
 """
+
 import os
 import rospy
 import airsim
@@ -48,13 +49,8 @@ class SimpleFlightDrone():
         self.offset_x = rospy.get_param("~offset_x", -10)
         self.offset_y = rospy.get_param("~offset_y", 20)
 
-        self.init_x = rospy.get_param("~init_x", 0)
-        self.init_y = rospy.get_param("~init_y", 5)
-        self.init_z = rospy.get_param("~init_z", 15)
-
-        self.goal_x = rospy.get_param("~goal_x", 65)
-        self.goal_y = rospy.get_param("~goal_y", 70)
-        self.goal_z = rospy.get_param("~goal_z", 20 )
+        self.get_start_position()
+        self.get_goal_position()
 
         self.init_vel = rospy.get_param("~init_vel", 20)
 
@@ -64,6 +60,7 @@ class SimpleFlightDrone():
         self.path_planning_service = Database.PathPlannerService()
 
     def get_start_position(self):
+        """get starting position from params"""
         x = rospy.get_param("~init_x", 0)
         y = rospy.get_param("~init_y", 5)
         z = rospy.get_param("~init_z", 15)
@@ -72,6 +69,7 @@ class SimpleFlightDrone():
 
 
     def get_goal_position(self):
+        """get goal position from params"""
         goal_x = rospy.get_param("~goal_x", 65)
         goal_y = rospy.get_param("~goal_y", 70)
         goal_z = rospy.get_param("~goal_z", 20)
@@ -113,8 +111,7 @@ class SimpleFlightDrone():
         self.client.enableApiControl(True, self.vehicle_name)
         self.client.armDisarm(True, self.vehicle_name)
         self.takeoff_drone()
-        self.send_enu_waypoint([self.init_x, self.init_y, self.init_z], self.init_vel)
-        #should i decouple this reqiest path function
+        self.send_enu_waypoint(self.start_position, self.init_vel)
 
     def compute_offsets(self,enu_wp):
         """send global commands have to subtract the offsets"""
@@ -141,18 +138,14 @@ class SimpleFlightDrone():
         
     def reinit_start(self):
         """reinitalize goal points"""
-        self.init_x = self.goal_x
-        self.init_y = self.goal_y
-        self.init_z = self.goal_z
+        self.start_position = self.goal_position
 
     def redefine_goal(self):
         """redefine goals for uas"""
-        x = random.randrange(0, 100)
-        y = random.randrange(0, 100)
-        z = random.randint(10, 70)
-        self.goal_x = x
-        self.goal_y = y
-        self.goal_z = z
+        x = random.randrange(25, 75)
+        y = random.randrange(25, 75)
+        z = random.randint(20, 50)
+        self.goal_position = [x,y,z]
 
     def main(self):
         """main loop to request waypoints"""
@@ -161,25 +154,26 @@ class SimpleFlightDrone():
         vel = 5
         rate = rospy.Rate(rate_val)
         self.check_done = False
+        
         self.path_planning_service.request_path(self.vehicle_name,
-                                    [self.init_x, self.init_y, self.init_z],
-                                    [self.goal_x, self.goal_y, self.goal_z])
+                                                self.start_position,
+                                                self.goal_position)
 
-        num_requests = 1
+        num_requests = 5
         i = 0
         while not rospy.is_shutdown():
             while i <= num_requests+1:
                 waypoints_exist = self.path_planning_service.check_waypoints_exist(
                                                         self.vehicle_name,
-                                                        [self.init_x,self.init_y, self.init_z],
-                                                        [self.goal_x,self.goal_y, self.goal_z])
+                                                        self.start_position,
+                                                        self.goal_position)
                 
                 
                 if waypoints_exist:
                     waypoints = self.path_planning_service.get_uav_waypoints(
                                                         self.vehicle_name,
-                                                        [self.init_x,self.init_y, self.init_z],
-                                                        [self.goal_x,self.goal_y, self.goal_z])
+                                                        self.start_position,
+                                                        self.goal_position)
 
                     if waypoints and self.check_done == False:
                         self.check_done = simple_drone.send_enu_waypoints(waypoints,vel)
@@ -192,11 +186,10 @@ class SimpleFlightDrone():
                         self.reinit_start()
                         self.redefine_goal()
                         self.path_planning_service.request_path(self.vehicle_name,
-                                            [self.init_x, self.init_y, self.init_z],
-                                            [self.goal_x, self.goal_y, self.goal_z])
+                                                        self.start_position,
+                                                        self.goal_position)
                         self.check_done = False
                 else:
-                    print("im done")
                     continue
             
             rate.sleep()
@@ -213,8 +206,5 @@ if __name__ == '__main__':
     
     """waypoints are to be sent by the USS Path Planning Service """
     simple_drone.main()
-    # path_planning_service = Database.PathPlannerService()
-    # 
-
 
 
