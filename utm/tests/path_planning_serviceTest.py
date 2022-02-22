@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*- 
 from __future__ import print_function
 from bson.objectid import ObjectId
@@ -25,6 +25,11 @@ class UASTest():
         self.end = end
 
 class PathPlannerService(Database.AbstractDatabaseInfo):
+    """this is a test"""
+    def __init__(self):
+        pass
+
+class PathPlannerService(Database.AbstractDatabaseInfo):
     """
     Path Planner Service takes in all information of UAS queries to request 
     a path to be sent from start point to goal point
@@ -32,6 +37,8 @@ class PathPlannerService(Database.AbstractDatabaseInfo):
     """
     database_name = "pathPlanningService"
     path_planning_col_name = "uas_path_planning"
+    reservation_col_name = "reservation_table"
+
     ip = "127.0.0.1"
     port_num = 27017
     poolsize = 100
@@ -42,19 +49,25 @@ class PathPlannerService(Database.AbstractDatabaseInfo):
 
         #collection names
         self.path_planning_col = self.mainDB[self.path_planning_col_name]
-
+        self.reservation_col = self.mainDB[self.reservation_col_name]
 
     def request_path(self,uav_name, start_point, end_point):
         """request path to db"""
-        uav_info = {#"_id": uav_name,
+        uav_info = {
                     "uav_name": uav_name,
                     "start_point": start_point,
                     "end_point": end_point
                     }
 
         self.path_planning_col.insert(uav_info)
-        print("updated collection with", uav_info)
                    
+    def check_waypoints_exist(self,uav_name):
+        """check if waypoints exist in database returns true if it does
+        false if it doesnt"""
+        myquery = {"waypoints": {'$exists': True}}
+        cursor = self.path_planning_col.find(myquery)
+        print("cursor is", cursor)
+            
     def find_path_planning_clients(self):
         """find uas operators who do not have a waypoint and returns as list of lists"""
         uavs = []
@@ -87,11 +100,13 @@ class PathPlannerService(Database.AbstractDatabaseInfo):
         return final_list, sorted_start, sorted_goal, sorted_uavs
 
     def insert_waypoints(self, uav_name, waypoint_list):
+        """insert waypoints into path planning collection based on 
+        uav name"""
         self.path_planning_col.update({"uav_name": uav_name},
         {"$set":{
             "waypoints": waypoint_list}})
 
-
+        
 def compute_actual_euclidean(position, goal):
     distance =  (((position[0] - goal[0]) ** 2) + 
                         ((position[1] - goal[1]) ** 2) +
@@ -105,7 +120,6 @@ def get_uav_names(dataframe):
     return df['uav_name'].to_list()
 
 if __name__=='__main__':
-
     path_planning_service = PathPlannerService()
     wsl_ip = os.getenv('WSL_HOST_IP')
     df = pd.read_csv(config.FILEPATH+config.FILENAME)
@@ -117,21 +131,17 @@ if __name__=='__main__':
     # uav_end = [15,10,5]
     # uav_test = UASTest(uav_name_test, uav_start, uav_end)
     
-    for idx, uav in df.iterrows():
-        uav_name = uav['uav_name']
-        init_x = uav['init_x']
-        init_y = uav['init_y']
-        init_z = uav['init_z']
-        goal_x = uav['goal_x']
-        goal_y = uav['goal_y']
-        goal_z = uav['goal_z']
+    # for idx, uav in df.iterrows():
+    #     uav_name = uav['uav_name']
+    #     init_x = uav['init_x']
+    #     init_y = uav['init_y']
+    #     init_z = uav['init_z']
+    #     goal_x = uav['goal_x']
+    #     goal_y = uav['goal_y']
+    #     goal_z = uav['goal_z']
 
-        path_planning_service.request_path(uav_name, [init_x, init_y,
-                                        init_z], [goal_x,goal_y, goal_z])
-
-                                        
-    """test if I have any clients"""
-    uav_list = path_planning_service.find_path_planning_clients()
+    #     path_planning_service.request_path(uav_name, [init_x, init_y,
+    #                                     init_z], [goal_x,goal_y, goal_z])
 
     ####### MAP and Grid Need to make this as a configuration    
     ## PARAMS
@@ -149,7 +159,6 @@ if __name__=='__main__':
     map_pkl_name = 'map_test.pkl'
     graph_pkl_name = 'test.pkl'
     
-
     if load_map == True:
         with open(map_pkl_name, 'rb') as f:
             annotated_map  = pickle.load(f)
@@ -174,21 +183,25 @@ if __name__=='__main__':
     obst_coords = annotated_map._Map__obstacles 
     col_bubble = 4
     weighted_h = 10
-
-    """this needs a refactor"""
-    final_list,sorted_start, sorted_goal, uav_name = path_planning_service.prioritize_uas(uav_list)
-
-    ####-------BEGIN SEARCH
-    hiearch_search = HiearchialSearch.begin_higher_search(sorted_start, sorted_goal,
-                     graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h)
     
-
-    uav_waypoints= hiearch_search[1]
-
-    for i, waypoints in enumerate(uav_waypoints):
-        #print("uav name", uav_name[i])
-        waypoints = [list(ele) for ele in waypoints]
-        waypoints = np.array(waypoints).astype(int)
-
-        path_planning_service.insert_waypoints(uav_name[i], waypoints.tolist())
+    """test if I have any clients"""
+    uav_list = path_planning_service.find_path_planning_clients()
+    
+    if uav_list:
+        final_list,sorted_start, sorted_goal, uav_name = path_planning_service.prioritize_uas(uav_list)
         
+        ####-------BEGIN SEARCH
+        hiearch_search = HiearchialSearch.begin_higher_search(sorted_start, sorted_goal,
+                        graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h)
+        
+        uav_waypoints= hiearch_search[1]
+
+        for i, waypoints in enumerate(uav_waypoints):
+            #print("uav name", uav_name[i])
+            waypoints = [list(ele) for ele in waypoints]
+            waypoints = np.array(waypoints).astype(int)
+
+            path_planning_service.insert_waypoints(uav_name[i], waypoints.tolist())
+
+    else:
+        print("no uavs")

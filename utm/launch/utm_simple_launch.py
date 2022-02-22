@@ -102,16 +102,24 @@ if __name__ == "__main__":
         x_spawn = uav['spawn_x']
         y_spawn = uav['spawn_y']
         z_spawn = uav['spawn_z']
+
         init_x = uav['init_x']
         init_y = uav['init_y']
         init_z = uav['init_z']
+
+        goal_x = uav['goal_x']
+        goal_y = uav['goal_y']
+        goal_z = uav['goal_z']
+
         api_port = port_num#+idx
 
         client_args = ['utm', 'simple_drone.launch', 
                     'veh_name:='+str(uav_name), 'offset_x:='+str(y_spawn),
                     'offset_y:='+str(x_spawn), 'api_port:='+str(api_port),
                     'init_vel:='+str(5.0),'init_x:='+str(init_x),
-                    'init_y:='+str(init_y), 'init_z:='+str(init_z)]
+                    'init_y:='+str(init_y), 'init_z:='+str(init_z),
+                    'goal_x:='+str(goal_x),'goal_y:='+str(goal_y), 
+                    'goal_z:='+str(goal_z)]
         uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
         launch_files.append(uas_launch)
     

@@ -2,9 +2,15 @@
     <arg name="veh_name" default="PX4_0"/>
     <arg name="offset_x" default="0.0"/>
     <arg name="offset_y" default="0.0"/>
+
     <arg name="init_x" default="0.0"/>
     <arg name="init_y" default="0.0"/>
     <arg name="init_z" default="10.0"/>
+
+    <arg name="goal_x" default="5"/>
+    <arg name="goal_y" default="10"/>
+    <arg name="goal_z" default="15"/>
+
     <arg name="api_port" default="41451"/>
 
     <group ns="$(arg veh_name)">
@@ -18,6 +24,11 @@
             <arg name="init_x" value="$(arg init_x)"/>
             <arg name="init_y" value="$(arg init_y)"/>
             <arg name="init_z" value="$(arg init_z)"/>
+
+            <arg name="goal_x" default="$(arg goal_x)"/>
+            <arg name="goal_y" default="$(arg goal_y)"/>
+            <arg name="goal_z" default="$(arg goal_z)"/>
+
         </include> 
     </group>
  

@@ -24,7 +24,7 @@ else:
     import StringIO
 
 class AbstractDatabaseInfo():
-    """Abstract Database distrubutes information of database 
+    """Abstract Database requests information of database 
     through querys"""
     def __init__(self, ip, portnumber, poolsize):
         #self.msg_store = MessageStoreProxy(collection= collection_name)
@@ -273,6 +273,8 @@ class PathPlannerService(AbstractDatabaseInfo):
     """
     database_name = "pathPlanningService"
     path_planning_col_name = "uas_path_planning"
+    reservation_col_name = "reservation_table"
+
     ip = "127.0.0.1"
     port_num = 27017
     poolsize = 100
@@ -283,32 +285,52 @@ class PathPlannerService(AbstractDatabaseInfo):
 
         #collection names
         self.path_planning_col = self.mainDB[self.path_planning_col_name]
-
+        self.reservation_col = self.mainDB[self.reservation_col_name]
 
     def request_path(self,uav_name, start_point, end_point):
         """request path to db"""
-        uav_info = {#"_id": uav_name,
+        uav_info = {
                     "uav_name": uav_name,
                     "start_point": start_point,
                     "end_point": end_point
                     }
 
         self.path_planning_col.insert(uav_info)
-        print("updated collection with", uav_info)
                    
+    def check_waypoints_exist(self,uav_name,start,goal):
+        """check if waypoints exist in database returns true if it does
+        false if it doesnt"""
+        myquery = {"$and": [{"uav_name":uav_name, 
+                    "start_point":start,"end_point":goal}, 
+                    {"waypoints": {'$exists': True}}]}
+        #myquery = {"waypoints": {'$exists': True}}
+        cursor = self.path_planning_col.find(myquery)
+        if len(list(cursor)) == 0:
+            return False
+        else:
+            return True
+            
     def find_path_planning_clients(self):
         """find uas operators who do not have a waypoint and returns as list of lists"""
         uavs = []
         myquery = {"waypoints": {'$exists': False}}
         cursor = self.path_planning_col.find(myquery)
         for document in cursor:
-            #print(document["uav_name"])
             uav = [document["uav_name"], document["start_point"],
             document["end_point"]]
             uavs.append(uav)
 
         return uavs
     
+    def get_uav_waypoints(self, uav_name, start, goal):
+        myquery = {"$and": [{"uav_name":uav_name, 
+                    "start_point":start,"end_point":goal}, 
+                    {"waypoints": {'$exists': True}}]}
+        #myquery = {"waypoints": {'$exists': True}}
+        cursor = self.path_planning_col.find(myquery)
+        for document in cursor:
+            return document["waypoints"]
+
     def prioritize_uas(self,uav_list):
         """Takes in start list, and goal list and 
         prioritizes UAS based on highest distance to be traversed"""
@@ -316,7 +338,6 @@ class PathPlannerService(AbstractDatabaseInfo):
         dist_list = []
         for uav in uav_list:
             dist_val = compute_actual_euclidean(uav[1], uav[2])
-            print("distance val", dist_val)
             dist_list.append((dist_val,uav[1], uav[2], uav[0]))
 
         ##setting reverse to false sets to min first, true max first
@@ -328,16 +349,39 @@ class PathPlannerService(AbstractDatabaseInfo):
         return final_list, sorted_start, sorted_goal, sorted_uavs
 
     def insert_waypoints(self, uav_name, waypoint_list):
-        self.path_planning_col.update({"uav_name": uav_name},
+        """insert waypoints into path planning collection based on 
+        uav name"""
+        self.path_planning_col.update({"uav_name": uav_name,
+        "start_point": waypoint_list[0], "end_point":waypoint_list[-1]},
         {"$set":{
             "waypoints": waypoint_list}})
 
-    def query_waypoints(self, uav_name):
-        """need to check if i have a waypoint allocated"""
+    def remove_uav_from_reservation(self, uav_name):
+        """remove uav from collection list"""
         myquery = {"uav_name": uav_name}
-        cursor = self.path_planning_col.find(myquery)
-        myquery = {"waypoints": {'$exists': False}}
-        for document in cursor:
-            uav_waypoints = document["waypoints"]
-        return uav_waypoints
+        self.reservation_col.delete_one(myquery)
+        #print("Removed ", uav_name + "from reservation table")
 
+    def insert_uav_to_reservation(self,uav_name, waypoints):
+        """insert uav into reservation collection"""
+        uav_info = {
+                    "uav_name": uav_name,
+                    "waypoints": waypoints,
+                    }
+        self.reservation_col.insert(uav_info)
+
+    def get_reserved_waypoints(self):
+        """find uas operators who do not have a waypoint and returns as list of lists"""
+        reserved = []
+        myquery = {"waypoints": {'$exists': True}}
+        cursor = self.reservation_col.find(myquery)
+        for document in cursor:
+            reserved.append(document["waypoints"][0])
+        return reserved
+    
+def compute_actual_euclidean(position, goal):
+    distance =  (((position[0] - goal[0]) ** 2) + 
+                        ((position[1] - goal[1]) ** 2) +
+                        ((position[2] - goal[2]) ** 2))**(1/2)
+    
+    return distance

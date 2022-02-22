@@ -160,6 +160,7 @@ catkin_install_python(PROGRAMS
     scripts/landing_service_nodes/post_flight_service.py
     scripts/landing_service_nodes/path_home_sender_service.py
     scripts/landing_service_nodes/zone_observer.py
+    scripts/uss/path_planning_service/path_planning_service.py
 
     #test setups
     tests/mongo_db_test.py
