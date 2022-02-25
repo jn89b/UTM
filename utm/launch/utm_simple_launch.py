@@ -10,8 +10,6 @@ import roslaunch
 import roslaunch.remote
 import time, sys, subprocess
 import rospy
-import std_msgs.msg
-import datetime
 import rospkg
 
 import subprocess
@@ -116,7 +114,7 @@ if __name__ == "__main__":
         client_args = ['utm', 'simple_drone.launch', 
                     'veh_name:='+str(uav_name), 'offset_x:='+str(y_spawn),
                     'offset_y:='+str(x_spawn), 'api_port:='+str(api_port),
-                    'init_vel:='+str(5.0),'init_x:='+str(init_x),
+                    'init_vel:='+str(3.0),'init_x:='+str(init_x),
                     'init_y:='+str(init_y), 'init_z:='+str(init_z),
                     'goal_x:='+str(goal_x),'goal_y:='+str(goal_y), 
                     'goal_z:='+str(goal_z)]
@@ -137,7 +135,6 @@ if __name__ == "__main__":
     #     uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
     #     launch_files.append(uas_launch)
 
-    
     launch.parent = roslaunch.parent.ROSLaunchParent(uuid, launch_files)
     launch.start()
 

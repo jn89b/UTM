@@ -61,10 +61,10 @@ class AirsimROSWrapper():
         """convert ned convention of airsim to ned for ROS publishing"""
         enu_x = ned_pose.position.y_val
         enu_y = ned_pose.position.x_val
-        enu_z = -ned_pose.position.z_val - 0.8
+        enu_z = -ned_pose.position.z_val 
         enu_quat_x =  ned_pose.orientation.y_val
         enu_quat_y =  ned_pose.orientation.x_val
-        enu_quat_z =  -ned_pose.orientation.x_val
+        enu_quat_z =  -ned_pose.orientation.z_val
         enu_quat_w =  ned_pose.orientation.w_val
 
         enu_position = [enu_x, enu_y, enu_z]
@@ -86,14 +86,14 @@ class AirsimROSWrapper():
         while not rospy.is_shutdown():
             
             for uav_name in uav_name_list:
-                print("uav name", uav_name)
+                #print("uav name", uav_name)
                 airsim_drone = AirsimDroneROS(name = uav_name)
                 ned_pose = self.__get_global_uav_location(uav_name)
                 enu_position, enu_quat = self.__convert_ned_to_enu(ned_pose)        
-                print("enu position", enu_position)
+                #print("enu position", enu_position)
                 airsim_drone.publish_global_position(enu_position, enu_quat)
             
-            print("testing")
+            #print("testing")
             rate.sleep()
 
 class AirsimDroneROS():
@@ -142,7 +142,8 @@ class AirsimDroneROS():
 def get_landing_zone_locs(n_zones):
     """testing some API stuff"""
     for i in range(1,n_zones):
-        print("Position of zone", client.simGetObjectPose("AprilTag_Character_"+str(i)))
+        pass
+        #print("Position of zone", client.simGetObjectPose("AprilTag_Character_"+str(i)))
 
 def create_ros_wrapper(dataframe):
     """ros wrapper to define the global location of the uavs"""
@@ -162,7 +163,7 @@ if __name__ == '__main__':
     uav_name_list = get_uav_names(df)
 
     #ros wrapper
-    print("hello")
+    #print("hello")
     airsim_ros_wrap = AirsimROSWrapper(wsl_ip)
     airsim_ros_wrap.main(uav_name_list=uav_name_list, rate_val=20)
 

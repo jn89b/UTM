@@ -1,6 +1,12 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*- 
 
+from utm import config
+
+from ipaddress import ip_address
+import pandas as pd
 import rospy
+
 import time
 import csv
 import os
@@ -10,42 +16,43 @@ from std_msgs.msg import Int8
 from utm import UAVGen
 from geometry_msgs.msg import PoseStamped
 
-# class OdomLoc():
-#     def __init__(self,sub_topic):
-#         self.x = None
-#         self.y = None
-#         self.z = None
-#         self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb) 
-    
-#     def odom_cb(self,msg):
-#         self.x = msg.pose.position.x
-#         self.y = msg.pose.position.y
-#         self.z = msg.pose.position.z
+class OdomLoc():
+	def __init__(self,sub_topic):
+		self.x = None
+		self.y = None
+		self.z = None
+		self.coords = [None,None,None]
+		self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb) 
 
-# class UTMStateCB():
-# 	def __init__(self, sub_topic):
-# 		self.state_command = None
-# 		self.sub = rospy.Subscriber(sub_topic, Int8, self.utm_cb)
+	def odom_cb(self,msg):
+		self.x = msg.pose.position.x
+		self.y = msg.pose.position.y
+		self.z = msg.pose.position.z
+		self.coords = [self.x,self.y,self.z]
+		print("x", self.x)
 
-# 	def utm_cb(self, msg):
-# 		self.state_command = msg.data
+class UTMStateCB():
+	def __init__(self, sub_topic):
+		self.state_command = None
+		self.sub = rospy.Subscriber(sub_topic, Int8, self.utm_cb)
+
+	def utm_cb(self, msg):
+		self.state_command = msg.data
 	
 
 if __name__ == '__main__':
-	uav_list = []
-	for i in range(0,7):
-		uav_name = "uav"+str(i)
-		uav = UAVGen.UAVComms(uav_name)
-		uav_list.append(uav)
 	
-	myData = ["time"]
-	for uav in uav_list:
-		myData.append(uav.name+"_coords")
-		myData.append(uav.name+"_state")
-		#myData.append(uav.name+"_state")
-
-	# true_position_topic = "mavros/offset_local_position/pose"
-	# true_position = OdomLoc(true_position_topic)
+	wsl_ip = os.getenv('WSL_HOST_IP')
+	df = pd.read_csv(config.FILEPATH+config.FILENAME)
+	
+	uav_name_list = []
+	true_position_list = []
+	for idx, uav in df.iterrows():
+		uav_name_list.append(uav['uav_name'])	
+		true_position_topic = uav['uav_name']+"/global_position/pose" 
+		#true_position_topic = "mavros/offset_local_position/pose"
+		true_position = OdomLoc(true_position_topic)
+		true_position_list.append(true_position)
 
 	# relative_position_topic = "mavros/local_position/pose"
 	# relative_position = OdomLoc(relative_position_topic)
@@ -62,7 +69,12 @@ if __name__ == '__main__':
 	print(os.getcwd())
 	#---------Logfile Setup-------------#
 	# populate the data header, these are just strings, you can name them anything
-	#myData = ["time", "uav_0_pos", "", "true_quad_z", "quad x", "quad y", "quad z", "utm command"]
+	myData = ["time"]
+	for uav_name in uav_name_list:
+		myData.append(uav_name+"_position")
+		# myData.append(uav_name+"_x")
+		# myData.append(uav_name+"_y")
+		# myData.append(uav_name+"_z")
 
 	# this creates a filename which contains the current date/time RaspberryPi does not have a real time clock, the files
 	# will have the correct sequence (newest to oldest is preserved) but unless you set it explicitely the time will not
@@ -104,9 +116,8 @@ if __name__ == '__main__':
 			# something here, but don't change the header string, your column headers won't
 			# match the data
 			myData = [now]
-			for uav in uav_list:
-				myData.append(uav.mavros_coords)
-				myData.append(uav.state_command)
+			for uav in true_position_list:
+				myData.append(uav.coords)
 
 			# stick everything in the file
 			myFile = open(fileName, 'a')

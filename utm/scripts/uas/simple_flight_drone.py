@@ -31,11 +31,62 @@ AC:
 """
 
 import os
+from re import L
 import rospy
 import airsim
 import random
 from geometry_msgs.msg import PoseStamped
 from utm import Database
+import numpy as np
+import time 
+
+def inflate_location(position, bounds):
+    """inflate x,y,z locaiton position based on some bounds"""
+    inflated_list = []
+    #print("position is", position)
+    """calculate bounds"""
+    for i in bounds:
+        for j in bounds:
+            for k in bounds:
+                new_position = [int(position[0]+i), int(position[1]+j), int(position[2]+k)]
+                inflated_list.append(tuple(new_position))
+                
+    return inflated_list
+
+class PID():
+    """Compensator"""
+    def __init__(self, kp, ki, kd, rate):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.pre_error = 0.0
+        self.pre_ierror = 0.0
+        self.rate = rate
+
+    def compute_p_error(self, desired, actual):
+        """get errors"""
+        return desired - actual
+
+    def __compute_i_error(self, error):
+        """compute i gain with trapezoid rule"""
+        return self.pre_ierror + ((error + self.pre_error)) * (1/self.rate)
+
+    def __compute_d__error(self, error):
+        """compute d gain"""
+        return (error - self.pre_error)/(1/self.rate)
+
+    def compute_gains(self, desired, actual):
+        """return PID gains"""
+        error = self.compute_p_error(desired, actual)
+        i_error = self.__compute_i_error(error)
+        d_error = self.__compute_d__error(error)
+
+        gain = (self.kp*error)+ (self.ki*i_error) + (self.kd*d_error)
+
+        self.pre_error = error
+        self.pre_ierror = i_error
+
+        return gain,error
 
 class SimpleFlightDrone():
     """Control the SimpleFlight AirsimDrone"""
@@ -52,18 +103,25 @@ class SimpleFlightDrone():
         self.get_start_position()
         self.get_goal_position()
 
-        self.init_vel = rospy.get_param("~init_vel", 20)
+        self.pid = PID(kp=0.75,ki=0.0,kd=0.0,rate=20)
+
+        self.init_vel = rospy.get_param("~init_vel", 3.0)
 
         self.global_enu_pos = [None,None,None]
         self.global_enu_quat = [None,None,None, None]
 
         self.path_planning_service = Database.PathPlannerService()
 
+        #this is bad need to take in the bubble as a parm
+        self.col_radius = 3
+        self.bubble_bounds = list(np.arange(-self.col_radius, self.col_radius+1, 1))
+
+
     def get_start_position(self):
         """get starting position from params"""
-        x = rospy.get_param("~init_x", 0)
-        y = rospy.get_param("~init_y", 5)
-        z = rospy.get_param("~init_z", 15)
+        x = rospy.get_param("~init_x",  0)
+        y = rospy.get_param("~init_y", 0)
+        z = rospy.get_param("~init_z", 25)
 
         self.start_position = [x,y,z]
 
@@ -95,7 +153,12 @@ class SimpleFlightDrone():
         ned_x = enu_coords[1]
         ned_y = enu_coords[0]
         ned_z = -enu_coords[2]
+        #print("ned_coords",ned_x,ned_y,ned_z)
         return [ned_x, ned_y, ned_z]
+    
+    def convert_unreal_to_ned(self,unreal_coords):
+        """convert unreal coordinates to ned coordinates"""
+        return [unreal_coords[0], unreal_coords[1], -unreal_coords[2]]
 
     def armdisarm_drone(self, true_false):
         """arm or disarm drone based on true false condition"""
@@ -116,24 +179,35 @@ class SimpleFlightDrone():
     def compute_offsets(self,enu_wp):
         """send global commands have to subtract the offsets"""
         enu_global_x = enu_wp[0] - self.offset_x
-        enu_global_y = enu_wp[1] - self.offset_y
-        enu_global_z = enu_wp[2] - 0.8 #add these height offset because it can be weird
+        enu_global_y = enu_wp[1] - self.offset_y  
+        enu_global_z = enu_wp[2] #- 0.8 #add these height offset because it can be weird
         return [enu_global_x, enu_global_y, enu_global_z]
  
     def send_enu_waypoints(self, enu_waypoints,velocity):
         """send a list of waypoints for drone to fly to"""
         for i,enu_wp in enumerate(enu_waypoints):
             self.send_enu_waypoint(enu_wp, velocity)
-        return True
+            
+            #i have to do this because it simple flight won't hit the exact location
+            if enu_wp == enu_waypoints[-1]:
+                enu_wp = self.compute_offsets(enu_wp)
+                ned_wp = self.convert_enu_to_ned(enu_wp)   
+                print("ned waypoints are ", ned_wp)             
+                self.moveToPosition(ned_wp,self.init_vel)
+                return True
+                
+        #return True
 
     def send_enu_waypoint(self, enu_wp, velocity):
         """send enu waypoint command to drone by converting to ned to use api
         takes in the enu waypoint and the desired velocity"""
-        print("going to", enu_wp)
+        #print("going to", enu_wp)
         enu_wp = self.compute_offsets(enu_wp)
         ned_wp = self.convert_enu_to_ned(enu_wp)
+        print("ned waypoints are ", ned_wp)  
         #join tells it to wait for task to complete
-        async_call = self.client.moveToPositionAsync(ned_wp[0], ned_wp[1],
+        #self.moveToPosition(ned_wp,velocity)
+        self.client.moveToPositionAsync(ned_wp[0], ned_wp[1],
          ned_wp[2], velocity, vehicle_name=self.vehicle_name).join()
         
     def reinit_start(self):
@@ -142,16 +216,51 @@ class SimpleFlightDrone():
 
     def redefine_goal(self):
         """redefine goals for uas"""
-        x = random.randrange(25, 75)
-        y = random.randrange(25, 75)
-        z = random.randint(20, 50)
+        x = random.randrange(20, 80)
+        y = random.randrange(20, 80)
+        z = random.randint(5, 45)
         self.goal_position = [x,y,z]
+
+    def moveToPosition(self, desired_ned, v):
+        """currentPos is in unreal engine coordinate from left hand convention"""
+        currentPos = self.client.getMultirotorState(vehicle_name=self.vehicle_name).kinematics_estimated.position        
+        error = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5
+        print("error is ", error)
+        t = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5 / v
+        tol = 0.5
+        time_tol = 0.15
+        while abs(error)>=tol:
+            print("error is", error)
+            if error <=tol or t <= time_tol: 
+                print("im done")
+                self.client.moveByVelocityAsync(0, 0, 0 , t, vehicle_name=self.vehicle_name)
+                self.client.hoverAsync(vehicle_name=self.vehicle_name).join()
+                rospy.sleep(t)
+                return
+            t = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5 / v
+            x_gain,x_err = self.pid.compute_gains(desired_ned[0], currentPos.x_val)
+            y_gain,y_err = self.pid.compute_gains(desired_ned[1], currentPos.y_val)
+            z_gain,z_err = self.pid.compute_gains(desired_ned[2], currentPos.y_val)
+
+            # delta_x = desired_ned[0] - currentPos.x_val
+            # delta_y = desired_ned[1] - currentPos.y_val
+            delta_z = desired_ned[2] - currentPos.z_val                
+            vx = x_gain/t
+            vy = y_gain/t
+            vz = delta_z/t
+                
+            print("vx,vy,vz", [vx,vy,vz])
+            self.client.moveByVelocityAsync(vx, vy, vz, t, vehicle_name=self.vehicle_name).join()
+            rospy.sleep(t)
+            currentPos = self.client.getMultirotorState(vehicle_name=self.vehicle_name).kinematics_estimated.position        
+
+            #rospy.sleep(t)
+            error = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5
 
     def main(self):
         """main loop to request waypoints"""
         self.init_drone()
         rate_val = 20
-        vel = 5
         rate = rospy.Rate(rate_val)
         self.check_done = False
         
@@ -159,7 +268,7 @@ class SimpleFlightDrone():
                                                 self.start_position,
                                                 self.goal_position)
 
-        num_requests = 5
+        num_requests = 1
         i = 0
         while not rospy.is_shutdown():
             while i <= num_requests+1:
@@ -176,10 +285,11 @@ class SimpleFlightDrone():
                                                         self.goal_position)
 
                     if waypoints and self.check_done == False:
-                        self.check_done = simple_drone.send_enu_waypoints(waypoints,vel)
-                        self.path_planning_service.remove_uav_from_reservation(self.vehicle_name)
-                        i = i + 1
+                        self.check_done = simple_drone.send_enu_waypoints(waypoints,self.init_vel)
+                        goal_bounds = inflate_location(self.goal_position, self.bubble_bounds)
+                        self.path_planning_service.remove_uav_from_reservation(self.vehicle_name, goal_bounds)
                         
+                        i = i + 1
                         if i >= num_requests+1:
                             break
 
@@ -188,6 +298,7 @@ class SimpleFlightDrone():
                         self.path_planning_service.request_path(self.vehicle_name,
                                                         self.start_position,
                                                         self.goal_position)
+                        
                         self.check_done = False
                 else:
                     continue

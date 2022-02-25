@@ -718,12 +718,9 @@ def generate_random_uav_coordinates(radius, x_bounds, y_bounds,  z_bounds, n_coo
             
 
 def insert_desired_to_set(coord_list, reservation_table):
-    # if len(coord_list) == 1:
-    #     reservation_table.update(tuple(coord_list))
-    # else:
+    """"insert coordinates as tuple into reservation table set"""
     tuple_point = [tuple(coord) for coord in coord_list]
     reservation_table.update(tuple_point)
-
 
 def begin_higher_search(start, goal, graph, grid, obst_coords,
                         col_bubble, weighted_h, reservation_table):
@@ -749,12 +746,13 @@ def begin_higher_search(start, goal, graph, grid, obst_coords,
     cluster_goal = graph.determine_cluster(goal)
     
     #remove the values from the reservation table for now
-    reservation_table.remove(tuple(start))
+    if tuple(start) in reservation_table:
+        reservation_table.remove(tuple(start))
     start_bubble = inflate_location(start, bubble_bounds)
     remove_inflate_waypoints(start_bubble, bubble_bounds, reservation_table)
     
-    # if tuple(goal) in reservation_table:
-    reservation_table.remove(tuple(goal))
+    if tuple(goal) in reservation_table:
+        reservation_table.remove(tuple(goal))
     goal_bubble = inflate_location(goal, bubble_bounds)
     remove_inflate_waypoints(goal_bubble, bubble_bounds, reservation_table)
     

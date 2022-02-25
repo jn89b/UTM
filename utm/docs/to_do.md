@@ -13,12 +13,16 @@
 - [x] See if I can add the hiearchial path planning to UAS
 
 # To do 02/21/2022
-- [] Set up USS Path Planning Service 
-    - [] add uav start location and goal location into reservation table
-    - [] When I begin a path remove the uav's start and goal location from the reservation table 
-    - [] Begin path planning
-    - [] Once path is update the reservation table and add this into the reservation collection 
-    - [] if uav has arrived then we remove it  
+- [x] Set up USS Path Planning Service 
+    - [x] add uav start location and goal location into reservation table
+    - [x] When I begin a path remove the uav's start and goal location from the reservation table 
+    - [x] Begin path planning
+    - [x] Once path is update the reservation table and add this into the reservation collection 
+    - [x] if uav has arrived then we remove it  
 
 # How to set mongodb
 -  sudo mongod --dbpath /data/db
+
+# To do 02/25/2022 '
+- [] Spawn waypoints for UAS
+- [] Allow multiple port connections for Airsim API 

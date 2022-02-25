@@ -32,12 +32,11 @@ class USSPathPlanner(Database.PathPlannerService):
     def __init__(self):
         super().__init__()
 
-        #self.HiearchialSearch = HiearchialSearch 
-
     def init_reserve_table(self):
         """intialize reservation table queries for any reserved waypoints
         from collection and appends if there are any"""
         reserved = self.get_reserved_waypoints()
+        #print("reserved is", reserved)
         if not reserved:
             print("reserved is empty")
             reservation_table = set()
@@ -45,7 +44,6 @@ class USSPathPlanner(Database.PathPlannerService):
             reservation_table = set()
             for waypoint in reserved:
                 reservation_table.update(tuple(waypoint))
-
         return reservation_table
     
     def set_start_goal(self, start, goal, bubble_bounds, reservation_table):
@@ -59,7 +57,9 @@ class USSPathPlanner(Database.PathPlannerService):
         HiearchialSearch.insert_inflated_waypoints(
             goal, bubble_bounds, reservation_table)
     
-    
+    def deconflict_goals(self):
+        """check if goal points are the same for different uavs 
+        if so, then we need to deny the service"""
     
     def main(self):
         """main implementation"""
@@ -67,13 +67,12 @@ class USSPathPlanner(Database.PathPlannerService):
         rate_val = 20
         rate = rospy.Rate(rate_val)
         interval_time = 5.0
-
+        print("starting")
         while not rospy.is_shutdown():
             rospy.sleep(interval_time) #waiting for more queries 
             uav_list = self.find_path_planning_clients()
-            print("uav list is", uav_list)
+            
             if uav_list:
-
                 final_list,sorted_start, sorted_goal, uav_name = self.prioritize_uas(uav_list)  
                 
                 ####-------BEGIN SEARCH, need to decouple this
@@ -102,7 +101,8 @@ class USSPathPlanner(Database.PathPlannerService):
                     #inflated = np.array(inflated_list).astype(int)
                     self.insert_uav_to_reservation(uav_id, inflated_list)
                     self.insert_waypoints(uav_id, waypoints.tolist())               
-                                
+                               
+            print("uav list", uav_list) 
             rate.sleep()
 
 
@@ -134,7 +134,7 @@ if __name__=='__main__':
     else:
         ##### CONFIGURATION SPACE
         annotated_map= HiearchialSearch.build_map(3, x_size, y_size, z_size, z_obs_height, num_clusters, 10)
-            
+             
     ####-------- GRAPH 
     """I need to cache this to a database and query it to reduce start up costs
     I should save the information about the ostacles as well or maybe annoted map"""
@@ -149,8 +149,8 @@ if __name__=='__main__':
         HiearchialSearch.set_obstacles_to_grid(grid=annotated_map, obstacle_list=random_obstacles)
     
     obst_coords = annotated_map._Map__obstacles 
-    col_bubble = 4
+    col_bubble = 6
     weighted_h = 10
-    
+     
     uss_path_planner = USSPathPlanner()  
     uss_path_planner.main()  

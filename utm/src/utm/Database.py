@@ -351,24 +351,26 @@ class PathPlannerService(AbstractDatabaseInfo):
     def insert_waypoints(self, uav_name, waypoint_list):
         """insert waypoints into path planning collection based on 
         uav name"""
-        self.path_planning_col.update({"uav_name": uav_name,
-        "start_point": waypoint_list[0], "end_point":waypoint_list[-1]},
-        {"$set":{
-            "waypoints": waypoint_list}})
-
-    def remove_uav_from_reservation(self, uav_name):
+        try:            
+            self.path_planning_col.update({"uav_name": uav_name,
+            "start_point": waypoint_list[0], "end_point":waypoint_list[-1]},
+            {"$set":{
+                "waypoints": waypoint_list}})
+        except IndexError:
+            print("no waypoints", waypoint_list)
+        
+    def remove_uav_from_reservation(self, uav_name, goal_points):
         """remove uav from collection list"""
-        myquery = {"uav_name": uav_name}
-        self.reservation_col.delete_one(myquery)
-        #print("Removed ", uav_name + "from reservation table")
-
+        self.reservation_col.update({"uav_name": uav_name},
+        {"$set":{
+            "waypoints": goal_points}},upsert=True)
+        
     def insert_uav_to_reservation(self,uav_name, waypoints):
         """insert uav into reservation collection"""
-        uav_info = {
-                    "uav_name": uav_name,
-                    "waypoints": waypoints,
-                    }
-        self.reservation_col.insert(uav_info)
+        #https://stackoverflow.com/questions/2801008/mongodb-insert-if-not-exists
+        key = {"_id":uav_name}
+        query = {"uav_name":uav_name, "waypoints": waypoints}
+        self.reservation_col.update(key,query,upsert=True)
 
     def get_reserved_waypoints(self):
         """find uas operators who do not have a waypoint and returns as list of lists"""
@@ -376,7 +378,7 @@ class PathPlannerService(AbstractDatabaseInfo):
         myquery = {"waypoints": {'$exists': True}}
         cursor = self.reservation_col.find(myquery)
         for document in cursor:
-            reserved.append(document["waypoints"][0])
+            reserved.extend(document["waypoints"])
         return reserved
     
 def compute_actual_euclidean(position, goal):
