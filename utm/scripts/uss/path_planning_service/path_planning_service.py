@@ -6,6 +6,7 @@ from utm import Database
 from utm import HiearchialSearch
 from utm import config
 
+import airsim
 import rospy
 import os
 import pickle
@@ -31,7 +32,10 @@ def get_uav_names(dataframe):
 class USSPathPlanner(Database.PathPlannerService):
     def __init__(self):
         super().__init__()
-
+        # self.world_client =  airsim.VehicleClient(ip=str(wsl_ip), port=41451)
+        # self.world_client.confirmConnection()
+        # self.world_client.enableApiControl(True)
+    
     def init_reserve_table(self):
         """intialize reservation table queries for any reserved waypoints
         from collection and appends if there are any"""
@@ -46,6 +50,14 @@ class USSPathPlanner(Database.PathPlannerService):
                 reservation_table.update(tuple(waypoint))
         return reservation_table
     
+    def convert_enu_to_ned(self, enu_coords):
+        """converts enu position to ned""" 
+        ned_x = enu_coords[1]
+        ned_y = enu_coords[0]
+        ned_z = -enu_coords[2]
+        #print("ned_coords",ned_x,ned_y,ned_z)
+        return [ned_x, ned_y, ned_z]
+
     def set_start_goal(self, start, goal, bubble_bounds, reservation_table):
         """insert start and goal points into reservation table with its inflated 
         areas as well based on the collision bubble"""
@@ -61,6 +73,32 @@ class USSPathPlanner(Database.PathPlannerService):
         """check if goal points are the same for different uavs 
         if so, then we need to deny the service"""
     
+    def spawn_waypoint_assets(self,enu_waypoints, vehicle_name):
+        """spawn all waypoints """
+        for i, enu_wp in enumerate(enu_waypoints):
+            if i % 5 == 0:
+                self.spawn_waypoint(enu_wp,i, vehicle_name)
+            else:
+                continue
+            
+    def spawn_waypoint(self, enu_waypoints,index, vehicle_name):
+        """
+        spawn waypoint assset with ned waypoint and ned orientation
+        coordiats, need to refacor this code to keep track of names of 
+        waypoints to remove once UAS has passed through it
+        """
+        #need to refactor
+        print("spawning")
+        ned_waypoint = self.convert_enu_to_ned(enu_waypoints)
+        ned_orientation = [1,0,0,1]
+        pose = airsim.Pose()
+        pose.position = airsim.Vector3r(ned_waypoint[0], ned_waypoint[1], ned_waypoint[2])
+        pose.orientation = airsim.Quaternionr(ned_orientation[0], ned_orientation[1],
+                                              ned_orientation[2], ned_orientation[3])
+        scale = airsim.Vector3r(1,1,1)
+        self.world_client.simSpawnObject(vehicle_name+str(index), 'Waypoint', pose, scale)
+
+            
     def main(self):
         """main implementation"""
         """test if I have any clients"""
@@ -85,19 +123,21 @@ class USSPathPlanner(Database.PathPlannerService):
                                     bubble_bounds, reservation_table)
                 
                 for start,goal,uav_id in zip(sorted_start, sorted_goal, uav_name):
-                    
                     hiearch_search = HiearchialSearch.begin_higher_search(start,goal,
                                     graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h,
                                     reservation_table)
                             
                     uav_waypoints= hiearch_search
                     uav_waypoints = [list(ele) for ele in hiearch_search]
-                
+                    
                     inflated_list = HiearchialSearch.insert_inflated_waypoints(
                         uav_waypoints, bubble_bounds , reservation_table)
                     
                     ## put into database
                     waypoints = np.array(uav_waypoints).astype(int)
+                    #print(waypoints)
+                    # self.spawn_waypoint_assets(waypoints.tolist(), str(uav_id))
+
                     #inflated = np.array(inflated_list).astype(int)
                     self.insert_uav_to_reservation(uav_id, inflated_list)
                     self.insert_waypoints(uav_id, waypoints.tolist())               

@@ -26,3 +26,12 @@
 # To do 02/25/2022 '
 - [] Spawn waypoints for UAS
 - [] Allow multiple port connections for Airsim API 
+
+## Spawn Waypoints
+- Using Airsim setSpawnObject -> spawns the global position in NED 
+- Look ahead of waypoints and then once its passed through delete them ?
+
+## Port connectiosn to Airsim API
+- https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64
+- https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64
+

@@ -111,6 +111,9 @@ if __name__ == "__main__":
 
         api_port = port_num#+idx
 
+        """ need to refactor this code with better naming conventions
+        the offset_x and offset_y are swapped to switch from unreal coordinates 
+        to enu coordinates"""
         client_args = ['utm', 'simple_drone.launch', 
                     'veh_name:='+str(uav_name), 'offset_x:='+str(y_spawn),
                     'offset_y:='+str(x_spawn), 'api_port:='+str(api_port),

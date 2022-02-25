@@ -92,6 +92,7 @@ class SimpleFlightDrone():
     """Control the SimpleFlight AirsimDrone"""
     def __init__(self, vehicle_name, wsl_ip, api_port):
         self.client = airsim.MultirotorClient(ip=str(wsl_ip), port=api_port)
+        self.world_client =  airsim.VehicleClient(ip=str(wsl_ip), port=api_port)
         self.vehicle_name = vehicle_name
 
         self.global_pos_sub = rospy.Subscriber("/"+vehicle_name+"/global_position/pose", 
@@ -105,7 +106,7 @@ class SimpleFlightDrone():
 
         self.pid = PID(kp=0.75,ki=0.0,kd=0.0,rate=20)
 
-        self.init_vel = rospy.get_param("~init_vel", 3.0)
+        self.init_vel = rospy.get_param("~init_vel", 3.5)
 
         self.global_enu_pos = [None,None,None]
         self.global_enu_quat = [None,None,None, None]
@@ -116,6 +117,33 @@ class SimpleFlightDrone():
         self.col_radius = 3
         self.bubble_bounds = list(np.arange(-self.col_radius, self.col_radius+1, 1))
 
+    def spawn_waypoints(self, enu_waypoints,index):
+        """
+        spawn waypoint assset with ned waypoint and ned orientation
+        coordiats, need to refacor this code to keep track of names of 
+        waypoints to remove once UAS has passed through it
+        """
+        #need to refactor
+        ned_waypoint = self.convert_enu_to_ned(enu_waypoints)
+        ned_orientation = [1,0,0,1]
+        pose = airsim.Pose()
+        pose.position = airsim.Vector3r(ned_waypoint[0], ned_waypoint[1], ned_waypoint[2])
+        pose.orientation = airsim.Quaternionr(ned_orientation[0], ned_orientation[1],
+                                              ned_orientation[2], ned_orientation[3])
+        scale = airsim.Vector3r(1,1,1)
+        self.client.simSpawnObject(self.vehicle_name+'_'+str(index), 'Waypoint', pose, scale)
+
+    def destroy_waypoint(self,index):
+        """ 
+        destroys waypoint of uav, need the object name, which will be the waypoint
+        can't use TEST to make this work, will have to set it to name of vehicle
+        """
+        scene_list = self.client.simListSceneObjects(self.vehicle_name+str(index))
+        #if self.vehicle_name+str(index) in scene_list:
+        self.client.simDestroyObject(self.vehicle_name+'_'+str(index))
+        
+    #def simDestroyObject(self, object_name):
+        """"""
 
     def get_start_position(self):
         """get starting position from params"""
@@ -124,7 +152,6 @@ class SimpleFlightDrone():
         z = rospy.get_param("~init_z", 25)
 
         self.start_position = [x,y,z]
-
 
     def get_goal_position(self):
         """get goal position from params"""
@@ -183,11 +210,28 @@ class SimpleFlightDrone():
         enu_global_z = enu_wp[2] #- 0.8 #add these height offset because it can be weird
         return [enu_global_x, enu_global_y, enu_global_z]
  
+    def spawn_waypoint_assets(self,enu_waypoints):
+        """spawn all waypoints """
+        for i, enu_wp in enumerate(enu_waypoints):
+            self.spawn_waypoints(enu_wp,i)
+            # if i % 2 == 0:
+            #     self.spawn_waypoints(enu_wp,i)
+            # else:
+            #     continue
+            
     def send_enu_waypoints(self, enu_waypoints,velocity):
         """send a list of waypoints for drone to fly to"""
+        self.spawn_waypoint_assets(enu_waypoints)
+        
         for i,enu_wp in enumerate(enu_waypoints):
+            
             self.send_enu_waypoint(enu_wp, velocity)
             
+            
+            # if i % 2 == 0:
+            #     self.destroy_waypoint(i)
+            self.destroy_waypoint(i)    
+                
             #i have to do this because it simple flight won't hit the exact location
             if enu_wp == enu_waypoints[-1]:
                 enu_wp = self.compute_offsets(enu_wp)
@@ -195,16 +239,14 @@ class SimpleFlightDrone():
                 print("ned waypoints are ", ned_wp)             
                 self.moveToPosition(ned_wp,self.init_vel)
                 return True
-                
-        #return True
 
     def send_enu_waypoint(self, enu_wp, velocity):
         """send enu waypoint command to drone by converting to ned to use api
         takes in the enu waypoint and the desired velocity"""
-        #print("going to", enu_wp)
+        
+        ## spawn waypoints before computing offsets
         enu_wp = self.compute_offsets(enu_wp)
         ned_wp = self.convert_enu_to_ned(enu_wp)
-        print("ned waypoints are ", ned_wp)  
         #join tells it to wait for task to complete
         #self.moveToPosition(ned_wp,velocity)
         self.client.moveToPositionAsync(ned_wp[0], ned_wp[1],
@@ -215,7 +257,8 @@ class SimpleFlightDrone():
         self.start_position = self.goal_position
 
     def redefine_goal(self):
-        """redefine goals for uas"""
+        """redefine goals based on a random number between bounds this is 
+        done to simulate n queries for different goal points in the simulation"""
         x = random.randrange(20, 80)
         y = random.randrange(20, 80)
         z = random.randint(5, 45)
