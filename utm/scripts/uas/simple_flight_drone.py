@@ -38,7 +38,7 @@ import random
 from geometry_msgs.msg import PoseStamped
 from utm import Database
 import numpy as np
-import time 
+import math as m
 
 def inflate_location(position, bounds):
     """inflate x,y,z locaiton position based on some bounds"""
@@ -106,7 +106,7 @@ class SimpleFlightDrone():
 
         self.pid = PID(kp=0.75,ki=0.0,kd=0.0,rate=20)
 
-        self.init_vel = rospy.get_param("~init_vel", 3.5)
+        self.init_vel = rospy.get_param("~init_vel", 4)
 
         self.global_enu_pos = [None,None,None]
         self.global_enu_quat = [None,None,None, None]
@@ -114,7 +114,8 @@ class SimpleFlightDrone():
         self.path_planning_service = Database.PathPlannerService()
 
         #this is bad need to take in the bubble as a parm
-        self.col_radius = 3
+        self.col_bubble = 6
+        self.col_radius = self.col_bubble/2
         self.bubble_bounds = list(np.arange(-self.col_radius, self.col_radius+1, 1))
 
     def spawn_waypoints(self, enu_waypoints,index):
@@ -130,7 +131,9 @@ class SimpleFlightDrone():
         pose.position = airsim.Vector3r(ned_waypoint[0], ned_waypoint[1], ned_waypoint[2])
         pose.orientation = airsim.Quaternionr(ned_orientation[0], ned_orientation[1],
                                               ned_orientation[2], ned_orientation[3])
-        scale = airsim.Vector3r(1,1,1)
+        
+        bubble_size = self.col_bubble * 0.8
+        scale = airsim.Vector3r(bubble_size,bubble_size,bubble_size)
         self.client.simSpawnObject(self.vehicle_name+'_'+str(index), 'Waypoint', pose, scale)
 
     def destroy_waypoint(self,index):
@@ -138,13 +141,10 @@ class SimpleFlightDrone():
         destroys waypoint of uav, need the object name, which will be the waypoint
         can't use TEST to make this work, will have to set it to name of vehicle
         """
-        scene_list = self.client.simListSceneObjects(self.vehicle_name+str(index))
+        # scene_list = self.client.simListSceneObjects(self.vehicle_name+str(index))
         #if self.vehicle_name+str(index) in scene_list:
         self.client.simDestroyObject(self.vehicle_name+'_'+str(index))
         
-    #def simDestroyObject(self, object_name):
-        """"""
-
     def get_start_position(self):
         """get starting position from params"""
         x = rospy.get_param("~init_x",  0)
@@ -162,7 +162,8 @@ class SimpleFlightDrone():
         self.goal_position = [goal_x, goal_y, goal_z]
 
     def global_pos_cb(self, msg):
-        """returns global ENU position of drone"""
+        """returns global ENU position of drone from subscribing to global 
+        position topic"""
         enu_x = msg.pose.position.x
         enu_y = msg.pose.position.y
         enu_z = msg.pose.position.z
@@ -205,19 +206,18 @@ class SimpleFlightDrone():
 
     def compute_offsets(self,enu_wp):
         """send global commands have to subtract the offsets"""
-        enu_global_x = enu_wp[0] - self.offset_x
-        enu_global_y = enu_wp[1] - self.offset_y  
+        enu_global_x = enu_wp[0] - self.offset_y
+        enu_global_y = enu_wp[1] - self.offset_x  
         enu_global_z = enu_wp[2] #- 0.8 #add these height offset because it can be weird
         return [enu_global_x, enu_global_y, enu_global_z]
  
     def spawn_waypoint_assets(self,enu_waypoints):
         """spawn all waypoints """
         for i, enu_wp in enumerate(enu_waypoints):
-            self.spawn_waypoints(enu_wp,i)
-            # if i % 2 == 0:
-            #     self.spawn_waypoints(enu_wp,i)
-            # else:
-            #     continue
+            if i % self.col_bubble == 0:
+                self.spawn_waypoints(enu_wp,i)
+            else:
+                continue
             
     def send_enu_waypoints(self, enu_waypoints,velocity):
         """send a list of waypoints for drone to fly to"""
@@ -227,10 +227,9 @@ class SimpleFlightDrone():
             
             self.send_enu_waypoint(enu_wp, velocity)
             
-            
-            # if i % 2 == 0:
-            #     self.destroy_waypoint(i)
-            self.destroy_waypoint(i)    
+            if i % self.col_bubble == 0:
+                #need to check if waypoints exist 
+                self.destroy_waypoint(i)       
                 
             #i have to do this because it simple flight won't hit the exact location
             if enu_wp == enu_waypoints[-1]:
@@ -238,6 +237,9 @@ class SimpleFlightDrone():
                 ned_wp = self.convert_enu_to_ned(enu_wp)   
                 print("ned waypoints are ", ned_wp)             
                 self.moveToPosition(ned_wp,self.init_vel)
+                if i % self.col_bubble == 0:
+                    self.destroy_waypoint(i)    
+        
                 return True
 
     def send_enu_waypoint(self, enu_wp, velocity):
@@ -257,11 +259,23 @@ class SimpleFlightDrone():
         self.start_position = self.goal_position
 
     def redefine_goal(self):
-        """redefine goals based on a random number between bounds this is 
-        done to simulate n queries for different goal points in the simulation"""
-        x = random.randrange(20, 80)
-        y = random.randrange(20, 80)
-        z = random.randint(5, 45)
+        """
+        redefine goals based on a random number between bounds this is 
+        done to simulate n queries for different goal points in the simulation
+        distance_tol checks if the waypoint distance is long enough if not then
+        keep searching
+        """
+        distance = 10
+        distance_tol = 60
+        lat_goal = [self.goal_position[0], self.goal_position[2]]
+        while distance <= distance_tol: 
+            x = random.randrange(20, 80)
+            y = random.randrange(20, 80)
+            z = random.randint(5, 45)
+            distance = abs(m.dist([x,y], lat_goal))    
+            if distance >= distance_tol:
+                break
+        
         self.goal_position = [x,y,z]
 
     def moveToPosition(self, desired_ned, v):
@@ -311,7 +325,7 @@ class SimpleFlightDrone():
                                                 self.start_position,
                                                 self.goal_position)
 
-        num_requests = 1
+        num_requests = 3
         i = 0
         while not rospy.is_shutdown():
             while i <= num_requests+1:
@@ -343,8 +357,8 @@ class SimpleFlightDrone():
                                                         self.goal_position)
                         
                         self.check_done = False
-                else:
-                    continue
+                # else:
+                #     continue
             
             rate.sleep()
 

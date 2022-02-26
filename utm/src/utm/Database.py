@@ -331,23 +331,6 @@ class PathPlannerService(AbstractDatabaseInfo):
         for document in cursor:
             return document["waypoints"]
 
-    def prioritize_uas(self,uav_list):
-        """Takes in start list, and goal list and 
-        prioritizes UAS based on highest distance to be traversed"""
-        
-        dist_list = []
-        for uav in uav_list:
-            dist_val = compute_actual_euclidean(uav[1], uav[2])
-            dist_list.append((dist_val,uav[1], uav[2], uav[0]))
-
-        ##setting reverse to false sets to min first, true max first
-        final_list = sorted(dist_list, key=lambda x: x[0], reverse=True)
-        sorted_start = [start[1] for i, start in enumerate(final_list)]
-        sorted_goal = [goal[2] for i, goal in enumerate(final_list)]
-        sorted_uavs = [uav_name[3] for i, uav_name in enumerate(final_list)]
-
-        return final_list, sorted_start, sorted_goal, sorted_uavs
-
     def insert_waypoints(self, uav_name, waypoint_list):
         """insert waypoints into path planning collection based on 
         uav name"""

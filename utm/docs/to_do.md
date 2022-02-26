@@ -1,3 +1,19 @@
+# Big Blocks 
+## Flight Control
+- Drones fly super slow right now and waypoints are not smooth or represenative actual uav flight **this is good enough**
+- Create splines for drones and parameterize as velocity input commands? 
+- Might need a better controller to do this
+
+## Aesthetics 
+- Have different color waypoints wrt color of UAV
+- Develop a "real world"
+
+## Trajectory Planning
+- Take in 3d waypoints 
+- take in desired velocity and acceleration limits
+- Minimize jerky behaviors of uav
+- Use piece wise polynomials?        
+
 # To do 02/16/2022
 - [X] Control multiple UAS with simple flight
 - [X] Do this by making automated CSV parser to JSON,like PX4
@@ -21,17 +37,16 @@
     - [x] if uav has arrived then we remove it  
 
 # How to set mongodb
--  sudo mongod --dbpath /data/db
+```
+sudo mongod --dbpath /data/db
+```
 
 # To do 02/25/2022 '
-- [] Spawn waypoints for UAS
-- [] Allow multiple port connections for Airsim API 
+- [X] Spawn waypoints for UAS
 
-## Spawn Waypoints
-- Using Airsim setSpawnObject -> spawns the global position in NED 
-- Look ahead of waypoints and then once its passed through delete them ?
 
 ## Port connectiosn to Airsim API
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64
+
 

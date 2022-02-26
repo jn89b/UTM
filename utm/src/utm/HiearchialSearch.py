@@ -722,8 +722,64 @@ def insert_desired_to_set(coord_list, reservation_table):
     tuple_point = [tuple(coord) for coord in coord_list]
     reservation_table.update(tuple_point)
 
+def find_total_denials(overall_paths):
+    """return total denial of paths"""
+    cnt = 0
+    for path in overall_paths:
+        if not path:
+            cnt+=1
+    
+    return cnt
+
+def compute_success_percent(overall_paths):
+    """compute overall percent success"""
+    denials = find_total_denials(overall_paths)
+    
+    return abs(len(overall_paths) - denials)/len(overall_paths)
+
+def insert_inflated_waypoints(waypoint_list,bounds, reservation_table):
+    """insert inflated waypoints"""
+    inflated_list = []
+    for waypoint in waypoint_list:
+        inflated = inflate_location(waypoint, bounds)
+        reservation_table.update(inflated)
+        inflated_list.extend(inflated)
+    
+    return inflated_list    
+    
+def inflate_location(position, bounds):
+    """inflate x,y,z locaiton position based on some bounds"""
+    inflated_list = []
+    #print("position is", position)
+    """calculate bounds"""
+    for i in bounds:
+        for j in bounds:
+            for k in bounds:
+                new_position = [int(position[0]+i), int(position[1]+j), int(position[2]+k)]
+                inflated_list.append(tuple(new_position))
+    
+    #put current postion in the list as
+    position_int = [int(position[0]), int(position[1]), int(position[2])]            
+    inflated_list.append(tuple(position_int))
+    
+    return inflated_list
+
+def remove_inflate_waypoints(waypoint_list,bounds, reservation_table):
+    """remove inflated waypoints from reservation table"""
+    for waypoint in waypoint_list:
+        if waypoint in reservation_table:
+            reservation_table.remove(waypoint)
+
+def save_image(image_name, fig):
+    """saves image"""
+    image_format = 'svg' # e.g .png, .svg, etc.
+    # image_name = 'myimage.svfg'
+    
+    fig.savefig('images/'+image_name+'.svg', format=image_format, dpi=1200)
+    
+    
 def begin_higher_search(start, goal, graph, grid, obst_coords,
-                        col_bubble, weighted_h, reservation_table):
+                        col_radius, weighted_h, reservation_table):
     """begin higher search for n uavs -> probably better to use a dataframe?"""
 
     overall_paths = []
@@ -732,7 +788,8 @@ def begin_higher_search(start, goal, graph, grid, obst_coords,
     search_space_list = []
     time_list = []
     
-    col_radius = col_bubble/2
+    col_bubble = col_radius*2
+    #col_radius #= col_bubble/2
     bubble_bounds = list(np.arange(-col_radius, col_radius+1, 1))
 
     cnt = 0
@@ -792,54 +849,3 @@ def begin_higher_search(start, goal, graph, grid, obst_coords,
     
     return waypoint_coords
     #return reservation_table, waypoint_coords, abstract_paths, iter_cnt_list, search_space_list, time_list
-
-def find_total_denials(overall_paths):
-    """return total denial of paths"""
-    cnt = 0
-    for path in overall_paths:
-        if not path:
-            cnt+=1
-    
-    return cnt
-
-def compute_success_percent(overall_paths):
-    """compute overall percent success"""
-    denials = find_total_denials(overall_paths)
-    
-    return abs(len(overall_paths) - denials)/len(overall_paths)
-
-def insert_inflated_waypoints(waypoint_list,bounds, reservation_table):
-    """insert inflated waypoints"""
-    inflated_list = []
-    for waypoint in waypoint_list:
-        inflated = inflate_location(waypoint, bounds)
-        reservation_table.update(inflated)
-        inflated_list.extend(inflated)
-    
-    return inflated_list    
-    
-def inflate_location(position, bounds):
-    """inflate x,y,z locaiton position based on some bounds"""
-    inflated_list = []
-    #print("position is", position)
-    """calculate bounds"""
-    for i in bounds:
-        for j in bounds:
-            for k in bounds:
-                new_position = [int(position[0]+i), int(position[1]+j), int(position[2]+k)]
-                inflated_list.append(tuple(new_position))
-                
-    return inflated_list
-
-def remove_inflate_waypoints(waypoint_list,bounds, reservation_table):
-    """remove inflated waypoints from reservation table"""
-    for waypoint in waypoint_list:
-        if waypoint in reservation_table:
-            reservation_table.remove(waypoint)
-
-def save_image(image_name, fig):
-    """saves image"""
-    image_format = 'svg' # e.g .png, .svg, etc.
-    # image_name = 'myimage.svfg'
-    
-    fig.savefig('images/'+image_name+'.svg', format=image_format, dpi=1200)

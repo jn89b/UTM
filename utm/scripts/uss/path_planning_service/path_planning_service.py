@@ -98,7 +98,50 @@ class USSPathPlanner(Database.PathPlannerService):
         scale = airsim.Vector3r(1,1,1)
         self.world_client.simSpawnObject(vehicle_name+str(index), 'Waypoint', pose, scale)
 
+
+    def prioritize_uas(self,uav_list):
+        """Takes in start list, and goal list and 
+        prioritizes UAS based on highest distance to be traversed
+        this should be move to the uss service
+        
+        uav has input of :
+        uav[0] = name
+        uav[1] = start point
+        uav[2] = emnd point
+        
+        """
+        
+        dist_list = []
+        for uav in uav_list:
+            dist_val = compute_actual_euclidean(uav[1], uav[2])
+            dist_list.append((dist_val,uav[1], uav[2], uav[0]))
+
+        ##setting reverse to false sets to min first, true max first
+        final_list = sorted(dist_list, key=lambda x: x[0], reverse=True)
+        sorted_start = [start[1] for i, start in enumerate(final_list)]
+        sorted_goal = [goal[2] for i, goal in enumerate(final_list)]
+        sorted_uavs = [uav_name[3] for i, uav_name in enumerate(final_list)]
+
+        return final_list, sorted_start, sorted_goal, sorted_uavs
+
+    def check_waypoints_correct(self, waypoint_array, goal_point):
+        """
+        checks if final waypoint matches with the goal point
+        has a built in try catch to see if waypoints is empty or not
+        """
+        waypoints = waypoint_array.tolist()
+        
+        try:        
+            if waypoints[-1] == goal_point:
+                return True
+            else:
+                print("not correct", waypoints[-1], goal_point)
+                return False
             
+        except IndexError:
+            print("no waypoints", waypoints)
+            return False
+                
     def main(self):
         """main implementation"""
         """test if I have any clients"""
@@ -107,7 +150,7 @@ class USSPathPlanner(Database.PathPlannerService):
         interval_time = 5.0
         print("starting")
         while not rospy.is_shutdown():
-            rospy.sleep(interval_time) #waiting for more queries 
+            #rospy.sleep(interval_time) #waiting for more queries 
             uav_list = self.find_path_planning_clients()
             
             if uav_list:
@@ -124,7 +167,7 @@ class USSPathPlanner(Database.PathPlannerService):
                 
                 for start,goal,uav_id in zip(sorted_start, sorted_goal, uav_name):
                     hiearch_search = HiearchialSearch.begin_higher_search(start,goal,
-                                    graph, annotated_map._Map__grid, obst_coords,col_bubble, weighted_h,
+                                    graph, annotated_map._Map__grid, obst_coords,col_radius, weighted_h,
                                     reservation_table)
                             
                     uav_waypoints= hiearch_search
@@ -135,14 +178,16 @@ class USSPathPlanner(Database.PathPlannerService):
                     
                     ## put into database
                     waypoints = np.array(uav_waypoints).astype(int)
-                    #print(waypoints)
-                    # self.spawn_waypoint_assets(waypoints.tolist(), str(uav_id))
-
+                    
+                    ## check if waypoints match to goal
+                    if self.check_waypoints_correct(waypoints, goal) == False:
+                        print("no waypoints can be found")
+                        continue
+                    
                     #inflated = np.array(inflated_list).astype(int)
                     self.insert_uav_to_reservation(uav_id, inflated_list)
                     self.insert_waypoints(uav_id, waypoints.tolist())               
-                               
-            print("uav list", uav_list) 
+                                
             rate.sleep()
 
 
