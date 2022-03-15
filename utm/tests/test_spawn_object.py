@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-#
+# -*- coding: utf-8 -*-
+
 #import setup_path
 import airsim
-import os 
+import os
+import re 
 #from airsim.client import VehicleClient
 
 
@@ -27,8 +29,15 @@ if __name__=='__main__':
 	scale = airsim.Vector3r(1,1,1)
 	test = client.simListAssets()
 	#print("test", test)
-	for object in test:
-		if object == 'Waypoint':
-			print("yes",object)	
-			client.simSpawnObject('Hello', object ,pose,scale)
-	
+	 #client.simSpawnObject('Hello', object ,pose,scale)
+	n_range = [0,1,2,3,4,5,6,7,8,9]
+	for n in n_range:
+		string_name = (re.findall('\d+', 'PX4_'+str(n)))
+		#get second number string values after PX4_
+		waypoint_num = string_name[1]
+		print('Waypoint_'+waypoint_num)
+		for object in test:
+			if object == 'Waypoint_'+waypoint_num:
+				print("yes",object)	
+				client.simSpawnObject('Hello', object ,pose,scale)
+				#client.simDestroyObject('Hello',object ,pose,scale)

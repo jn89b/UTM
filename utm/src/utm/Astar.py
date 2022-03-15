@@ -486,16 +486,19 @@ class AstarLowLevel():
     
     
     def compute_euclidean(self,position, goal):
-        """compute euclidean distance"""
+        """
+        compute euclidean distance
+        """
         distance =  m.sqrt(((position[0] - goal.position[0]) ** 2) + 
                            ((position[1] - goal.position[1]) ** 2) +
                            ((position[2] - goal.position[2]) ** 2))
         
         return distance
     
-    
     def get_moves(self, ss):
-        """returns all 3d moves based on a step size"""
+        """
+        returns all 3d moves based on a step size
+        """
         bounds = list(np.arange(-ss, ss+1, 1))
         move_list = []
         for i in bounds:

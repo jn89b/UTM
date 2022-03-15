@@ -117,7 +117,7 @@ class USSPathPlanner(Database.PathPlannerService):
             dist_list.append((dist_val,uav[1], uav[2], uav[0]))
 
         ##setting reverse to false sets to min first, true max first
-        final_list = sorted(dist_list, key=lambda x: x[0], reverse=True)
+        final_list = sorted(dist_list, key=lambda x: x[0], reverse=False)
         sorted_start = [start[1] for i, start in enumerate(final_list)]
         sorted_goal = [goal[2] for i, goal in enumerate(final_list)]
         sorted_uavs = [uav_name[3] for i, uav_name in enumerate(final_list)]
@@ -145,13 +145,18 @@ class USSPathPlanner(Database.PathPlannerService):
     def main(self):
         """main implementation"""
         """test if I have any clients"""
-        rate_val = 20
+        rate_val = 5
         rate = rospy.Rate(rate_val)
         interval_time = 5.0
         print("starting")
         while not rospy.is_shutdown():
-            #rospy.sleep(interval_time) #waiting for more queries 
+            rospy.sleep(interval_time) #waiting for more queries 
             uav_list = self.find_path_planning_clients()
+            
+            graph = HiearchialSearch.Graph(annotated_map, load_graph, graph_pkl_name)
+            graph.build_graph()    
+            graph.build_intra_edges()        
+            HiearchialSearch.set_obstacles_to_grid(grid=annotated_map, obstacle_list=random_obstacles)
             
             if uav_list:
                 final_list,sorted_start, sorted_goal, uav_name = self.prioritize_uas(uav_list)  

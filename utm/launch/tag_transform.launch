@@ -2,7 +2,6 @@
 
     <arg name="namespace" default="uav0"/>
     <arg name="camera_name" default="camera_name"/>
-
     <arg name="quad_tf" default="/uav0_wrt_world"/>
     <arg name="id_tag" default="0"/>
     <arg name="rtag_drone" default="/tag_wrt_uav0"/>

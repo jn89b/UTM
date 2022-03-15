@@ -44,9 +44,43 @@ sudo mongod --dbpath /data/db
 # To do 02/25/2022 '
 - [X] Spawn waypoints for UAS
 
+# To do 03/14/2022
+- [] Refactor PX4 Code
+- [] Include constant acceleration for simpleflight
+- [] 
 
 ## Port connectiosn to Airsim API
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64
+
+# PX4 configurations 
+- launch single_drone.launch
+    - this launches the following:
+        - airsom_ros
+        - mavros gcs_bridge
+        - for drone:
+            - mavros_gcs_launch for communication protocol
+- run PX4_SITL
+- run offboard script
+
+# Run Computer Vision Fiducial Tags
+- run image proc
+- run apriltag detection
+- run transformation matrix rtag_drone
+    - should use mavros_vision_pose?
+
+
+# Map Colors for UAS
+- Red = 0
+- Orange = 1
+- Green = 2
+- Blue = 3
+- Pink = 4
+- Cyan = 5
+- Black = 6
+- White = 7
+- Yellow = 8
+- Gold = 9
+
 
 

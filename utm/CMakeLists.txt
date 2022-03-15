@@ -106,6 +106,10 @@ add_executable(offboard_landing_v2 src/offboard_landing_v2.cpp src/PID.cpp src/m
 add_dependencies(offboard_landing_v2 ${catkin_EXPORTED_TARGETS})
 target_link_libraries(offboard_landing_v2  ${catkin_LIBRARIES})
 
+add_executable(uas_px4_main src/uas_px4_main.cpp src/PID.cpp src/uas/uas_px4.cpp)
+add_dependencies(uas_px4_main ${catkin_EXPORTED_TARGETS})
+target_link_libraries(uas_px4_main  ${catkin_LIBRARIES})
+
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 
@@ -119,6 +123,7 @@ target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
 add_executable(test_user src/uas/test_user.cpp )
 add_dependencies(test_user ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_user  ${catkin_LIBRARIES})
+
 
 ##################
 ##  Install #####

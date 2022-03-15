@@ -39,6 +39,7 @@ from geometry_msgs.msg import PoseStamped
 from utm import Database
 import numpy as np
 import math as m
+import re
 
 def inflate_location(position, bounds):
     """inflate x,y,z locaiton position based on some bounds"""
@@ -59,7 +60,7 @@ class PID():
         self.kp = kp
         self.ki = ki
         self.kd = kd
-        self.pre_error = 0.0
+        self.pre_error = 0.0    
         self.pre_ierror = 0.0
         self.rate = rate
 
@@ -94,7 +95,7 @@ class SimpleFlightDrone():
         self.client = airsim.MultirotorClient(ip=str(wsl_ip), port=api_port)
         self.world_client =  airsim.VehicleClient(ip=str(wsl_ip), port=api_port)
         self.vehicle_name = vehicle_name
-
+        
         self.global_pos_sub = rospy.Subscriber("/"+vehicle_name+"/global_position/pose", 
                                         PoseStamped,self.global_pos_cb)    
         
@@ -114,10 +115,15 @@ class SimpleFlightDrone():
         self.path_planning_service = Database.PathPlannerService()
 
         #this is bad need to take in the bubble as a parm
-        self.col_bubble = 6
+        self.col_bubble = 1
         self.col_radius = self.col_bubble/2
         self.bubble_bounds = list(np.arange(-self.col_radius, self.col_radius+1, 1))
-
+        
+        #this is also bad need to figure out how to parameterize what kind of bubble to use
+        string_name = (re.findall('\d+', self.vehicle_name))
+        #get second number string values after PX4_
+        self.waypoint_num = string_name[1]
+        
     def spawn_waypoints(self, enu_waypoints,index):
         """
         spawn waypoint assset with ned waypoint and ned orientation
@@ -134,7 +140,8 @@ class SimpleFlightDrone():
         
         bubble_size = self.col_bubble * 0.8
         scale = airsim.Vector3r(bubble_size,bubble_size,bubble_size)
-        self.client.simSpawnObject(self.vehicle_name+'_'+str(index), 'Waypoint', pose, scale)
+        self.client.simSpawnObject(self.vehicle_name+'_'+str(index), 
+                                   'Waypoint_'+str(self.waypoint_num), pose, scale)
 
     def destroy_waypoint(self,index):
         """ 
@@ -206,8 +213,8 @@ class SimpleFlightDrone():
 
     def compute_offsets(self,enu_wp):
         """send global commands have to subtract the offsets"""
-        enu_global_x = enu_wp[0] - self.offset_y
-        enu_global_y = enu_wp[1] - self.offset_x  
+        enu_global_x = enu_wp[0] - self.offset_x
+        enu_global_y = enu_wp[1] - self.offset_y  
         enu_global_z = enu_wp[2] #- 0.8 #add these height offset because it can be weird
         return [enu_global_x, enu_global_y, enu_global_z]
  
@@ -325,7 +332,7 @@ class SimpleFlightDrone():
                                                 self.start_position,
                                                 self.goal_position)
 
-        num_requests = 3
+        num_requests = 2
         i = 0
         while not rospy.is_shutdown():
             while i <= num_requests+1:

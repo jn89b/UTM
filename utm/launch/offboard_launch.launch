@@ -1,6 +1,6 @@
 <launch>
         <!--offsets from airsim look at json file settings-->
-        <arg name="offset_x" default="0.0"/>
+        <arg name="offset_x" default="-10.0"/>
         <arg name="offset_y" default="0.0"/>
 
         <arg name="init_x" default="5.0"/>
@@ -8,8 +8,8 @@
         <arg name="init_z" default="5.0"/>
 
         <node pkg="utm" type="offboard_test" name="offboard_test">
-                <param name="offset_x" value="$(arg offset_x)"/>
-                <param name="offset_y" value="$(arg offset_y)"/>
+                <param name="offset_x" value="$(arg offset_y)"/>
+                <param name="offset_y" value="$(arg offset_x)"/>
 
                 <param name="init_x" value="$(arg init_x)"/>
                 <param name="init_y" value="$(arg init_y)"/>
