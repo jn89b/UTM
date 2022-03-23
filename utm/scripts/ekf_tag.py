@@ -78,9 +78,9 @@ if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 20
+    rate_val = 10
     #init vals
-    dt = 1/rate_val
+    dt = 1/20
     
     ####### CONSTANT ACCELERATION MODEL##########
     
@@ -114,30 +114,30 @@ if __name__ == "__main__":
     ##################################################
 
     ############ CONSTANT VELOCITY MODEL###############
-    """
+
     # This model is for constant velocity size 4x4
-    x_1 = [1, 0, dt, 0]
-    x_2 = [0, 1, 0, dt]
-    x_3 = [0, 0, 1, 0]
-    x_4 = [0, 0, 0, 1]
+    # x_1 = [1, 0, dt, 0]
+    # x_2 = [0, 1, 0, dt]
+    # x_3 = [0, 0, 1, 0]
+    # x_4 = [0, 0, 0, 1]
 
-    F = np.array([x_1, x_2, x_3, x_4])
+    # F = np.array([x_1, x_2, x_3, x_4])
 
-    h_1 = [1, 0, 0, 0]
-    h_2 = [0, 1, 0, 0]
+    # h_1 = [1, 0, 0, 0]
+    # h_2 = [0, 1, 0, 0]
 
-    H = np.array([h_1, h_2])
+    # H = np.array([h_1, h_2])
 
-    Q_fact = 1E-5 #process noise variance
-    Q = np.array([[Q_fact, 0, 0, 0],
-                [0, Q_fact, 0, 0],
-                [0, 0, Q_fact, 0],
-                [0, 0, 0, Q_fact]])
-    """
+    # Q_fact = 1E-2 #process noise variance
+    # Q = np.array([[Q_fact, 0, 0, 0],
+    #             [0, Q_fact, 0, 0],
+    #             [0, 0, Q_fact, 0],
+    #             [0, 0, 0, Q_fact]])
+
     ##################################################
 
     ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
-    R_factor = 0.2 # measurement of camera saying .3m off
+    R_factor = 0.15 # measurement of camera saying .3m off
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class

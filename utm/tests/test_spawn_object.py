@@ -35,9 +35,9 @@ if __name__=='__main__':
 		string_name = (re.findall('\d+', 'PX4_'+str(n)))
 		#get second number string values after PX4_
 		waypoint_num = string_name[1]
-		print('Waypoint_'+waypoint_num)
+		#print('Waypoint_'+waypoint_num)
 		for object in test:
-			if object == 'Waypoint_'+waypoint_num:
+			if object == 'AprilTag_Character2':
 				print("yes",object)	
 				client.simSpawnObject('Hello', object ,pose,scale)
 				#client.simDestroyObject('Hello',object ,pose,scale)

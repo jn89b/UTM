@@ -34,9 +34,9 @@ class UserControl():
         }
         self.cmd = None
 
-        self.user_control_pub = rospy.Publisher("uav0/utm_control", Int8, queue_size= 10)
-        self.pub = rospy.Publisher("/uav0/precland", Bool, queue_size=10)
-        self.sub = rospy.Subscriber("uav0/target_found", Bool, self.target_foundcb)
+        self.user_control_pub = rospy.Publisher("utm_control", Int8, queue_size= 10)
+        self.pub = rospy.Publisher("/precland", Bool, queue_size=10)
+        self.sub = rospy.Subscriber("/target_found", Bool, self.target_foundcb)
         
         self.user_input = Int8()
         
@@ -79,8 +79,9 @@ class UserControl():
         print("I'm disarming")
 
     def waypoint_cmd(self):
-        print("Waypoint cmd")
-
+        self.user_input.data = 0
+        #print("im tracking")
+        self.user_control_pub.publish(self.user_input)
 
     def run(self):
         rate = 30

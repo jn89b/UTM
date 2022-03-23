@@ -55,7 +55,7 @@ class AprilTagPositionPub():
             
             self.tf_listener_.waitForTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0), rospy.Duration(5.5))
 
-            (trans,rot) = self.tf_listener_.lookupTransform(self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0))
+            (trans,rot) = self.tf_listener_.lookupTransform(self.tag_frame_id_, self.drone_frame_id_, rospy.Time(0))
             #print(trans,rot)
             target_found = Bool()
             target_found.data = True
@@ -74,11 +74,11 @@ class AprilTagPositionPub():
             pose_msg = PoseStamped()
             pose_msg.header.frame_id = self.new_tf
             pose_msg.header.stamp = rospy.Time.now()
-            pose_msg.pose.position.x = trans[0]/scale_factor
-            pose_msg.pose.position.y = (trans[1]/scale_factor)
+            pose_msg.pose.position.x = -trans[0]/scale_factor 
+            pose_msg.pose.position.y = -trans[1]/scale_factor
             pose_msg.pose.position.z = trans[2] - camera_offset_z
-            pose_msg.pose.orientation.x = rot[0]
-            pose_msg.pose.orientation.y = rot[1]
+            pose_msg.pose.orientation.x = -rot[0]
+            pose_msg.pose.orientation.y = -rot[1]
             pose_msg.pose.orientation.z = rot[2]
             pose_msg.pose.orientation.w = rot[3]
             self.pose_pub_.publish(pose_msg)

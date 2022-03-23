@@ -18,11 +18,21 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     vel_pub = nh->advertise<geometry_msgs::TwistStamped>
             ("uav0/mavros/setpoint_velocity/cmd_vel", 10);
 
+    //apriltag crap
+    rtag_quad_sub = nh->subscribe<geometry_msgs::PoseStamped>
+            ("uav0/tag/pose", 10, &PX4Drone::rtagquad_cb,this);
+    rtag_ekf_sub = nh->subscribe<geometry_msgs::PoseStamped>
+            ("uav0/kf_tag/pose", 10, &PX4Drone::kftag_cb,this);
+
     //services
     arming_client = nh->serviceClient<mavros_msgs::CommandBool>
         ("uav0/mavros/cmd/arming");
     set_mode_client = nh->serviceClient<mavros_msgs::SetMode>
             ("uav0/mavros/set_mode");
+
+    //service input
+    service_input_sub = nh->subscribe<std_msgs::Int8>
+                    ("utm_control", 10, &PX4Drone::user_cmd_cb,this);
 
     // offset_pos = {0,0};
     init_pos = {0,0,0};
@@ -42,7 +52,10 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
 {   
     //set target found and landing permit to false initially 
     _offset_pos = offset_pos;
-    odom = {0,0,0};
+    odom = {0,0,0,0,0,0,0};
+    rtag = {0,0,0,0,0,0,0};
+    kf_tag = {0,0};
+
     true_odom_z = 0.0;
 
     //PID stuff
@@ -50,9 +63,9 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
     pre_error_y = 0.0;
     pre_ierror_x = 0.0;
     pre_ierror_y = 0.0;
-    kp = 0.8;
-    ki = 0.0;
-    kd = 0.0;
+    // kp = 0.8;
+    // ki = 0.0;
+    // kd = 0.0;
 
 }
 
@@ -67,6 +80,11 @@ void PX4Drone::quad_odom_cb(const nav_msgs::Odometry::ConstPtr& msg)
     odom[0] = msg->pose.pose.position.x;
     odom[1] = msg->pose.pose.position.y;
     odom[2] = msg->pose.pose.position.z;
+
+    odom[3] = msg->pose.pose.orientation.x;
+    odom[4] = msg->pose.pose.orientation.y;
+    odom[5] = msg->pose.pose.orientation.z;
+    odom[6] = msg->pose.pose.orientation.w;
 }
 
 //accessor function to get odometry of PX4 Drone
@@ -130,3 +148,67 @@ void PX4Drone::send_global_waypoints(std::vector<float> wp_vector)
     pose.pose.position.z = wp_vector[2];
     local_pos_pub.publish(pose);
 }
+
+//track target with PID gains
+void PX4Drone::go_follow(Eigen::Vector2d gain, float z_cmd)
+{   
+    //ROS_INFO("following");
+    pose.pose.position.x = odom[0] + gain[0];
+    pose.pose.position.y = odom[1] + gain[1];
+    pose.pose.position.z = z_cmd; // just testing the loiter
+    local_pos_pub.publish(pose);
+    //ros::spinOnce();
+}
+
+
+void PX4Drone::rtagquad_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    rtag[0] = msg->pose.position.x;
+    rtag[1] = msg->pose.position.y;
+    rtag[2] = msg->pose.position.z;
+    
+    rtag[3] = msg->pose.orientation.x;
+    rtag[4] = msg->pose.orientation.y;
+    rtag[5] = msg->pose.orientation.z;
+    rtag[6] = msg->pose.orientation.w;
+}
+
+void PX4Drone::kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    kf_tag[0] = msg->pose.position.x;
+    kf_tag[1] = msg->pose.position.y;
+}
+
+void PX4Drone::user_cmd_cb(const std_msgs::Int8::ConstPtr& msg)
+{   
+    user_cmd = msg->data;
+}
+
+void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
+{
+    tf::Quaternion quaternion_;
+    // if (gain[0] <= 0.1) 
+    // {
+    //     gain[0] = 0.0;
+    //     std::cout<<"adjusted gain x" << gain[0] <<std::endl; 
+    // }
+
+    // if (gain[1] <= 0.1)
+    // {
+    //     gain[1] = 0.0;
+    //     std::cout<<"adjusted gain y" << gain[1] <<std::endl;
+    // }
+
+    //had to get ride of the 90 degree offset so thats why I'm dividing pi/2
+    quaternion_.setRPY(0, 0, yaw);
+    quaternion_.normalize();
+    pose.pose.position.x = odom[0]; //+ gain[0];
+    pose.pose.position.y = odom[1]; //+ gain[1];
+    pose.pose.position.z = z_cmd; // just testing the loiter
+    pose.pose.orientation.x = quaternion_.x();
+    pose.pose.orientation.y = quaternion_.y();
+    pose.pose.orientation.z = quaternion_.z();
+    pose.pose.orientation.w = quaternion_.w();
+    local_pos_pub.publish(pose);
+}
+//set yaw angle command

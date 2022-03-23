@@ -28,6 +28,10 @@
         <param name="gcs_url" value="$(arg mavlink_bridge_url)" />
     </node>
 
+    <!--remap these params to my ros wrapper-->
+    <node pkg="utm" type="test_airsim_api.py" name="test_airsim_api">
+    </node>
+    
     <group ns="uav0">
         <arg name="fcu_url" default="udp://:14540@$(arg host):14557" />
         <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
@@ -38,8 +42,8 @@
     
         <arg name="namespace" value="$(arg uav_name)"/>
         <arg name="camera_name" value="/airsim_node/$(arg cam_name)/downwards_custom_0"/>
-        <arg name="quad_tf" value="/$(arg uav_name)_wrt_world"/>
-        <arg name="rtag_drone" value="/tag_wrt_$(arg uav_name)"/>
+        <arg name="quad_tf" value="/$(arg cam_name)_wrap"/>
+        <arg name="rtag_drone" value="/tag_wrt_$(arg cam_name)"/>
 
         <include file="$(find utm)/launch/mavros_gcs_launch.launch">
             <arg name="fcu_url" value="$(arg fcu_url)" />
@@ -59,8 +63,7 @@
         </node>
         <!--comment this out if you don't want apriltag tag detection-->
         <node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>
-        
-    </group>
 
+    </group>
 
 </launch>   

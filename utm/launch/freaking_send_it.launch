@@ -1,9 +1,0 @@
-<launch>
-
-    <!-- launch mavros protocol--> 
-    <include file="$(find utm)/launch/multiple_drone.launch"/>
-
-    <!-- launch offboard commands-->
-    <include file="$(find utm)/launch/multiple_drone_mission.launch"/>
-    
-</launch>
