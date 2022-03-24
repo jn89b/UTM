@@ -33,7 +33,7 @@ std::vector<float> get_offset_pos(ros::NodeHandle* nh)
     return offset_pos;
 }
 
-double calc_heading(std::vector<float> some_vec, std::string str1)
+double calc_heading(std::vector<float> some_vec)
 {   
     tf::Quaternion q(
     some_vec[3],
@@ -52,25 +52,23 @@ double calc_heading(std::vector<float> some_vec, std::string str1)
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "test_px4_header");
-    ros::NodeHandle _nh; // create a node handle; need to pass this to the class constructor
-    ros::Rate rate(20.0);
-
-    std::vector<float> offset_pos = get_offset_pos(&_nh);
-    
-    PX4Drone px4drone(&_nh, offset_pos);
 
     const float kp = 0.45;
     const float ki = 0.0;
     const float kd = 0.0;
     const float dt = 0.1;
     const float heading_bound = M_PI/8; //45 degrees
+    const float rate_val = 20.0;
 
+    ros::init(argc, argv, "test_px4_header");
+    ros::NodeHandle _nh; // create a node handle; need to pass this to the class constructor
+    ros::Rate rate(rate_val);
+
+    std::vector<float> offset_pos = get_offset_pos(&_nh);
+    
+    PX4Drone px4drone(&_nh, offset_pos);
     double drone_yaw = 0.0;
     double at_yaw = 0.0;
-
-    std::string str1 = "apriltag";
-    std::string str2 = "quad";
 
     //this should be from parameters
     std::vector<float> init_pos = {3,5,15};
@@ -81,7 +79,7 @@ int main(int argc, char **argv)
     ros::Time last_request = ros::Time::now();
 
     while(ros::ok()){
-        px4drone.setmode_arm(last_request, "OFFBOARD", px4drone.arm_cmd);
+        px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
         px4drone.send_global_waypoints(init_pos);
         
         PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
@@ -100,10 +98,10 @@ int main(int argc, char **argv)
             case 1: // tracking
             {   
                 //wrap this as a function
-                at_yaw = calc_heading(px4drone.rtag, str1);//+ (M_PI/2);
+                at_yaw = calc_heading(px4drone.rtag);//+ (M_PI/2);
                 
                 std::cout<< "At yaw " << at_yaw - (M_PI/2) << std::endl;
-                drone_yaw = calc_heading(px4drone.odom, str2);
+                drone_yaw = calc_heading(px4drone.odom);
                 std::cout<< "drone yaw" << drone_yaw << std::endl;
                 double heading_diff = drone_yaw - at_yaw - (M_PI/2);
                 
@@ -119,12 +117,12 @@ int main(int argc, char **argv)
                 if ((heading_diff>= drone_left_heading) && (heading_diff <= drone_right_heading))
                 {
                     std::cout<<"gains are"<<gain<<std::endl;
-                    px4drone.send_yaw_cmd(gain ,15, drone_yaw);
+                    px4drone.send_yaw_cmd(gain ,10, drone_yaw);
                 }
                 else{
                     std::cout<< "heading too much" <<heading_diff <<std::endl;
                     Eigen::Vector2d no_gain(0, 0);
-                    px4drone.send_yaw_cmd(no_gain ,15, heading_diff);  
+                    px4drone.send_yaw_cmd(no_gain ,10, heading_diff);  
                 }                
                 break;
             }
@@ -134,14 +132,12 @@ int main(int argc, char **argv)
                 float p_y = pid_y.getPID();
                 float p_yaw = pid_yaw.getPID();
                 Eigen::Vector2d gain(p_x, p_y);
-                px4drone.begin_land_protocol(gain);
+                px4drone.begin_land_protocol(gain, rate);
                 break;
             }
             default:
             {
-                
                 px4drone.send_global_waypoints(init_pos);
-                std::cout<<"default"<<std::endl;
             }
         }
         //std::cout<<"outside"<<std::endl;

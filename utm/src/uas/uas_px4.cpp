@@ -63,10 +63,6 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
     pre_error_y = 0.0;
     pre_ierror_x = 0.0;
     pre_ierror_y = 0.0;
-    // kp = 0.8;
-    // ki = 0.0;
-    // kd = 0.0;
-
 }
 
 //recieve state of quad
@@ -200,19 +196,26 @@ void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
     local_pos_pub.publish(pose);
 }
 
-void PX4Drone::begin_land_protocol(Eigen::Vector2d gain)
+void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
 {   
-    const float land_height = 0.4;
-    const float dropping = 0.15;
-    ros::Time last_request = ros::Time::now();
-    if (rtag[2] >= land_height)
-    {
-        std::cout<<"starting to land"<<std::endl;
+    const float land_height = 0.8;
+    const float dropping = 0.25;
+
+    if (rtag[2]>= land_height){
+        //std::cout<<"starting to land"<<std::endl;
         go_follow(gain, odom[2]-dropping);
     }
     else{
+        ros::Time last_request = ros::Time::now();  
         std::cout<<"setting to land"<<std::endl;
-        setmode_arm(last_request, "AUTO.LAND", arm_cmd);
+        set_mode.request.custom_mode = "AUTO.LAND";
+        arm_cmd.request.value = false;
+        while(ros::ok()){
+            go_follow(gain, odom[2]);
+            setmode_arm(last_request, set_mode.request.custom_mode , arm_cmd);
+            ros::spinOnce();
+            rate.sleep();
+        }
     }
 }
 //set yaw angle command
