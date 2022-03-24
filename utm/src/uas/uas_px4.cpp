@@ -222,4 +222,26 @@ void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
         }
     }
 }
-//set yaw angle command
+
+void PX4Drone::set_offboard(std::vector<float> pos_cmd,  ros::Rate rate)
+{
+    while ((ros::ok()) && (current_state.mode != "OFFBOARD"))
+    {   
+        // std::cout<<"sending command"<<std::endl;
+        ros::Time last_request = ros::Time::now();
+        
+        if (current_state.mode == "OFFBOARD")
+        {
+            std::cout<<"i am in offboard"<<std::endl;
+            return;
+        }        
+
+        send_init_cmds(pos_cmd, rate);
+        set_mode.request.custom_mode = "OFFBOARD";
+        arm_cmd.request.value = true;
+        setmode_arm(last_request, set_mode.request.custom_mode , arm_cmd);
+        send_global_waypoints(init_pos);
+        ros::spinOnce();
+        rate.sleep();
+    }
+}

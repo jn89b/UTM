@@ -92,23 +92,11 @@ int main(int argc, char **argv)
         {
             case 0:
             {   
-                if (px4drone.current_state.mode == "OFFBOARD")
-                {
+                if (px4drone.current_state.mode == "OFFBOARD"){
                     px4drone.send_global_waypoints(init_pos);
                 }
                 else{
-                    while ((ros::ok()) && (px4drone.current_state.mode != "OFFBOARD"))
-                    {   
-                        std::cout<<"sending command"<<std::endl;
-                        ros::Time last_request = ros::Time::now();
-                        px4drone.send_init_cmds(init_pos, rate);
-                        px4drone.set_mode.request.custom_mode = "OFFBOARD";
-                        px4drone.arm_cmd.request.value = true;
-                        px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
-                        px4drone.send_global_waypoints(init_pos);
-                        ros::spinOnce();
-                        rate.sleep();
-                    }
+                    px4drone.set_offboard(init_pos, rate);
                 }
                 
                 break;
@@ -156,7 +144,12 @@ int main(int argc, char **argv)
             }
             default:
             {
-                px4drone.send_global_waypoints(init_pos);
+                if (px4drone.current_state.mode == "OFFBOARD"){
+                    px4drone.send_global_waypoints(init_pos);
+                }
+                else{
+                    px4drone.set_offboard(init_pos, rate);
+                }
             }
         }
         //std::cout<<"outside"<<std::endl;

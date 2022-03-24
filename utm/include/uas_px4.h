@@ -58,7 +58,7 @@ class PX4Drone
         mavros_msgs::SetMode set_mode;
         mavros_msgs::CommandBool arm_cmd;
         mavros_msgs::State current_state;
-        
+
         PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos);
         void init_vals(std::vector<float> offset_pos);
         
@@ -83,6 +83,7 @@ class PX4Drone
 
         void send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw);
         void begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate);
+        void set_offboard(std::vector<float> pos_cmd,  ros::Rate rate);
 };
 
 #endif
