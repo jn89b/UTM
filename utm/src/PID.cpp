@@ -26,7 +26,7 @@ void PID::calcPID(float target, float current, float pre_error, float pre_ierror
     float error = target;
     
     //stop adjusting if error is less than tolerance
-    if (error <= 0.10)
+    if (error <= 0.25)
     {   
         _PID = 0.0;          
     }
@@ -41,7 +41,7 @@ void PID::calcPID(float target, float current, float pre_error, float pre_ierror
     float PID = Pgain + Igain + Dgain;
     
     //set gain constraint to prevent the guy from going to crazy
-    float gain_constraint = 2.0;
+    const float gain_constraint = 2.0;
 
     if (PID >= gain_constraint)
         {

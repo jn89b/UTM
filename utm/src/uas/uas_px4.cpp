@@ -10,13 +10,13 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
         ("uav0/mavros/odometry/in",15, &PX4Drone::quad_odom_cb, this);
 
     true_quad_odom_sub = nh->subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/mavros/local_position/pose",15, &PX4Drone::true_odom_cb, this);
+                    ("uav0/mavros/local_position/pose",20, &PX4Drone::true_odom_cb, this);
     
     local_pos_pub = nh->advertise<geometry_msgs::PoseStamped>
-            ("uav0/mavros/setpoint_position/local", 10);
+            ("uav0/mavros/setpoint_position/local", 20);
     
     vel_pub = nh->advertise<geometry_msgs::TwistStamped>
-            ("uav0/mavros/setpoint_velocity/cmd_vel", 10);
+            ("uav0/mavros/setpoint_velocity/cmd_vel", 20);
 
     //apriltag crap
     rtag_quad_sub = nh->subscribe<geometry_msgs::PoseStamped>
@@ -187,28 +187,32 @@ void PX4Drone::user_cmd_cb(const std_msgs::Int8::ConstPtr& msg)
 void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
 {
     tf::Quaternion quaternion_;
-    // if (gain[0] <= 0.1) 
-    // {
-    //     gain[0] = 0.0;
-    //     std::cout<<"adjusted gain x" << gain[0] <<std::endl; 
-    // }
-
-    // if (gain[1] <= 0.1)
-    // {
-    //     gain[1] = 0.0;
-    //     std::cout<<"adjusted gain y" << gain[1] <<std::endl;
-    // }
-
     //had to get ride of the 90 degree offset so thats why I'm dividing pi/2
     quaternion_.setRPY(0, 0, yaw);
     quaternion_.normalize();
-    pose.pose.position.x = odom[0]; //+ gain[0];
-    pose.pose.position.y = odom[1]; //+ gain[1];
-    pose.pose.position.z = z_cmd; // just testing the loiter
+    pose.pose.position.x = odom[0] + gain[0];
+    pose.pose.position.y = odom[1] + gain[1];
+    pose.pose.position.z = 10; // just testing the loiter
     pose.pose.orientation.x = quaternion_.x();
     pose.pose.orientation.y = quaternion_.y();
     pose.pose.orientation.z = quaternion_.z();
     pose.pose.orientation.w = quaternion_.w();
     local_pos_pub.publish(pose);
+}
+
+void PX4Drone::begin_land_protocol(Eigen::Vector2d gain)
+{   
+    const float land_height = 0.4;
+    const float dropping = 0.15;
+    ros::Time last_request = ros::Time::now();
+    if (rtag[2] >= land_height)
+    {
+        std::cout<<"starting to land"<<std::endl;
+        go_follow(gain, odom[2]-dropping);
+    }
+    else{
+        std::cout<<"setting to land"<<std::endl;
+        setmode_arm(last_request, "AUTO.LAND", arm_cmd);
+    }
 }
 //set yaw angle command

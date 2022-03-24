@@ -40,7 +40,10 @@ class AprilTagPositionPub():
         #rospy.Subscriber("kf/estimate", PoseWithCovarianceStamped, self.kfCallback)
 
         rospy.Subscriber('tag_detections', AprilTagDetectionArray, self.tagsCallback)
-
+    
+    def check_wrap(self, val):
+        """check for angle wrapping"""
+    
     # tags callback
     def tagsCallback(self, msg):
         valid = False

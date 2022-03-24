@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     rate_val = 10
     #init vals
-    dt = 1/20
+    dt = 1/rate_val
     
     ####### CONSTANT ACCELERATION MODEL##########
     
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     ##################################################
 
     ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
-    R_factor = 0.15 # measurement of camera saying .3m off
+    R_factor = 0.05 # measurement of camera saying .3m off
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class

@@ -47,11 +47,16 @@ sudo mongod --dbpath /data/db
 # To do 03/14/2022
 - [] Refactor PX4 Code
 - [] Include constant acceleration for simpleflight
+- [] Yaw Control with Fiducial Tags 
+- [] Get heading of Apriltag
+- [] Get heading of Drone
+- [] Compute Difference then calculate desired 
 
 ## Notes 3/22/2022
 - Had to rotate the camera x and y
 - This is a useful link to control yaw for PX4 offboard 
 - https://discuss.px4.io/t/px4-rotate-drone-with-lower-angular-velocity-or-yaw-rate/24301
+- 
 
 ## Port connectiosn to Airsim API
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64

@@ -82,7 +82,7 @@ class PX4Drone
         void user_cmd_cb(const std_msgs::Int8::ConstPtr& msg);
 
         void send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw);
-
+        void begin_land_protocol(Eigen::Vector2d gain);
 };
 
 #endif

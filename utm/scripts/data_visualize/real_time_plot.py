@@ -68,7 +68,7 @@ class Visualiser:
     def plot_init(self):
         for ax in [self.ax1,self.ax2]:
             ax.set_xlim(left=0, right=self.repeat_length)
-            ax.set_ylim([-2,2])
+            ax.set_ylim([-5,5])
         return self.lines, self.lines2
 
     def true_cb(self,msg):
