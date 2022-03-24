@@ -50,6 +50,7 @@ double calc_heading(std::vector<float> some_vec)
     return yaw;
 }
 
+
 int main(int argc, char **argv)
 {
 
@@ -73,26 +74,43 @@ int main(int argc, char **argv)
     //this should be from parameters
     std::vector<float> init_pos = {3,5,15};
     px4drone.send_init_cmds(init_pos, rate);
-    px4drone.set_mode.request.custom_mode = "OFFBOARD";
+    px4drone.set_mode.request.custom_mode = "AUTO.LAND";
     px4drone.arm_cmd.request.value = true;
 
     ros::Time last_request = ros::Time::now();
 
     while(ros::ok()){
-        px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
-        px4drone.send_global_waypoints(init_pos);
-        
+        //px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
+        //px4drone.send_global_waypoints(init_pos);
+
         PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
         PID pid_y(kp, ki, kd, dt, px4drone.kf_tag[1], px4drone.odom[1]);
         PID pid_yaw(kp, ki, kd, dt, at_yaw, drone_yaw);
-
+        //std::cout<<"current state" << px4drone.current_state<<std::endl;
         //switch case
         switch(px4drone.user_cmd)
         {
             case 0:
             {   
-                //std::cout<<"going to waypoints"<<std::endl;
-                px4drone.send_global_waypoints(init_pos);
+                if (px4drone.current_state.mode == "OFFBOARD")
+                {
+                    px4drone.send_global_waypoints(init_pos);
+                }
+                else{
+                    while ((ros::ok()) && (px4drone.current_state.mode != "OFFBOARD"))
+                    {   
+                        std::cout<<"sending command"<<std::endl;
+                        ros::Time last_request = ros::Time::now();
+                        px4drone.send_init_cmds(init_pos, rate);
+                        px4drone.set_mode.request.custom_mode = "OFFBOARD";
+                        px4drone.arm_cmd.request.value = true;
+                        px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
+                        px4drone.send_global_waypoints(init_pos);
+                        ros::spinOnce();
+                        rate.sleep();
+                    }
+                }
+                
                 break;
             }
             case 1: // tracking
@@ -133,6 +151,7 @@ int main(int argc, char **argv)
                 float p_yaw = pid_yaw.getPID();
                 Eigen::Vector2d gain(p_x, p_y);
                 px4drone.begin_land_protocol(gain, rate);
+                //ROS_INFO("returning from function");
                 break;
             }
             default:

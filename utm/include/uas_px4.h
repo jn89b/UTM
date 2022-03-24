@@ -32,7 +32,6 @@ class PX4Drone
         //mavros service clients for arming and setting modes
         ros::ServiceClient arming_client, set_mode_client;
 
-        mavros_msgs::State current_state;
         geometry_msgs::PoseStamped pose;       
         
         float true_odom_z; // this is the true odometry 
@@ -58,7 +57,8 @@ class PX4Drone
         int user_cmd;
         mavros_msgs::SetMode set_mode;
         mavros_msgs::CommandBool arm_cmd;
-
+        mavros_msgs::State current_state;
+        
         PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos);
         void init_vals(std::vector<float> offset_pos);
         

@@ -207,14 +207,18 @@ void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
     }
     else{
         ros::Time last_request = ros::Time::now();  
-        std::cout<<"setting to land"<<std::endl;
         set_mode.request.custom_mode = "AUTO.LAND";
         arm_cmd.request.value = false;
-        while(ros::ok()){
+        while(ros::ok() && (current_state.mode != "AUTO.LAND")){
             go_follow(gain, odom[2]);
             setmode_arm(last_request, set_mode.request.custom_mode , arm_cmd);
             ros::spinOnce();
             rate.sleep();
+            if (user_cmd != 2) 
+            {
+                ROS_INFO("I hear a different command");
+                return;
+            }
         }
     }
 }
