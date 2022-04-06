@@ -221,22 +221,25 @@ class SimpleFlightDrone():
     def spawn_waypoint_assets(self,enu_waypoints):
         """spawn all waypoints """
         for i, enu_wp in enumerate(enu_waypoints):
-            if i % self.col_bubble == 0:
-                self.spawn_waypoints(enu_wp,i)
-            else:
-                continue
+            self.spawn_waypoints(enu_wp,i)
+            # if i % self.col_bubble == 0:
+            #     self.spawn_waypoints(enu_wp,i)
+            # else:
+            #     continue
             
     def send_enu_waypoints(self, enu_waypoints,velocity):
-        """send a list of waypoints for drone to fly to"""
+        """send a list of waypoints for drone to fly to, 
+        return True once at final waypoints"""
         self.spawn_waypoint_assets(enu_waypoints)
         
         for i,enu_wp in enumerate(enu_waypoints):
             
             self.send_enu_waypoint(enu_wp, velocity)
-            
-            if i % self.col_bubble == 0:
-                #need to check if waypoints exist 
-                self.destroy_waypoint(i)       
+
+            self.destroy_waypoint(i)            
+            # if i % self.col_bubble == 0:
+            #     #need to check if waypoints exist 
+            #     self.destroy_waypoint(i)       
                 
             #i have to do this because it simple flight won't hit the exact location
             if enu_wp == enu_waypoints[-1]:
@@ -244,8 +247,9 @@ class SimpleFlightDrone():
                 ned_wp = self.convert_enu_to_ned(enu_wp)   
                 print("ned waypoints are ", ned_wp)             
                 self.moveToPosition(ned_wp,self.init_vel)
-                if i % self.col_bubble == 0:
-                    self.destroy_waypoint(i)    
+                self.destroy_waypoint(i)
+                # if i % self.col_bubble == 0:
+                #     self.destroy_waypoint(i)    
         
                 return True
 
@@ -288,9 +292,14 @@ class SimpleFlightDrone():
     def moveToPosition(self, desired_ned, v):
         """currentPos is in unreal engine coordinate from left hand convention"""
         currentPos = self.client.getMultirotorState(vehicle_name=self.vehicle_name).kinematics_estimated.position        
-        error = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5
+        
+        error = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 \
+            + (currentPos.z_val - desired_ned[2])**2)**0.5
         print("error is ", error)
-        t = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5 / v
+        
+        t = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 \
+            + (currentPos.z_val - desired_ned[2])**2)**0.5 / v
+        
         tol = 0.5
         time_tol = 0.15
         while abs(error)>=tol:
@@ -301,7 +310,9 @@ class SimpleFlightDrone():
                 self.client.hoverAsync(vehicle_name=self.vehicle_name).join()
                 rospy.sleep(t)
                 return
-            t = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 + (currentPos.z_val - desired_ned[2])**2)**0.5 / v
+            t = ((currentPos.x_val - desired_ned[0])**2 + (currentPos.y_val - desired_ned[1])**2 \
+                + (currentPos.z_val - desired_ned[2])**2)**0.5 / v
+            
             x_gain,x_err = self.pid.compute_gains(desired_ned[0], currentPos.x_val)
             y_gain,y_err = self.pid.compute_gains(desired_ned[1], currentPos.y_val)
             z_gain,z_err = self.pid.compute_gains(desired_ned[2], currentPos.y_val)

@@ -91,7 +91,7 @@ class UserControl():
         
         if self.cmd in self.user_cmds_dict:
             print("Starting command", self.cmd, ",to exit press ENTER")
-
+    
             while True:
                 try:
                     self.user_cmds_dict.get(self.cmd)()

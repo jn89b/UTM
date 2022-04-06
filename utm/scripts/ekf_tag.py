@@ -27,13 +27,21 @@ class KalmanFilter():
         self.R = np.eye(self.n) if R is None else R
         self.P = np.eye(self.n) if P is None else P
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
-
+        
         self.z = [0] * len(self.H)
+
+        self.pz = 0.0
+        self.qx = 0.0
+        self.qy = 0.0
+        self.qz = 0.0
+        self.qw = 0.0
+        #self.quat_list = [None,None,None,None]
 
         #this is the apriltag position subscriber
         rospy.Subscriber("tag/pose", PoseStamped, self.tagpose_cb)
-        self.kf_pub = rospy.Publisher("kf_tag/pose", PoseStamped, queue_size=10)
-        self.kf_vel_pub = rospy.Publisher("kf_tag/vel", TwistStamped, queue_size=10)
+        self.kf_pub = rospy.Publisher("kf_tag/pose", PoseStamped, queue_size=20)
+        self.vision_pub = rospy.Publisher("mavros/vision_pose/pose", PoseStamped, queue_size=20)
+        self.kf_vel_pub = rospy.Publisher("kf_tag/vel", TwistStamped, queue_size=20)
 
     def predict(self, u = 0):
         self.x = np.dot(self.F, self.x) + np.dot(self.B, u)
@@ -52,11 +60,19 @@ class KalmanFilter():
         self.P = np.dot(np.dot(I - np.dot(K, self.H), self.P), 
         	(I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
 
-    def tagpose_cb(self,msg):
+    def tagpose_cb(self,msg): 
+        
         px = msg.pose.position.x 
         py = msg.pose.position.y
+        self.pz = msg.pose.position.z
+        
+        self.qx = msg.pose.orientation.x
+        self.qy = msg.pose.orientation.y
+        self.qz = msg.pose.orientation.z
+        self.qw = msg.pose.orientation.w
+        
         self.z = np.array([[px,py]]).T
-        return self.z 
+        #return self.z 
 
     def publish_kf_est(self):
         now = rospy.Time.now()
@@ -65,8 +81,15 @@ class KalmanFilter():
         pose_msg.header.stamp = now
         pose_msg.pose.position.x = self.x[0,0] 
         pose_msg.pose.position.y = self.x[1,0]
+        pose_msg.pose.position.z = self.pz
+        pose_msg.pose.orientation.x = self.qx
+        pose_msg.pose.orientation.y = self.qy
+        pose_msg.pose.orientation.z = self.qz
+        pose_msg.pose.orientation.w = self.qw
+        
         self.kf_pub.publish(pose_msg)
-
+        self.vision_pub.publish(pose_msg)
+        
         vel_msg = TwistStamped()
         vel_msg.header.frame_id = "ekf_tag_vel"
         vel_msg.header.stamp = now
@@ -78,13 +101,13 @@ if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 10
+    rate_val = 20
     #init vals
     dt = 1/rate_val
     
     ####### CONSTANT ACCELERATION MODEL##########
     
-    #This array is for constant acceleartion so size 6
+    # #This array is for constant acceleartion so size 6
     x_1 = [1, 0.0, dt, 0.0, 1/2.0*dt**2, 0.0] #px  
     x_2 = [0.0, 1, 0.0, dt, 0.0,  1/2.0*dt**2] #py 
     x_3 = [0.0, 0.0 , 1, 0.0, dt, 0.0] #vx
@@ -101,9 +124,9 @@ if __name__ == "__main__":
     h_2 = [0.0, 1, 0.0, 0.0, 0.0, 0.0] #measurement of py
 
     H = np.array([h_1, h_2])
-    print(H.shape)
+    #print(H.shape)
 
-    Q_fact = 1E-2 # process noise covariance constant 
+    Q_fact = 1E-3 # process noise covariance constant 
     Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
                 [0, Q_fact, 0, 0, 0, 0], 
                 [0, 0, Q_fact, 0, 0, 0], 
@@ -115,7 +138,7 @@ if __name__ == "__main__":
 
     ############ CONSTANT VELOCITY MODEL###############
 
-    # This model is for constant velocity size 4x4
+    #This model is for constant velocity size 4x4
     # x_1 = [1, 0, dt, 0]
     # x_2 = [0, 1, 0, dt]
     # x_3 = [0, 0, 1, 0]
@@ -128,16 +151,16 @@ if __name__ == "__main__":
 
     # H = np.array([h_1, h_2])
 
-    # Q_fact = 1E-2 #process noise variance
+    # Q_fact = 1E-6 #process noise variance
     # Q = np.array([[Q_fact, 0, 0, 0],
     #             [0, Q_fact, 0, 0],
     #             [0, 0, Q_fact, 0],
     #             [0, 0, 0, Q_fact]])
 
-    ##################################################
+    # ##################################################
 
-    ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
-    R_factor = 0.05 # measurement of camera saying .3m off
+    # ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
+    R_factor = 0.1 # measurement of camera saying .3m off
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class

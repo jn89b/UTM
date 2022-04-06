@@ -22,7 +22,7 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     rtag_quad_sub = nh->subscribe<geometry_msgs::PoseStamped>
             ("uav0/tag/pose", 10, &PX4Drone::rtagquad_cb,this);
     rtag_ekf_sub = nh->subscribe<geometry_msgs::PoseStamped>
-            ("uav0/kf_tag/pose", 10, &PX4Drone::kftag_cb,this);
+            ("uav0/mavros/vision_pose/pose", 10, &PX4Drone::kftag_cb,this);
 
     //services
     arming_client = nh->serviceClient<mavros_msgs::CommandBool>
@@ -33,6 +33,8 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     //service input
     service_input_sub = nh->subscribe<std_msgs::Int8>
                     ("utm_control", 10, &PX4Drone::user_cmd_cb,this);
+
+    //velocity
 
     // offset_pos = {0,0};
     init_pos = {0,0,0};
@@ -54,7 +56,7 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
     _offset_pos = offset_pos;
     odom = {0,0,0,0,0,0,0};
     rtag = {0,0,0,0,0,0,0};
-    kf_tag = {0,0};
+    kf_tag = {0,0,0,0,0,0,0};
 
     true_odom_z = 0.0;
 
@@ -173,6 +175,11 @@ void PX4Drone::kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
     kf_tag[0] = msg->pose.position.x;
     kf_tag[1] = msg->pose.position.y;
+    kf_tag[2] = msg->pose.position.z;
+    kf_tag[3] = msg->pose.orientation.x;
+    kf_tag[4] = msg->pose.orientation.y;
+    kf_tag[5] = msg->pose.orientation.z;
+    kf_tag[6] = msg->pose.orientation.w;
 }
 
 void PX4Drone::user_cmd_cb(const std_msgs::Int8::ConstPtr& msg)
@@ -183,8 +190,7 @@ void PX4Drone::user_cmd_cb(const std_msgs::Int8::ConstPtr& msg)
 void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
 {
     tf::Quaternion quaternion_;
-    //had to get ride of the 90 degree offset so thats why I'm dividing pi/2
-    quaternion_.setRPY(0, 0, yaw);
+    quaternion_.setRPY(0.01, 0.01, yaw);
     quaternion_.normalize();
     pose.pose.position.x = odom[0] + gain[0];
     pose.pose.position.y = odom[1] + gain[1];
