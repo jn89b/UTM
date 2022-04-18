@@ -24,6 +24,9 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     rtag_ekf_sub = nh->subscribe<geometry_msgs::PoseStamped>
             ("uav0/mavros/vision_pose/pose", 10, &PX4Drone::kftag_cb,this);
 
+    rtag_ekf_vel_sub = nh->subscribe<geometry_msgs::TwistStamped>
+            ("/uav0/kf_tag/vel", 10, &PX4Drone::kftag_vel_cb,this);
+
     //services
     arming_client = nh->serviceClient<mavros_msgs::CommandBool>
         ("uav0/mavros/cmd/arming");
@@ -57,6 +60,9 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
     odom = {0,0,0,0,0,0,0};
     rtag = {0,0,0,0,0,0,0};
     kf_tag = {0,0,0,0,0,0,0};
+    
+    vel = {0,0};
+    kf_vel = {0,0};
 
     true_odom_z = 0.0;
 
@@ -182,6 +188,12 @@ void PX4Drone::kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
     kf_tag[6] = msg->pose.orientation.w;
 }
 
+void PX4Drone::kftag_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
+{
+    kf_vel[0] = msg->twist.linear.x;
+    kf_vel[1] = msg->twist.linear.y;
+}
+
 void PX4Drone::user_cmd_cb(const std_msgs::Int8::ConstPtr& msg)
 {   
     user_cmd = msg->data;
@@ -201,6 +213,14 @@ void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
     pose.pose.orientation.w = quaternion_.w();
     local_pos_pub.publish(pose);
 }
+
+void PX4Drone::send_velocity_cmd(Eigen::Vector2d gain)
+{
+    cmd_vel.twist.linear.x = vel[0] + gain[0];
+    cmd_vel.twist.linear.y = vel[1] + gain[1];
+    vel_pub.publish(cmd_vel);
+}
+
 
 void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
 {   

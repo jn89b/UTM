@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 from re import S
+import random
+from operator import add,sub
+import numpy as np 
 import rospy 
 import tf
 from std_msgs.msg import Bool
@@ -122,10 +125,21 @@ class AprilTagPositionPub():
     def publish_apriltag(self, trans, rot):
         """publish apriltag position"""
         pose_msg = PoseStamped()
+        
+        #adding noise
+        ops = (add,sub)
+        op = random.choice(ops)
+        
+        noise_x = random.uniform(0,1) *0.25
+        noise_y = random.uniform(0,1) *0.25
+        
+        px = op(trans[1], noise_x)
+        py = op(trans[0], noise_y)
+        
         pose_msg.header.frame_id = self.new_tf
         pose_msg.header.stamp = rospy.Time.now()
-        pose_msg.pose.position.x = trans[1]     
-        pose_msg.pose.position.y = -trans[0]
+        pose_msg.pose.position.x = px #trans[1]     
+        pose_msg.pose.position.y = -py #-trans[0] 
         pose_msg.pose.position.z = trans[2] - self.camera_z_offset
         pose_msg.pose.orientation.x = rot[1]
         pose_msg.pose.orientation.y = -rot[0]

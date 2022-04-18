@@ -1,0 +1,47 @@
+<launch>
+<!--Launches multiple kalman filters to tune Q-->
+    <group ns="qe1">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.1"/>
+        </include>
+    </group>
+
+    <group ns="qe2">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.01"/>
+        </include>
+    </group>
+
+    <group ns="qe3">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.001"/>
+        </include>
+    </group>
+
+    <group ns="qe4">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.0001"/>
+        </include>
+    </group>
+
+    <group ns="qe5">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.00001"/>
+        </include>
+    </group>
+
+    <group ns="qe6">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.000001"/>
+        </include>
+    </group>
+
+
+    <group ns="qe7">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.000001"/>
+        </include>
+    </group>
+
+
+</launch>

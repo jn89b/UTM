@@ -45,12 +45,17 @@ sudo mongod --dbpath /data/db
 - [X] Spawn waypoints for UAS
 
 # To do 03/14/2022
-- [] Refactor PX4 Code
-- [] Include constant acceleration for simpleflight
+- [X] Refactor PX4 Code
+- [X] Include constant acceleration for simpleflight
 - [] Yaw Control with Fiducial Tags 
-- [] Get heading of Apriltag
-- [] Get heading of Drone
-- [] Compute Difference then calculate desired 
+- [X] Get heading of Apriltag
+- [X] Get heading of Drone
+- [X] Compute Difference then calculate desired 
+
+# To do 04/15/2022
+-[] Record rosbag of tag position
+-[] Exten Kalman Filter to do a kalman filter sweep on this rosbag recording
+-[] Build Q and R matrices to reduce error of kalman filter 
 
 ## Notes 3/22/2022
 - Had to rotate the camera x and y
@@ -77,6 +82,13 @@ sudo mongod --dbpath /data/db
 - run apriltag detection
 - run transformation matrix rtag_drone
     - should use mavros_vision_pose?
+
+# Recording ros stuff
+```
+cd bagfiles
+rosbag record -a
+```
+# How to replay rosbag
 
 
 # Map Colors for UAS

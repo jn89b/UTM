@@ -32,7 +32,8 @@ class PX4Drone
         //mavros service clients for arming and setting modes
         ros::ServiceClient arming_client, set_mode_client;
 
-        geometry_msgs::PoseStamped pose;       
+        geometry_msgs::PoseStamped pose;
+        geometry_msgs::TwistStamped cmd_vel;             
         
         float true_odom_z; // this is the true odometry 
     
@@ -53,6 +54,9 @@ class PX4Drone
         std::vector<float> odom;
         std::vector<float> kf_tag;
         std::vector<float> rtag;
+
+        std::vector<float> vel;
+        std::vector<float> kf_vel;
 
         int user_cmd;
         mavros_msgs::SetMode set_mode;
@@ -78,12 +82,17 @@ class PX4Drone
         void go_follow(Eigen::Vector2d gain, float z_cmd);
         void rtagquad_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
         void kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
+        void kftag_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg);
 
         void user_cmd_cb(const std_msgs::Int8::ConstPtr& msg);
 
         void send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw);
+        
         void begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate);
         void set_offboard(std::vector<float> pos_cmd,  ros::Rate rate);
+
+        void send_velocity_cmd(Eigen::Vector2d gain);
+
 };
 
 #endif

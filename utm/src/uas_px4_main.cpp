@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     double at_yaw = 0.0;
 
     //this should be from parameters
-    std::vector<float> init_pos = {5,5,10.0};
+    std::vector<float> init_pos = {5.0,5.0,25.0};
     px4drone.send_init_cmds(init_pos, rate);
     px4drone.set_mode.request.custom_mode = "AUTO.LAND";
     px4drone.arm_cmd.request.value = true;
@@ -85,6 +85,10 @@ int main(int argc, char **argv)
 
         PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
         PID pid_y(kp, ki, kd, dt, px4drone.kf_tag[1], px4drone.odom[1]);
+
+        PID pid_vx(kp, ki, kd, dt, px4drone.kf_vel[0], px4drone.vel[0]);
+        PID pid_vy(kp, ki, kd, dt, px4drone.kf_vel[1], px4drone.vel[1]);
+
         PID pid_yaw(kp, ki, kd, dt, at_yaw, drone_yaw);
 
         switch(px4drone.user_cmd)
@@ -103,39 +107,52 @@ int main(int argc, char **argv)
             case 1: // tracking
             {   
                 //wrap this as a function
-                at_yaw = calc_heading(px4drone.rtag);
-                if(at_yaw <= 0) at_yaw += 2*M_PI;        
-                drone_yaw = calc_heading(px4drone.odom);
+                // at_yaw = calc_heading(px4drone.rtag);
+                // if(at_yaw <= 0) at_yaw += 2*M_PI;        
+                // drone_yaw = calc_heading(px4drone.odom);
         
-                std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
-                std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
+                // std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
+                // std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
                 
-                double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
-                
-                //if( heading_diff < 0 ) heading_diff += 2*M_PI; // wrap to 2pi
-
-                // float drone_left_heading = drone_yaw - heading_bound;
-                // float drone_right_heading = drone_yaw + heading_bound;
-
-                // if( drone_left_heading < 0 ) drone_left_heading += 2*M_PI;
-                // if( drone_right_heading < 0 ) drone_right_heading += 2*M_PI; // wrap to 2pi   
+                // double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
 
                 float p_x = pid_x.getPID();
                 float p_y = pid_y.getPID();
                 float p_yaw = pid_yaw.getPID();
 
+                float p_vx = pid_vx.getPID();
+                float p_vy = pid_vy.getPID();
+
                 Eigen::Vector2d gain(p_x, p_y);
+                Eigen::Vector2d vel_gain(p_vx, p_vy);
                 Eigen::Vector2d no_gain(0, 0);
 
                 // if ((heading_diff <= heading_bound)) 
                 {
                     if ((abs(gain[0])<= gain_tol) && (abs(gain[1]) <= gain_tol)){
                         std::cout<<"good enough"<<gain<<std::endl;
-                        px4drone.send_yaw_cmd(no_gain, 10, drone_yaw);    
+                        px4drone.send_yaw_cmd(no_gain, 10, drone_yaw);
+                        // px4drone.send_velocity_cmd(no_gain);    
                     } 
+                    
+                    else if((abs(gain[0])>= gain_tol) && (abs(gain[1]) <= gain_tol)){
+                        std::cout<<"x gain"<<gain<<std::endl;
+                        Eigen::Vector2d x_gain(p_x, 0);
+                        px4drone.send_yaw_cmd(x_gain, init_pos[2], drone_yaw);
+                        // px4drone.send_velocity_cmd(no_gain);    
+                    } 
+                    
+                    else if((abs(gain[1])>= gain_tol) && (abs(gain[0]) <= gain_tol)){
+                        std::cout<<"y gain"<<gain<<std::endl;
+                        Eigen::Vector2d y_gain(0, p_x);
+                        px4drone.send_yaw_cmd(y_gain, init_pos[2], drone_yaw);
+                        // px4drone.send_velocity_cmd(no_gain);    
+                    } 
+                    
                     else{
                         std::cout<<"gains are"<<gain<<std::endl;
-                        px4drone.send_yaw_cmd(gain, 10, drone_yaw);
+                        px4drone.send_yaw_cmd(gain, init_pos[2], drone_yaw);
+                        // px4drone.send_velocity_cmd(vel_gain);
                     }
                 }
                 // else{

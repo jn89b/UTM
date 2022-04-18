@@ -2,6 +2,8 @@
 
 import rospy 
 import tf
+
+
 import numpy as np
 from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped, TwistStamped
 from nav_msgs.msg import Odometry
@@ -40,11 +42,14 @@ class KalmanFilter():
         #self.quat_list = [None,None,None,None]
 
         #this is the apriltag position subscriber
-        rospy.Subscriber("tag/pose", PoseStamped, self.tagpose_cb)
-        self.kf_pub = rospy.Publisher("kf_tag/pose", PoseStamped, queue_size=20)
-        self.vision_pub = rospy.Publisher("mavros/vision_pose/pose", PoseStamped, queue_size=20)
-        self.kf_vel_pub = rospy.Publisher("kf_tag/vel", TwistStamped, queue_size=20)
-        self.uav_height_sub = rospy.Subscriber("mavros/odometry/in", Odometry, self.height_cb)
+        rospy.Subscriber("/uav0/tag/pose", PoseStamped, self.tagpose_cb)
+        
+        self.kf_pub = rospy.Publisher("uav0/kf_tag/pose", PoseStamped, queue_size=20)        
+        self.P_pub = rospy.Publisher("uav0/P_covar/pose", PoseStamped, queue_size=20)
+        
+        self.vision_pub = rospy.Publisher("uav0/mavros/vision_pose/pose", PoseStamped, queue_size=20)
+        self.kf_vel_pub = rospy.Publisher("uav0/kf_tag/vel", TwistStamped, queue_size=20)
+        self.uav_height_sub = rospy.Subscriber("/uav0/mavros/odometry/in", Odometry, self.height_cb)
         
     def update_R(self):
         """update R based on height param"""
@@ -58,10 +63,9 @@ class KalmanFilter():
 
     def predict(self, u = 0):
         self.x = np.dot(self.F, self.x) + np.dot(self.B, u)
-
         self.publish_kf_est() #publish the kf estimates for position and vel of tag
-        
-        self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q  
+        self.publish_P()
+        self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
         return self.x
 
     def update(self):
@@ -74,9 +78,10 @@ class KalmanFilter():
         	(I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
 
     def tagpose_cb(self,msg): 
-        """"""
+        """adding noise"""
+
         px = msg.pose.position.x 
-        py = msg.pose.position.y
+        py = msg.pose.position.y        
         self.pz = msg.pose.position.z
         
         self.qx = msg.pose.orientation.x
@@ -91,6 +96,19 @@ class KalmanFilter():
         """height callback"""
         self.z_height = msg.pose.pose.position.z
         #return self.z 
+        
+    def publish_P(self):
+        """publishes error covariance estimate,P"""
+        now = rospy.Time.now()
+        # print(self.P)
+        # print(self.P[1,1])
+        pose_msg = PoseStamped()
+        pose_msg.header.frame_id = "P_error"
+        pose_msg.header.stamp = now
+        print(self.P[0,0], self.P[1,1])
+        pose_msg.pose.position.x = self.P[0,0] 
+        pose_msg.pose.position.y = self.P[1,1]        
+        self.P_pub.publish(pose_msg)
 
     def publish_kf_est(self):
         now = rospy.Time.now()
@@ -118,14 +136,15 @@ class KalmanFilter():
 if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
-
+    Q_param = rospy.get_param("~Q_param", "0.001")
+    Q_fact =  float(Q_param) # process noise covariance constant
     rate_val = 15
     #init vals
-    dt = 1/rate_val
-    
+    dt = 1/rate_val   
+     
     ####### CONSTANT ACCELERATION MODEL##########
     
-    # #This array is for constant acceleartion so size 6
+    #This array is for constant acceleartion so size 6
     x_1 = [1, 0.0, dt, 0.0, 1/2.0*dt**2, 0.0] #px  
     x_2 = [0.0, 1, 0.0, dt, 0.0,  1/2.0*dt**2] #py 
     x_3 = [0.0, 0.0 , 1, 0.0, dt, 0.0] #vx
@@ -133,10 +152,8 @@ if __name__ == "__main__":
     x_5 = [0.0, 0.0, 0.0, 0.0, 1, 0.0] #ax
     x_6 = [0.0, 0.0, 0.0, 0.0, 0.0, 1] #ay
 
-
-    #F = np.array([[1, dt, 0, 0], [0, 1, dt, 0], [0, 0, 1, 0]])
     F = np.array([x_1, x_2, x_3, x_4, x_5, x_6]) #feeding in x values in array
-    print(F.shape)
+    # print(F.shape)
 
     h_1 = [1, 0.0, 0.0, 0.0, 0.0, 0.0] #measurement of px
     h_2 = [0.0, 1, 0.0, 0.0, 0.0, 0.0] #measurement of py
@@ -144,7 +161,6 @@ if __name__ == "__main__":
     H = np.array([h_1, h_2])
     #print(H.shape)
 
-    Q_fact = 1E-3 # process noise covariance constant 
     Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
                 [0, Q_fact, 0, 0, 0, 0], 
                 [0, 0, Q_fact, 0, 0, 0], 
@@ -156,7 +172,7 @@ if __name__ == "__main__":
 
     ############ CONSTANT VELOCITY MODEL###############
 
-    #This model is for constant velocity size 4x4
+    # #This model is for constant velocity size 4x4
     # x_1 = [1, 0, dt, 0]
     # x_2 = [0, 1, 0, dt]
     # x_3 = [0, 0, 1, 0]
@@ -190,5 +206,3 @@ if __name__ == "__main__":
         kf.predict()
         kf.update()
         rate.sleep()
-
-

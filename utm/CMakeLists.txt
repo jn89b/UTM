@@ -151,6 +151,9 @@ catkin_install_python(PROGRAMS
     scripts/drone_transformation.py
     scripts/uav_mongo_query.py
     scripts/apriltag_object.py
+    scripts/log_apriltag.py
+    scripts/kf_design.py
+    scripts/kf_logger.py
     
     #simpleflight stuff
     scripts/uas/test_airsim_api.py

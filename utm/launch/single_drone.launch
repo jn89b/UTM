@@ -31,6 +31,9 @@
     <!--remap these params to my ros wrapper-->
     <node pkg="utm" type="test_airsim_api.py" name="test_airsim_api">
     </node>
+
+    <node pkg="utm" type="apriltag_object.py" name="apriltag_object">
+    </node>
     
     <group ns="uav0">
         <arg name="fcu_url" default="udp://:14540@$(arg host):14557" />
