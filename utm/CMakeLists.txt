@@ -155,6 +155,9 @@ catkin_install_python(PROGRAMS
     scripts/kf_design.py
     scripts/kf_logger.py
     
+    #controller stuff
+    scripts/controller/lqr.py
+
     #simpleflight stuff
     scripts/uas/test_airsim_api.py
     scripts/uas/simple_flight_drone.py

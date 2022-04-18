@@ -53,9 +53,13 @@ sudo mongod --dbpath /data/db
 - [X] Compute Difference then calculate desired 
 
 # To do 04/15/2022
--[] Record rosbag of tag position
--[] Exten Kalman Filter to do a kalman filter sweep on this rosbag recording
--[] Build Q and R matrices to reduce error of kalman filter 
+-[X] Record rosbag of tag position
+-[X] Exten Kalman Filter to do a kalman filter sweep on this rosbag recording
+-[X] Build Q and R matrices to reduce error of kalman filter 
+
+# To do 04/18/2022
+-[] Get pitch rate from mavros imu
+-[] Get roll rate from mavros imu
 
 ## Notes 3/22/2022
 - Had to rotate the camera x and y

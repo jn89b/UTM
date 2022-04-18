@@ -30,6 +30,7 @@ class KalmanFilter():
         self.P = np.eye(self.n) if P is None else P
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
+        #desired states
         self.z = [0] * len(self.H)
 
         self.pz = 0.0
@@ -78,8 +79,7 @@ class KalmanFilter():
         	(I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
 
     def tagpose_cb(self,msg): 
-        """adding noise"""
-
+        """get z readings """
         px = msg.pose.position.x 
         py = msg.pose.position.y        
         self.pz = msg.pose.position.z
@@ -105,7 +105,6 @@ class KalmanFilter():
         pose_msg = PoseStamped()
         pose_msg.header.frame_id = "P_error"
         pose_msg.header.stamp = now
-        print(self.P[0,0], self.P[1,1])
         pose_msg.pose.position.x = self.P[0,0] 
         pose_msg.pose.position.y = self.P[1,1]        
         self.P_pub.publish(pose_msg)

@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
 import rospy 
-import tf
 import numpy as np
-from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped, TwistStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from nav_msgs.msg import Odometry
-from apriltag_ros.msg import AprilTagDetectionArray
 
 """
 class kalman filter subscribes to lateral position of tag and makes an estimate on position of 
@@ -133,11 +131,8 @@ if __name__ == "__main__":
     x_5 = [0.0, 0.0, 0.0, 0.0, 1, 0.0] #ax
     x_6 = [0.0, 0.0, 0.0, 0.0, 0.0, 1] #ay
 
-
     #F = np.array([[1, dt, 0, 0], [0, 1, dt, 0], [0, 0, 1, 0]])
     F = np.array([x_1, x_2, x_3, x_4, x_5, x_6]) #feeding in x values in array
-    print(F.shape)
-
     h_1 = [1, 0.0, 0.0, 0.0, 0.0, 0.0] #measurement of px
     h_2 = [0.0, 1, 0.0, 0.0, 0.0, 0.0] #measurement of py
 

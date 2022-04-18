@@ -117,7 +117,6 @@ for A, B in ((Ax, Bx), (Ay, By), (Az, Bz), (Ayaw, Byaw)):
 t_max = args.T
 t = np.arange(0., t_max, args.time_step)
 
-
 def cl_linear(x, t, u):
     # closed-loop dynamics. u should be a function
     x = np.array(x)
@@ -131,12 +130,10 @@ def cl_linear(x, t, u):
         [dot_X[[0, 1]], dot_Y[[0, 1]], dot_Z, dot_Y[[2, 3]], dot_X[[2, 3]], dot_Yaw])
     return dot_x
 
-
 def cl_nonlinear(x, t, u):
     x = np.array(x)
     dot_x = nonlinear_dynamics.f(x, u(x, t) + np.array([m * g, 0, 0, 0]))
     return dot_x
-
 
 if args.waypoints:
     # follow waypoints
@@ -171,7 +168,6 @@ else:
 
 signalyaw = np.zeros_like(signalz)  # we do not care about yaw
 
-
 def u(x, _t):
     # the controller
     dis = _t - t
@@ -182,7 +178,6 @@ def u(x, _t):
     UZ = Ks[2].dot(np.array([signalz[idx], 0]) - x[[4, 5]])[0]
     UYaw = Ks[3].dot(np.array([signalyaw[idx], 0]) - x[[10, 11]])[0]
     return np.array([UZ, UY, UX, UYaw])
-
 
 # simulate
 x_l = odeint(cl_linear, X0, t, args=(u,))
