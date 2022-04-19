@@ -3,10 +3,12 @@
 from this import d
 import rospy 
 import numpy as np
-from geometry_msgs.msg import PoseStamped, TwistStamped
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 import scipy
 from scipy.integrate import odeint
+from tf.transformations import euler_from_quaternion
+from std_msgs.msg import Float64
 
 """ 
 LQR control for position tracking and referencing 
@@ -17,6 +19,18 @@ weight is 13.4 oz
 Ix = 8.1 * 1e-3
 Iy = 8.1 * 1e-3
 Iz = 14.2 * 1e-3
+
+LQR procedures
+    #get act state done by callbacks already
+    
+    #get desired state done by callbacks already
+    
+    #compute state error 
+    
+    #do lqr and get my gains
+
+    #update state space model done by callbacks already
+    
 """
 Ix = 8.1 * 1E-3
 Iy = 8.1 * 1E-3
@@ -38,42 +52,54 @@ class LQR():
         self.Q = np.eye(self.n) #if Q is None else Q
         
         #self.R = np.eye(self.n) if R is None else R
-        self.R = np.diag([1., ])
+        self.R = np.diag([0.5])
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
+        
         #gains
         self.K = []
-        
+
         #desired states
         self.z = [0] * len(Q)
+        self.error = [0] * len(Q)
         
         self.rate_val = 50 if rate_val is None else rate_val
         self.dt = 1/self.rate_val
         
         #quad position callback
-        self.quad_sub = rospy.Subscriber("uav0/mavros/setpoint_position/local",
-                                         PoseStamped,
+        self.quad_sub = rospy.Subscriber("uav0/mavros/odometry/in",
+                                         Odometry,
                                          self.current_state)
         
         self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
                                                  PoseStamped,
                                                  self.desired_state)
         
+        self.k_pub = rospy.Publisher("K_gain", Float64, queue_size=5)
+                
     def current_state(self, msg):
         """update position estimate """
-        px = msg.pose.position.x 
+        px = msg.pose.pose.position.x 
         #py = msg.pose.position.y
-        vel_x = (px - self.z[0] )/self.dt
+        vel_x = msg.twist.twist.linear.x
+        orientation_q = msg.pose.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y,
+                             orientation_q.z, orientation_q.w]
         
-        self.x = np.array([[px,vel_x,0,0]]).T 
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        
+        pitch_rate = pitch - self.x[2]/self.dt
+        self.x = np.array([[px,vel_x,pitch,pitch_rate]]).T
         
     def desired_state(self, msg):
         """get desired position from current position"""
-        des_px = msg.pose.position.x + self.x[0]
+        desired_x = msg.pose.position.x # - self.x[0]
         #des_y = msg.pose.position.y
-        des_vel_x = (des_px - self.z[0] )/self.dt + self.x[1]
-        
-        self.z = np.array([[des_px, des_vel_x, 0, 0]]).T
+        des_vel_x = (desired_x - self.z[0])/self.dt
+        self.z = np.array([[desired_x, des_vel_x, 0, 0]]).T
    
+    def compute_error(self):
+        self.error = self.z - self.x 
+        
     def lqr(self, A, B, Q, R):
         """Solve the continuous time lqr controller.
         dx/dt = A x + B u
@@ -94,31 +120,33 @@ class LQR():
 
     def compute_K(self):
         """get gains from LQR"""
-        self.Q[0,0] = 1.25
+        self.Q[0,0] = 0.5
         K, _, _ = self.lqr(self.A, self.B, self.Q, self.R)
         self.K = K
+        
+    def update_state(self):
+        self.x = np.dot(self.A, self.x)  #+ np.dot(self.B, self.x).reshape(-1)      
+        
+    def publish_gains(self):
+        """publish K gains"""
+        k_val = self.K[0,0]
+        if self.K[0,0]!= None:
+            self.k_pub.publish(float(self.K[0,0]))
+        else:
+            self.k_pub.publish(0.0)
             
     def main(self):
         """update values to LQR"""
-        #get act state done by callbacks already
-        
-        #get desired state done by callbacks already
-        
-        #compute state error 
-        
-        #get input, B, subscribe to velocity commands? 
-
-        #do lqr
+        self.compute_error()
         self.compute_K()
-        print(self.K)
+        self.update_state()
+        self.publish_gains()
+        #print(self.K)
 
-        #update state space model 
-
-    
 if __name__ == "__main__":
     
     rospy.init_node("lqr_controller", anonymous=True)
-    rate_val = 50
+    rate_val = 25
 
     ############ Set up X and Y #####################
     # X-subsystem
@@ -150,7 +178,7 @@ if __name__ == "__main__":
         [1 / Iy]])
     
     ## Q penalty
-    Q_fact = 1 #penalizes performance rating 
+    Q_fact = 0.5 #penalizes performance rating 
     Q = np.array([[Q_fact, 0, 0], 
                 [0, Q_fact, 0, 0], 
                 [0, 0, Q_fact/2, 0], 
