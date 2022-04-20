@@ -58,7 +58,6 @@ class LQR():
         self.R = np.diag([20])
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
-        
         #gains
         self.K = []
         
@@ -71,44 +70,22 @@ class LQR():
         self.rate_val = 50 if rate_val is None else rate_val
         self.dt = 1/self.rate_val
         
-        #quad position callback
-        self.quad_sub = rospy.Subscriber("uav0/mavros/odometry/in",
-                                         Odometry,
-                                         self.current_state)
-        
-        self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
-                                                 PoseStamped,
-                                                 self.desired_state)
-        
-        self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
-                
-    def current_state(self, msg):
+    def current_state(self, x_state):
         """update position estimate """
-        px = msg.pose.pose.position.x 
-        #py = msg.pose.position.y
-        vel_x = msg.twist.twist.linear.x
-        orientation_q = msg.pose.pose.orientation
-        orientation_list = [orientation_q.x, orientation_q.y,
-                             orientation_q.z, orientation_q.w]
-        
-        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
-        
-        pitch_rate = pitch - self.x[2]/self.dt
-         
-        self.x[0] = px
-        self.x[1] = vel_x
-        self.x[2] = pitch
-        self.x[3] = pitch_rate
+        self.x[0] = x_state[0]
+        self.x[1] = x_state[1]
+        self.x[2] = x_state[2]
+        self.x[3] = x_state[3]
                 
-    def desired_state(self, msg):
+    def desired_state(self, desired_val):
         """get desired position from current position"""
-        desired_x = msg.pose.position.x # - self.x[0]
+        #desired_x = msg.pose.position.x # - self.x[0]
         #des_y = msg.pose.position.y
         #des_vel_x = (desired_x - self.z[0])/self.dt 
-        self.z[0] = desired_x
-        self.z[1] = 0.0
-        self.z[2] = 0.0
-        self.z[3] = 0.0
+        self.z[0] = desired_val[0]
+        self.z[1] = desired_val[1]
+        self.z[2] = desired_val[2]
+        self.z[3] = desired_val[3]
 
     def compute_error(self):
         """compute error of state"""
@@ -116,8 +93,6 @@ class LQR():
         self.error[1] = self.z[1] - self.x[1]
         self.error[2] = self.z[2] - self.x[2]
         self.error[3] = self.z[3] - self.x[3]
-        
-        print("ERROR", self.error[0])
         
     def lqr(self, A, B, Q, R):
         """Solve the continuous time lqr controller.
@@ -150,19 +125,12 @@ class LQR():
     def get_u(self):
         """compute controller input""" 
         self.u = np.dot(self.K, self.error)[0]
-        max_pitch = 4.5
+        max_pitch = 3.5
         if abs(self.u)>= max_pitch:
             if self.u > 0:
                 self.u = max_pitch
             else:
                 self.u = -max_pitch
-
-    def publish_gains(self):
-        """publish K gains"""
-        if self.K[0,0]!= None:
-            self.k_pub.publish(float(self.K[0,0]))
-        else:
-            self.k_pub.publish(0.0)
 
     def publish_input(self):
         """publish body rate commands"""
@@ -179,9 +147,97 @@ class LQR():
         self.compute_error()
         self.compute_K()
         self.get_u()
-        self.publish_input()
         self.update_state()
         
+class DroneLQR():
+    def __init__(self, Ax, Bx, Ay, By, Q, R, rate_val):
+        """drone LQR controller"""
+        #quad position callback
+        self.quad_sub = rospy.Subscriber("uav0/mavros/odometry/in",
+                                         Odometry,
+                                         self.current_state)
+        
+        self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
+                                                 PoseStamped,
+                                                 self.desired_state)
+        
+        self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
+        
+        self.x_lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = None,
+                    rate_val = rate_val) #import matrices into class
+
+        self.y_lqr = LQR(A = Ay, B = By, Q = Q, R = R, x0 = None,
+                    rate_val = rate_val) #import matrices into class
+        
+        self.x_state = [0.0,0.0,0.0,0.0]
+        self.y_state = [0.0,0.0,0.0,0.0]
+        self.desired_x = [0.0, 0.0, 0.0, 0.0]
+        self.desired_y = [0.0, 0.0, 0.0, 0.0]
+        self.dt = 1/rate_val
+        
+    def current_state(self, msg):
+        """update current estimates"""
+        px = msg.pose.pose.position.x 
+        py = msg.pose.pose.position.y
+        vel_x = msg.twist.twist.linear.x
+        vel_y = msg.twist.twist.linear.y
+        orientation_q = msg.pose.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y,
+                             orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        pitch_rate = pitch - self.x_state[2]/self.dt
+        roll_rate = roll - self.y_state[2]/self.dt
+         
+        self.x_state[0] = px
+        self.x_state[1] = vel_x
+        self.x_state[2] = pitch
+        self.x_state[3] = pitch_rate
+
+        self.y_state[0] = py
+        self.y_state[1] = vel_y
+        self.y_state[2] = roll
+        self.y_state[3] = roll_rate
+
+    def desired_state(self, msg):
+        """get desired position from current position"""
+        desired_x = msg.pose.position.x # - self.x[0]
+        desired_y = msg.pose.position.y
+        self.desired_x[0] = desired_x
+        self.desired_y[0] = desired_y
+
+    def publish_input(self):
+        """publish body rate commands"""
+        gains = LQRGain()        
+        # print("error x and y", self.x_lqr.error[0], self.y_lqr.error[0])
+        # print("inputs x and y", self.x_lqr.u, self.y_lqr.u)
+        
+        if abs(self.x_lqr.error[0]) <= 3.0 and abs(self.y_lqr.error[0]) >= 3.0:
+            self.k_pub.publish([0.0, -self.y_lqr.u])
+            
+        elif abs(self.x_lqr.error[0]) >= 3.0 and abs(self.y_lqr.error[0]) <= 3.0:
+            self.k_pub.publish([self.x_lqr.u, 0.0])
+        
+        elif abs(self.x_lqr.error[0]) <= 3.0 and abs(self.y_lqr.error[0]) <= 3.0:
+            self.k_pub.publish([0.0, 0.0])
+        
+        else:   
+            gains.data = [self.x_lqr.u, -self.y_lqr.u]
+            self.k_pub.publish(gains)
+
+    def main(self):
+        """main implementation"""
+        self.x_lqr.current_state(self.x_state)
+        self.x_lqr.desired_state(self.desired_x)
+        
+        self.y_lqr.current_state(self.y_state)
+        self.y_lqr.desired_state(self.desired_y)
+        
+        self.x_lqr.main()
+        self.y_lqr.main()
+        
+        self.publish_input()
+        
+    
 if __name__ == "__main__":
     
     rospy.init_node("lqr_controller", anonymous=False)
@@ -230,13 +286,13 @@ if __name__ == "__main__":
                 [0, 0, Q_fact/2, 0], 
                 [0, 0 , 0, Q_fact/2]])
     
-    lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = None,
-                 rate_val = rate_val) #import matrices into class
+    # lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = None,
+    #              rate_val = rate_val) #import matrices into class
 
+    drone_lqr = DroneLQR(Ax, Bx, Ay, By, Q, R, rate_val)
     rate = rospy.Rate(rate_val)
-    
     while not rospy.is_shutdown():
-        lqr.main()
+        drone_lqr.main()
         rate.sleep()
     
     

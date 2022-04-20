@@ -185,6 +185,7 @@ void PX4Drone::lqr_track()
     // //this tag is basically how far it is 
 
     cmd_vel.twist.linear.x = lqr_gain[0];
+    cmd_vel.twist.linear.y = lqr_gain[1];
     //cmd_vel.twist.linear.y = vel[1] + gain[1];
     vel_pub.publish(cmd_vel);
 }
