@@ -10,6 +10,9 @@ from scipy.integrate import odeint
 from tf.transformations import euler_from_quaternion
 from std_msgs.msg import Float64
 
+from mavros_msgs.msg import AttitudeTarget
+from utm.msg import LQRGain
+
 """ 
 LQR control for position tracking and referencing 
 of fiducial tags
@@ -52,16 +55,19 @@ class LQR():
         self.Q = np.eye(self.n) #if Q is None else Q
         
         #self.R = np.eye(self.n) if R is None else R
-        self.R = np.diag([0.5])
+        self.R = np.diag([20])
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
+        
         
         #gains
         self.K = []
-
+        
         #desired states
         self.z = [0] * len(Q)
         self.error = [0] * len(Q)
-        
+        self.lqr_output = [0] * len(Q)
+
+        #rate values
         self.rate_val = 50 if rate_val is None else rate_val
         self.dt = 1/self.rate_val
         
@@ -74,7 +80,7 @@ class LQR():
                                                  PoseStamped,
                                                  self.desired_state)
         
-        self.k_pub = rospy.Publisher("K_gain", Float64, queue_size=5)
+        self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
                 
     def current_state(self, msg):
         """update position estimate """
@@ -88,17 +94,30 @@ class LQR():
         (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
         
         pitch_rate = pitch - self.x[2]/self.dt
-        self.x = np.array([[px,vel_x,pitch,pitch_rate]]).T
-        
+         
+        self.x[0] = px
+        self.x[1] = vel_x
+        self.x[2] = pitch
+        self.x[3] = pitch_rate
+                
     def desired_state(self, msg):
         """get desired position from current position"""
         desired_x = msg.pose.position.x # - self.x[0]
         #des_y = msg.pose.position.y
-        des_vel_x = (desired_x - self.z[0])/self.dt
-        self.z = np.array([[desired_x, des_vel_x, 0, 0]]).T
-   
+        #des_vel_x = (desired_x - self.z[0])/self.dt 
+        self.z[0] = desired_x
+        self.z[1] = 0.0
+        self.z[2] = 0.0
+        self.z[3] = 0.0
+
     def compute_error(self):
-        self.error = self.z - self.x 
+        """compute error of state"""
+        self.error[0] = self.z[0] 
+        self.error[1] = self.z[1] - self.x[1]
+        self.error[2] = self.z[2] - self.x[2]
+        self.error[3] = self.z[3] - self.x[3]
+        
+        print("ERROR", self.error[0])
         
     def lqr(self, A, B, Q, R):
         """Solve the continuous time lqr controller.
@@ -115,38 +134,58 @@ class LQR():
         K = np.matrix(scipy.linalg.inv(R) * (B.T * X))
 
         eigVals, eigVecs = scipy.linalg.eig(A - B * K)
-
         return np.asarray(K), np.asarray(X), np.asarray(eigVals)
 
     def compute_K(self):
         """get gains from LQR"""
-        self.Q[0,0] = 0.5
+        self.Q[0,0] = 0.45
         K, _, _ = self.lqr(self.A, self.B, self.Q, self.R)
         self.K = K
         
-    def update_state(self):
-        self.x = np.dot(self.A, self.x)  #+ np.dot(self.B, self.x).reshape(-1)      
+    def update_state(self): 
+        """update state space"""
+        self.lqr_output = self.B * self.u
+        self.x = np.dot(self.A, self.x)  + self.lqr_output
         
+    def get_u(self):
+        """compute controller input""" 
+        self.u = np.dot(self.K, self.error)[0]
+        max_pitch = 4.5
+        if abs(self.u)>= max_pitch:
+            if self.u > 0:
+                self.u = max_pitch
+            else:
+                self.u = -max_pitch
+
     def publish_gains(self):
         """publish K gains"""
-        k_val = self.K[0,0]
         if self.K[0,0]!= None:
             self.k_pub.publish(float(self.K[0,0]))
         else:
             self.k_pub.publish(0.0)
-            
+
+    def publish_input(self):
+        """publish body rate commands"""
+        gains = LQRGain()
+        if abs(self.error[0]) <= 3.0:
+            self.k_pub.publish([0.0])
+        else:
+            gains.data = [self.u]
+
+            self.k_pub.publish(gains)
+                
     def main(self):
         """update values to LQR"""
         self.compute_error()
         self.compute_K()
+        self.get_u()
+        self.publish_input()
         self.update_state()
-        self.publish_gains()
-        #print(self.K)
-
+        
 if __name__ == "__main__":
     
-    rospy.init_node("lqr_controller", anonymous=True)
-    rate_val = 25
+    rospy.init_node("lqr_controller", anonymous=False)
+    rate_val = 15
 
     ############ Set up X and Y #####################
     # X-subsystem
@@ -178,7 +217,7 @@ if __name__ == "__main__":
         [1 / Iy]])
     
     ## Q penalty
-    Q_fact = 0.5 #penalizes performance rating 
+    Q_fact =  1.0 #penalizes performance rating 
     Q = np.array([[Q_fact, 0, 0], 
                 [0, Q_fact, 0, 0], 
                 [0, 0, Q_fact/2, 0], 

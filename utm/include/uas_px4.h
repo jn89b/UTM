@@ -6,28 +6,31 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int8.h>
+#include <std_msgs/Float64.h>
 #include <Eigen/Dense>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/AttitudeTarget.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
 #include <math.h>  
 #include <tf/tf.h>
+#include <utm/LQRGain.h>
 
 class PX4Drone
 {
     private:
         ros::NodeHandle nh;
 
-        ros::Publisher local_pos_pub, vel_pub;
+        ros::Publisher local_pos_pub, vel_pub, cmd_raw;
 
         ros::Subscriber state_sub, target_found_sub, 
             rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
 
         ros::Subscriber rtag_ekf_vel_sub, land_permit_sub,
-             true_quad_odom_sub,service_input_sub;
+             true_quad_odom_sub,service_input_sub, lqr_gain_sub;
         
         //mavros service clients for arming and setting modes
         ros::ServiceClient arming_client, set_mode_client;
@@ -35,6 +38,8 @@ class PX4Drone
         geometry_msgs::PoseStamped pose;
         geometry_msgs::TwistStamped cmd_vel;             
         
+        Eigen::Vector4d lqr_gain;
+
         float true_odom_z; // this is the true odometry 
     
         float pre_error_x;
@@ -83,6 +88,10 @@ class PX4Drone
         void rtagquad_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
         void kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
         void kftag_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg);
+
+        //lqr tracking
+        void lqr_cb(const utm::LQRGain::ConstPtr& msg);
+        void lqr_track();
 
         void user_cmd_cb(const std_msgs::Int8::ConstPtr& msg);
 

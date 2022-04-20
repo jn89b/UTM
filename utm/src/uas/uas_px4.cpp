@@ -18,9 +18,13 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     vel_pub = nh->advertise<geometry_msgs::TwistStamped>
             ("uav0/mavros/setpoint_velocity/cmd_vel", 20);
 
+    //raw publisher
+    cmd_raw = nh->advertise<mavros_msgs::AttitudeTarget>
+            ("uav0/mavros/setpoint_raw/attitude", 10);
+
     //apriltag crap
     rtag_quad_sub = nh->subscribe<geometry_msgs::PoseStamped>
-            ("uav0/tag/pose", 10, &PX4Drone::rtagquad_cb,this);
+            ("uav0/tag/pose", 10, &PX4Drone::rtagquad_cb,this); 
     rtag_ekf_sub = nh->subscribe<geometry_msgs::PoseStamped>
             ("uav0/mavros/vision_pose/pose", 10, &PX4Drone::kftag_cb,this);
 
@@ -36,6 +40,11 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     //service input
     service_input_sub = nh->subscribe<std_msgs::Int8>
                     ("utm_control", 10, &PX4Drone::user_cmd_cb,this);
+
+    lqr_gain_sub = nh->subscribe<utm::LQRGain>
+                    ("K_gain", 20, &PX4Drone::lqr_cb,this);
+
+
 
     //velocity
 
@@ -164,6 +173,31 @@ void PX4Drone::go_follow(Eigen::Vector2d gain, float z_cmd)
     //ros::spinOnce();
 }
 
+void PX4Drone::lqr_track()
+{
+    // mavros_msgs::AttitudeTarget bodyrate_msg;
+    // bodyrate_msg.body_rate.x = lqr_gain[3];
+    // bodyrate_msg.body_rate.y = 0.0;
+    // bodyrate_msg.body_rate.z = 0.0;
+    // bodyrate_msg.thrust = 0.4;//lqr.getOutput()(3)/17;
+    // bodyrate_msg.type_mask = 128;
+    // cmd_raw.publish(bodyrate_msg);
+    // //this tag is basically how far it is 
+
+    cmd_vel.twist.linear.x = lqr_gain[0];
+    //cmd_vel.twist.linear.y = vel[1] + gain[1];
+    vel_pub.publish(cmd_vel);
+}
+
+
+void PX4Drone::lqr_cb(const utm::LQRGain::ConstPtr& msg)
+{
+    lqr_gain[0] = msg->data[0];
+    lqr_gain[1] = msg->data[1];
+    lqr_gain[2] = msg->data[2];
+    lqr_gain[3] = msg->data[3];
+    //std::cout<<"gains" << lqr_gain[3] << std::endl;
+}
 
 void PX4Drone::rtagquad_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
@@ -220,7 +254,6 @@ void PX4Drone::send_velocity_cmd(Eigen::Vector2d gain)
     cmd_vel.twist.linear.y = vel[1] + gain[1];
     vel_pub.publish(cmd_vel);
 }
-
 
 void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
 {   

@@ -58,8 +58,6 @@ sudo mongod --dbpath /data/db
 -[X] Build Q and R matrices to reduce error of kalman filter 
 
 # To do 04/18/2022
--[] Get pitch rate from mavros imu
--[] Get roll rate from mavros imu
 
 ## Notes 3/22/2022
 - Had to rotate the camera x and y

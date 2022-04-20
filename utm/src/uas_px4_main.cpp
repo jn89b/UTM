@@ -104,63 +104,68 @@ int main(int argc, char **argv)
                 
                 break;
             }
-            case 1: // tracking
-            {   
-                //wrap this as a function
-                // at_yaw = calc_heading(px4drone.rtag);
-                // if(at_yaw <= 0) at_yaw += 2*M_PI;        
-                // drone_yaw = calc_heading(px4drone.odom);
-        
-                // std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
-                // std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
-                
-                // double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
-
-                float p_x = pid_x.getPID();
-                float p_y = pid_y.getPID();
-                float p_yaw = pid_yaw.getPID();
-
-                float p_vx = pid_vx.getPID();
-                float p_vy = pid_vy.getPID();
-
-                Eigen::Vector2d gain(p_x, p_y);
-                Eigen::Vector2d vel_gain(p_vx, p_vy);
-                Eigen::Vector2d no_gain(0, 0);
-
-                // if ((heading_diff <= heading_bound)) 
-                {
-                    if ((abs(gain[0])<= gain_tol) && (abs(gain[1]) <= gain_tol)){
-                        std::cout<<"good enough"<<gain<<std::endl;
-                        px4drone.send_yaw_cmd(no_gain, 10, drone_yaw);
-                        // px4drone.send_velocity_cmd(no_gain);    
-                    } 
-                    
-                    else if((abs(gain[0])>= gain_tol) && (abs(gain[1]) <= gain_tol)){
-                        std::cout<<"x gain"<<gain<<std::endl;
-                        Eigen::Vector2d x_gain(p_x, 0);
-                        px4drone.send_yaw_cmd(x_gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(no_gain);    
-                    } 
-                    
-                    else if((abs(gain[1])>= gain_tol) && (abs(gain[0]) <= gain_tol)){
-                        std::cout<<"y gain"<<gain<<std::endl;
-                        Eigen::Vector2d y_gain(0, p_x);
-                        px4drone.send_yaw_cmd(y_gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(no_gain);    
-                    } 
-                    
-                    else{
-                        std::cout<<"gains are"<<gain<<std::endl;
-                        px4drone.send_yaw_cmd(gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(vel_gain);
-                    }
-                }
-                // else{
-                //     std::cout<< "heading too much" <<heading_diff <<std::endl;   
-                //     px4drone.send_yaw_cmd(no_gain, 10, heading_diff-M_PI/2);  
-                // }                
+            case 1: //kalman gain tracking
+            {
+                px4drone.lqr_track();
                 break;
             }
+            // case 1: // tracking
+            // {   
+            //     //wrap this as a function
+            //     // at_yaw = calc_heading(px4drone.rtag);
+            //     // if(at_yaw <= 0) at_yaw += 2*M_PI;        
+            //     // drone_yaw = calc_heading(px4drone.odom);
+        
+            //     // std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
+            //     // std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
+                
+            //     // double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
+
+            //     float p_x = pid_x.getPID();
+            //     float p_y = pid_y.getPID();
+            //     float p_yaw = pid_yaw.getPID();
+
+            //     float p_vx = pid_vx.getPID();
+            //     float p_vy = pid_vy.getPID();
+
+            //     Eigen::Vector2d gain(p_x, p_y);
+            //     Eigen::Vector2d vel_gain(p_vx, p_vy);
+            //     Eigen::Vector2d no_gain(0, 0);
+
+            //     // if ((heading_diff <= heading_bound)) 
+            //     {
+            //         if ((abs(gain[0])<= gain_tol) && (abs(gain[1]) <= gain_tol)){
+            //             std::cout<<"good enough"<<gain<<std::endl;
+            //             px4drone.send_yaw_cmd(no_gain, 10, drone_yaw);
+            //             // px4drone.send_velocity_cmd(no_gain);    
+            //         } 
+                    
+            //         else if((abs(gain[0])>= gain_tol) && (abs(gain[1]) <= gain_tol)){
+            //             std::cout<<"x gain"<<gain<<std::endl;
+            //             Eigen::Vector2d x_gain(p_x, 0);
+            //             px4drone.send_yaw_cmd(x_gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(no_gain);    
+            //         } 
+                    
+            //         else if((abs(gain[1])>= gain_tol) && (abs(gain[0]) <= gain_tol)){
+            //             std::cout<<"y gain"<<gain<<std::endl;
+            //             Eigen::Vector2d y_gain(0, p_x);
+            //             px4drone.send_yaw_cmd(y_gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(no_gain);    
+            //         } 
+                    
+            //         else{
+            //             std::cout<<"gains are"<<gain<<std::endl;
+            //             px4drone.send_yaw_cmd(gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(vel_gain);
+            //         }
+            //     }
+            //     // else{
+            //     //     std::cout<< "heading too much" <<heading_diff <<std::endl;   
+            //     //     px4drone.send_yaw_cmd(no_gain, 10, heading_diff-M_PI/2);  
+            //     // }                
+            //     break;
+            // }
             case 2: //precland
             {
                 float p_x = pid_x.getPID();

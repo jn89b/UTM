@@ -173,7 +173,8 @@ def u(x, _t):
     dis = _t - t
     dis[dis < 0] = np.inf
     idx = dis.argmin()
-    UX = Ks[0].dot(np.array([signalx[idx], 0, 0, 0]) - x[[0, 1, 8, 9]])[0]
+    #u = K*(x_estimator - x_desired);
+    UX = Ks[0]. dot(np.array([signalx[idx], 0, 0, 0]) - x[[0, 1, 8, 9]])[0]
     UY = Ks[1].dot(np.array([signaly[idx], 0, 0, 0]) - x[[2, 3, 6, 7]])[0]
     UZ = Ks[2].dot(np.array([signalz[idx], 0]) - x[[4, 5]])[0]
     UYaw = Ks[3].dot(np.array([signalyaw[idx], 0]) - x[[10, 11]])[0]

@@ -39,20 +39,21 @@ find_package(catkin REQUIRED COMPONENTS
 #python modules 
 catkin_python_setup()
 
-#add_message_files(
-#  FILES
-#)
+add_message_files(
+ FILES
+ LQRGain.msg
+)
 
 #add_service_files(
 #  FILES
 #)
 
-#generate_messages(
-#  DEPENDENCIES
-#  std_msgs
-#  geometry_msgs
-#  geographic_msgs
-#)
+generate_messages(
+ DEPENDENCIES
+ std_msgs
+ geometry_msgs
+ #geographic_msgs
+)
 
 catkin_package(
   # LIBRARIES airsim_ros

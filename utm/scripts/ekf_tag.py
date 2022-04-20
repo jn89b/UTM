@@ -117,7 +117,7 @@ if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 15
+    rate_val = 20
     #init vals
     dt = 1/rate_val
     
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     H = np.array([h_1, h_2])
     #print(H.shape)
 
-    Q_fact = 1E-3 # process noise covariance constant 
+    Q_fact = 1E-1 # process noise covariance constant 
     Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
                 [0, Q_fact, 0, 0, 0, 0], 
                 [0, 0, Q_fact, 0, 0, 0], 
