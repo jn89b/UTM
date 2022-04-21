@@ -155,7 +155,7 @@ void PX4Drone::send_init_cmds(std::vector<float> position, ros::Rate rate)
 //send global waypoint commands
 void PX4Drone::send_global_waypoints(std::vector<float> wp_vector)
 {
-    //send initial points
+    //send initial points subtract the offset position from spawn
     pose.pose.position.x = wp_vector[0] - _offset_pos[0];
     pose.pose.position.y = wp_vector[1] - _offset_pos[1];
     pose.pose.position.z = wp_vector[2];
@@ -179,11 +179,11 @@ void PX4Drone::lqr_track()
     // bodyrate_msg.body_rate.x = lqr_gain[3];
     // bodyrate_msg.body_rate.y = 0.0;
     // bodyrate_msg.body_rate.z = 0.0;
-    // bodyrate_msg.thrust = 0.4;//lqr.getOutput()(3)/17;
+    // bodyrate_msg.thrust = 0.4;
     // bodyrate_msg.type_mask = 128;
-    // cmd_raw.publish(bodyrate_msg);
-    // //this tag is basically how far it is 
+    // cmd_raw.publish(bodyrate_msg); 
 
+    //this is better
     cmd_vel.twist.linear.x = lqr_gain[0];
     cmd_vel.twist.linear.y = lqr_gain[1];
     //cmd_vel.twist.linear.y = vel[1] + gain[1];
@@ -295,7 +295,7 @@ void PX4Drone::set_offboard(std::vector<float> pos_cmd,  ros::Rate rate)
             std::cout<<"i am in offboard"<<std::endl;
             return;
         }        
-
+        
         send_init_cmds(pos_cmd, rate);
         set_mode.request.custom_mode = "OFFBOARD";
         arm_cmd.request.value = true;

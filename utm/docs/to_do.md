@@ -53,12 +53,14 @@ sudo mongod --dbpath /data/db
 - [X] Compute Difference then calculate desired 
 
 # To do 04/15/2022
--[X] Record rosbag of tag position
--[X] Exten Kalman Filter to do a kalman filter sweep on this rosbag recording
--[X] Build Q and R matrices to reduce error of kalman filter 
+- [X] Record rosbag of tag position
+- [X] Exten Kalman Filter to do a kalman filter sweep on this rosbag recording
+- [X] Build Q and R matrices to reduce error of kalman filter 
 
-# To do 04/18/2022
-
+# To do 04/20/2022
+- [] Tune LQR, read some papers on response parameters, simple step input
+- []
+- []
 ## Notes 3/22/2022
 - Had to rotate the camera x and y
 - This is a useful link to control yaw for PX4 offboard 

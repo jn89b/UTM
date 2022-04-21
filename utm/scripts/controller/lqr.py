@@ -47,6 +47,7 @@ class LQR():
         if(A is None or B is None):
             raise ValueError("Set proper system dynamics.")
 
+        # 
         self.n = A.shape[0]
         self.m = B.shape[1]
         
@@ -54,8 +55,8 @@ class LQR():
         self.B = 0 if B is None else B
         self.Q = np.eye(self.n) #if Q is None else Q
         
-        #self.R = np.eye(self.n) if R is None else R
-        self.R = np.diag([20])
+        #self.R = np.eye(self.n) if R is None else R,20, 4,5
+        self.R = np.diag([5])
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -113,7 +114,7 @@ class LQR():
 
     def compute_K(self):
         """get gains from LQR"""
-        self.Q[0,0] = 0.45
+        self.Q[0,0] = 3.25   
         K, _, _ = self.lqr(self.A, self.B, self.Q, self.R)
         self.K = K
         
@@ -125,23 +126,13 @@ class LQR():
     def get_u(self):
         """compute controller input""" 
         self.u = np.dot(self.K, self.error)[0]
-        max_pitch = 3.5
+        max_pitch = 5.0
         if abs(self.u)>= max_pitch:
             if self.u > 0:
                 self.u = max_pitch
             else:
                 self.u = -max_pitch
 
-    def publish_input(self):
-        """publish body rate commands"""
-        gains = LQRGain()
-        if abs(self.error[0]) <= 3.0:
-            self.k_pub.publish([0.0])
-        else:
-            gains.data = [self.u]
-
-            self.k_pub.publish(gains)
-                
     def main(self):
         """update values to LQR"""
         self.compute_error()
@@ -200,24 +191,25 @@ class DroneLQR():
 
     def desired_state(self, msg):
         """get desired position from current position"""
-        desired_x = msg.pose.position.x # - self.x[0]
-        desired_y = msg.pose.position.y
+        # desired_x = msg.pose.position.x # - self.x[0]
+        # desired_y = msg.pose.position.y
+        desired_x = 5.0 - self.x_state[0]
+        desired_y = 5.0 - self.y_state[0] + 10.0
+        print("desired x and desired y", desired_x, desired_y)
         self.desired_x[0] = desired_x
         self.desired_y[0] = desired_y
 
     def publish_input(self):
         """publish body rate commands"""
         gains = LQRGain()        
-        # print("error x and y", self.x_lqr.error[0], self.y_lqr.error[0])
-        # print("inputs x and y", self.x_lqr.u, self.y_lqr.u)
-        
-        if abs(self.x_lqr.error[0]) <= 3.0 and abs(self.y_lqr.error[0]) >= 3.0:
+        tol = 0.075
+        if abs(self.x_lqr.error[0]) <= tol and abs(self.y_lqr.error[0]) >= tol:
             self.k_pub.publish([0.0, -self.y_lqr.u])
             
-        elif abs(self.x_lqr.error[0]) >= 3.0 and abs(self.y_lqr.error[0]) <= 3.0:
+        elif abs(self.x_lqr.error[0]) >= tol and abs(self.y_lqr.error[0]) <= tol:
             self.k_pub.publish([self.x_lqr.u, 0.0])
         
-        elif abs(self.x_lqr.error[0]) <= 3.0 and abs(self.y_lqr.error[0]) <= 3.0:
+        elif abs(self.x_lqr.error[0]) <= tol and abs(self.y_lqr.error[0]) <= tol:
             self.k_pub.publish([0.0, 0.0])
         
         else:   

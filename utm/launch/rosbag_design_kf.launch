@@ -1,8 +1,9 @@
 <launch>
 
     <node pkg="rosbag" type="play" name="player" 
-    output="screen" args="--clock /home/justin/catkin_ws/src/utm/utm/bagfiles/2022-04-15-15-43-26.bag"/>
+    output="screen" args="--clock /home/justin/catkin_ws/src/utm/utm/bagfiles/circle.bag"/>
 
-    <include file="$(find utm)/launch/kf_design.launch">
+    <node pkg="utm" type="kf_logger.py" name="kf_logger"/>
+    <include file="$(find utm)/launch/kf_design.launch"/>
 
 </launch>
