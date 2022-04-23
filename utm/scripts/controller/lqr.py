@@ -25,21 +25,16 @@ Iz = 14.2 * 1e-3
 
 LQR procedures
     #get act state done by callbacks already
-    
     #get desired state done by callbacks already
-    
     #compute state error 
-    
     #do lqr and get my gains
-
     #update state space model done by callbacks already
-    
 """
+
 Ix = 8.1 * 1E-3
 Iy = 8.1 * 1E-3
 g = 9.81 #m^2/s
 m = 0.37 #kg
-
 
 class LQR():
     def __init__(self, A = None, B = None, Q = None, R = None, x0 = None,
@@ -53,10 +48,10 @@ class LQR():
         
         self.A = A
         self.B = 0 if B is None else B
-        self.Q = np.eye(self.n) #if Q is None else Q
+        self.Q = np.diag([0.5]) #if Q is None else Q
         
         #self.R = np.eye(self.n) if R is None else R,20, 4,5
-        self.R = np.diag([5])
+        self.R = np.diag([9.25]) #45 for apriltag
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -68,7 +63,7 @@ class LQR():
         self.lqr_output = [0] * len(Q)
 
         #rate values
-        self.rate_val = 50 if rate_val is None else rate_val
+        self.rate_val = 30 if rate_val is None else rate_val
         self.dt = 1/self.rate_val
         
     def current_state(self, x_state):
@@ -85,12 +80,13 @@ class LQR():
         #des_vel_x = (desired_x - self.z[0])/self.dt 
         self.z[0] = desired_val[0]
         self.z[1] = desired_val[1]
-        self.z[2] = desired_val[2]
+        self.z[2] = desired_val[2] #self.x[2]#desired_val[2]
         self.z[3] = desired_val[3]
 
     def compute_error(self):
         """compute error of state"""
-        self.error[0] = self.z[0] 
+        #self.error[0] = self.z[0] # - self.x[0] if not using apriltag use this
+        self.error[0] = self.z[0] #- self.x[0]
         self.error[1] = self.z[1] - self.x[1]
         self.error[2] = self.z[2] - self.x[2]
         self.error[3] = self.z[3] - self.x[3]
@@ -103,40 +99,59 @@ class LQR():
         # http://www.mwm.im/lqr-controllers-with-python/
         # ref Bertsekas, p.151
 
-        # first, try to solve the ricatti equation
+        # first, try to solve the ricatti equation, X is n x n
         X = np.matrix(scipy.linalg.solve_continuous_are(A, B, Q, R))
 
-        # compute the LQR gain
+        # compute the LQR gain Compute $K=R^-1B^TS$
         K = np.matrix(scipy.linalg.inv(R) * (B.T * X))
-
+        
+        #gives solution that yields stable system, negative values
         eigVals, eigVecs = scipy.linalg.eig(A - B * K)
+        # for eigen in eigVals:
+        #     print("eigenvalues", eigen)
+        
+        # print("gains", K)    
+        # print("another one")
+        # print("\n")
         return np.asarray(K), np.asarray(X), np.asarray(eigVals)
 
     def compute_K(self):
         """get gains from LQR"""
-        self.Q[0,0] = 3.25   
+        self.Q[0,0] = 1.5   #Q = 1.0 for apriltag , Q = 3.25 for position 
         K, _, _ = self.lqr(self.A, self.B, self.Q, self.R)
         self.K = K
+        print(self.K)
         
     def update_state(self): 
         """update state space"""
-        self.lqr_output = self.B * self.u
+        self.lqr_output = np.dot(self.B.T, self.u)
         self.x = np.dot(self.A, self.x)  + self.lqr_output
         
     def get_u(self):
-        """compute controller input""" 
-        self.u = np.dot(self.K, self.error)[0]
-        max_pitch = 5.0
-        if abs(self.u)>= max_pitch:
-            if self.u > 0:
-                self.u = max_pitch
+        """compute controller input"""
+        self.u = np.multiply(self.K, self.error)[0]
+        
+        max_pitch_rate = 0.125
+        att_rate_idx = 2
+        if abs(self.u[att_rate_idx])>= max_pitch_rate:
+            if self.u[att_rate_idx] > 0:              
+                self.u[att_rate_idx] = max_pitch_rate
             else:
-                self.u = -max_pitch
+                self.u[att_rate_idx] = -max_pitch_rate
 
-    def main(self):
+        max_vel = 10.0
+        vel_idx = 0
+        if abs(self.u[vel_idx])>= max_vel:
+            if self.u[vel_idx] > 0:              
+                self.u[vel_idx] = max_vel
+            else:
+                self.u[vel_idx] = -max_vel
+
+
+    def main(self):         
         """update values to LQR"""
         self.compute_error()
-        self.compute_K()
+        # self.compute_K()
         self.get_u()
         self.update_state()
         
@@ -153,15 +168,18 @@ class DroneLQR():
                                                  self.desired_state)
         
         self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
-        
-        self.x_lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = None,
+
+
+        self.x_state = np.array([0.0,0.0,0.0,0.0])
+        self.y_state = np.array([0.0,0.0,0.0,0.0])
+                
+        self.x_lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = self.x_state,
                     rate_val = rate_val) #import matrices into class
 
         self.y_lqr = LQR(A = Ay, B = By, Q = Q, R = R, x0 = None,
                     rate_val = rate_val) #import matrices into class
         
-        self.x_state = [0.0,0.0,0.0,0.0]
-        self.y_state = [0.0,0.0,0.0,0.0]
+
         self.desired_x = [0.0, 0.0, 0.0, 0.0]
         self.desired_y = [0.0, 0.0, 0.0, 0.0]
         self.dt = 1/rate_val
@@ -170,14 +188,19 @@ class DroneLQR():
         """update current estimates"""
         px = msg.pose.pose.position.x 
         py = msg.pose.pose.position.y
+        
         vel_x = msg.twist.twist.linear.x
         vel_y = msg.twist.twist.linear.y
+        
+        pitch_rate = msg.twist.twist.angular.x 
+        roll_rate = msg.twist.twist.angular.y 
+        
         orientation_q = msg.pose.pose.orientation
         orientation_list = [orientation_q.x, orientation_q.y,
                              orientation_q.z, orientation_q.w]
         (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
-        pitch_rate = pitch - self.x_state[2]/self.dt
-        roll_rate = roll - self.y_state[2]/self.dt
+        #pitch_rate = pitch - self.x_state[2]/self.dt
+        #roll_rate = roll - self.y_state[2]/self.dt
          
         self.x_state[0] = px
         self.x_state[1] = vel_x
@@ -193,8 +216,10 @@ class DroneLQR():
         """get desired position from current position"""
         # desired_x = msg.pose.position.x # - self.x[0]
         # desired_y = msg.pose.position.y
-        desired_x = 5.0 - self.x_state[0]
-        desired_y = 5.0 - self.y_state[0] + 10.0
+        x_pos = 5.0
+        y_pos = 5.0
+        desired_x = x_pos - self.x_state[0]
+        desired_y = y_pos - self.y_state[0] + 10.0
         print("desired x and desired y", desired_x, desired_y)
         self.desired_x[0] = desired_x
         self.desired_y[0] = desired_y
@@ -202,20 +227,41 @@ class DroneLQR():
     def publish_input(self):
         """publish body rate commands"""
         gains = LQRGain()        
-        tol = 0.075
+        tol = 0.05 #0.075 for regular tracking , 0.5 for apriltag
+        zero_vals = [0,0,0,0]
+        input_x = [float(xu) for xu in self.x_lqr.u]
+        input_y = [-float(yu) for yu in self.y_lqr.u]
+        
         if abs(self.x_lqr.error[0]) <= tol and abs(self.y_lqr.error[0]) >= tol:
-            self.k_pub.publish([0.0, -self.y_lqr.u])
+            pub_vals = zero_vals
+            pub_vals.extend(input_y)
+            self.k_pub.publish(pub_vals)
+            #self.k_pub.publish([0.0, -self.y_lqr.u])
             
         elif abs(self.x_lqr.error[0]) >= tol and abs(self.y_lqr.error[0]) <= tol:
-            self.k_pub.publish([self.x_lqr.u, 0.0])
+            pub_vals = input_x
+            pub_vals.extend(zero_vals)
+            self.k_pub.publish(pub_vals)
+            #self.k_pub.publish([self.x_lqr.u, 0.0])
         
         elif abs(self.x_lqr.error[0]) <= tol and abs(self.y_lqr.error[0]) <= tol:
-            self.k_pub.publish([0.0, 0.0])
-        
-        else:   
-            gains.data = [self.x_lqr.u, -self.y_lqr.u]
-            self.k_pub.publish(gains)
+            pub_vals = zero_vals
+            pub_vals.extend(zero_vals)
+            self.k_pub.publish(pub_vals)
+            #self.k_pub.publish([0.0, 0.0])
 
+        else:
+            pub_vals = input_x
+            pub_vals.extend(input_y)   
+            #gains.data = [self.x_lqr.u, -self.y_lqr.u]
+            #self.k_pub.publish(gains)
+            self.k_pub.publish(pub_vals)
+
+    def compute_gains(self):
+        """get gains from ricatti equation"""
+        self.x_lqr.compute_K()
+        self.y_lqr.compute_K()
+        
     def main(self):
         """main implementation"""
         self.x_lqr.current_state(self.x_state)
@@ -229,7 +275,6 @@ class DroneLQR():
         
         self.publish_input()
         
-    
 if __name__ == "__main__":
     
     rospy.init_node("lqr_controller", anonymous=False)
@@ -271,7 +316,6 @@ if __name__ == "__main__":
                 [0, 0, Q_fact/2, 0], 
                 [0, 0 , 0, Q_fact/2]])
     
-    
     ## R penalty for input
     R = np.array([[Q_fact, 0, 0], 
                 [0, Q_fact, 0, 0], 
@@ -282,6 +326,7 @@ if __name__ == "__main__":
     #              rate_val = rate_val) #import matrices into class
 
     drone_lqr = DroneLQR(Ax, Bx, Ay, By, Q, R, rate_val)
+    drone_lqr.compute_gains()
     rate = rospy.Rate(rate_val)
     while not rospy.is_shutdown():
         drone_lqr.main()

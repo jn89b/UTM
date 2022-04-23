@@ -176,16 +176,19 @@ void PX4Drone::go_follow(Eigen::Vector2d gain, float z_cmd)
 void PX4Drone::lqr_track()
 {
     // mavros_msgs::AttitudeTarget bodyrate_msg;
-    // bodyrate_msg.body_rate.x = lqr_gain[3];
-    // bodyrate_msg.body_rate.y = 0.0;
-    // bodyrate_msg.body_rate.z = 0.0;
-    // bodyrate_msg.thrust = 0.4;
-    // bodyrate_msg.type_mask = 128;
-    // cmd_raw.publish(bodyrate_msg); 
+    // // bodyrate_msg.body_rate.x = 0.0;
+    // // bodyrate_msg.body_rate.y = 1.0;
+    // // bodyrate_msg.body_rate.z = 0.0;
+    // // bodyrate_msg.thrust = 0.4;
+    // // bodyrate_msg.type_mask = 128;
+    // // cmd_raw.publish(bodyrate_msg); 
 
-    //this is better
-    cmd_vel.twist.linear.x = lqr_gain[0];
-    cmd_vel.twist.linear.y = lqr_gain[1];
+    // this is better
+    cmd_vel.twist.linear.x = lqr_gain_x[0];
+    cmd_vel.twist.angular.x = lqr_gain_x[2];
+    
+    cmd_vel.twist.linear.y = lqr_gain_y[0];
+    cmd_vel.twist.angular.y = lqr_gain_y[2];
     //cmd_vel.twist.linear.y = vel[1] + gain[1];
     vel_pub.publish(cmd_vel);
 }
@@ -193,10 +196,19 @@ void PX4Drone::lqr_track()
 
 void PX4Drone::lqr_cb(const utm::LQRGain::ConstPtr& msg)
 {
-    lqr_gain[0] = msg->data[0];
-    lqr_gain[1] = msg->data[1];
-    lqr_gain[2] = msg->data[2];
-    lqr_gain[3] = msg->data[3];
+    /*0 - 3 is x,xdot, pitch, pitch_dot
+      4 - 7 is y,ydot, roll, roll_dot   
+     x*/
+    lqr_gain_x[0] = msg->data[0];
+    lqr_gain_x[1] = msg->data[1];
+    lqr_gain_x[2] = msg->data[2];
+    lqr_gain_x[3] = msg->data[3];
+    
+    lqr_gain_y[0] = msg->data[4];
+    lqr_gain_y[1] = msg->data[5];
+    lqr_gain_y[2] = msg->data[6];
+    lqr_gain_y[3] = msg->data[7];
+    
     //std::cout<<"gains" << lqr_gain[3] << std::endl;
 }
 

@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     H = np.array([h_1, h_2])
     #print(H.shape)
-
+    #trust less on acceleration 
     Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
                 [0, Q_fact, 0, 0, 0, 0], 
                 [0, 0, Q_fact, 0, 0, 0], 

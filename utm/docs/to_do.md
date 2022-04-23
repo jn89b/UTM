@@ -58,9 +58,17 @@ sudo mongod --dbpath /data/db
 - [X] Build Q and R matrices to reduce error of kalman filter 
 
 # To do 04/20/2022
-- [] Tune LQR, read some papers on response parameters, simple step input
-- []
-- []
+- [x] Tune LQR, read some papers on response parameters, simple step inputD
+- [x] Penalize sudden change of pitch 
+- [] add disturbances https://github.com/microsoft/AirSim/pull/2867
+
+
+## Notes 4/22/200
+- Test LQR disturbance performance to step input
+- Add worst case 20mph wind 
+- Run experiment 1 with wind going with 
+- Run experiment 2 with wind going against
+
 ## Notes 3/22/2022
 - Had to rotate the camera x and y
 - This is a useful link to control yaw for PX4 offboard 

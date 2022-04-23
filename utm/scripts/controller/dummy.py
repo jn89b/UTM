@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from nonlinear_dynamics import g, m, Ix, Iy, Iz
 
-
 def lqr(A, B, Q, R):
     """Solve the continuous time lqr controller.
     dx/dt = A x + B u

@@ -14,11 +14,16 @@ class OdomLoc():
         self.y = None
         self.z = None
         self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb) 
-    
+  
     def odom_cb(self,msg):
         self.x = msg.pose.position.x
         self.y = msg.pose.position.y
         self.z = msg.pose.position.z
+
+class AttitudePos():
+    def __init__(self):
+        self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb)
+
 
 uav_name = "uav0"
 quad_topic = "PX4_0/global_position/pose"
@@ -29,6 +34,7 @@ tagekf = OdomLoc(tag_topic_filtered)
 
 tag_raw_topic = uav_name+"/tag/pose"
 tag = OdomLoc(tag_raw_topic)
+
 
 true_tag = "true_tag_dis"
 true_tag = OdomLoc(true_tag)

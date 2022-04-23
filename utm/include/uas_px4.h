@@ -38,7 +38,8 @@ class PX4Drone
         geometry_msgs::PoseStamped pose;
         geometry_msgs::TwistStamped cmd_vel;             
         
-        Eigen::Vector4d lqr_gain;
+        Eigen::Vector4d lqr_gain_x;
+        Eigen::Vector4d lqr_gain_y;
 
         float true_odom_z; // this is the true odometry 
     
