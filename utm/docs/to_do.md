@@ -60,8 +60,10 @@ sudo mongod --dbpath /data/db
 # To do 04/20/2022
 - [x] Tune LQR, read some papers on response parameters, simple step inputD
 - [x] Penalize sudden change of pitch 
-- [] add disturbances https://github.com/microsoft/AirSim/pull/2867
+- [X] add disturbances https://github.com/microsoft/AirSim/pull/2867
 
+# To do 04/25/2022
+- [] Test tracking of LQR vs PID
 
 ## Notes 4/22/200
 - Test LQR disturbance performance to step input

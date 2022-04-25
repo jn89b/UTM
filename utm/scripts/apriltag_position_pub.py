@@ -126,7 +126,7 @@ class AprilTagPositionPub():
         """publish apriltag position"""
         pose_msg = PoseStamped()
         
-        #adding noise
+        #added uniform noise
         ops = (add,sub)
         op = random.choice(ops)
         

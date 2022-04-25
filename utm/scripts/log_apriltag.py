@@ -7,6 +7,9 @@ import os
 import datetime
 
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Odometry
+
+from tf.transformations import euler_from_quaternion
 
 class OdomLoc():
     def __init__(self,sub_topic):
@@ -21,9 +24,38 @@ class OdomLoc():
         self.z = msg.pose.position.z
 
 class AttitudePos():
-    def __init__(self):
-        self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb)
+    def __init__(self, attitude_sub):
+        self.sub = rospy.Subscriber(attitude_sub, Odometry, self.current_state)
+        self.x_state = [0.0,0.0,0.0,0.0] #x, xdot, pitch, pitch_rate
+        self.y_state = [0.0,0.0,0.0,0.0] #y, ydot, roll, roll_rate
+  
 
+    def current_state(self, msg):
+        """update current estimates"""
+        px = msg.pose.pose.position.x 
+        py = msg.pose.pose.position.y
+        
+        vel_x = msg.twist.twist.linear.x
+        vel_y = msg.twist.twist.linear.y
+        
+        pitch_rate = msg.twist.twist.angular.x 
+        roll_rate = msg.twist.twist.angular.y 
+        
+        orientation_q = msg.pose.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y,
+                             orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        #pitch_rate = pitch - self.x_state[2]/self.dt
+        #roll_rate = roll - self.y_state[2]/self.dt
+        self.x_state[0] = px
+        self.x_state[1] = vel_x
+        self.x_state[2] = pitch
+        self.x_state[3] = pitch_rate
+
+        self.y_state[0] = py
+        self.y_state[1] = vel_y
+        self.y_state[2] = roll
+        self.y_state[3] = roll_rate
 
 uav_name = "uav0"
 quad_topic = "PX4_0/global_position/pose"
@@ -35,16 +67,21 @@ tagekf = OdomLoc(tag_topic_filtered)
 tag_raw_topic = uav_name+"/tag/pose"
 tag = OdomLoc(tag_raw_topic)
 
-
 true_tag = "true_tag_dis"
 true_tag = OdomLoc(true_tag)
+
+att_topic = uav_name+"/mavros/odometry/in"
+attitude = AttitudePos(att_topic)
 
 # register the node with the name logger
 rospy.init_node('logger', anonymous=True)
 print(os.getcwd())
 #---------Logfile Setup-------------#
 # populate the data header, these are just strings, you can name them anything
-myData = ["time","quad x", "quad y", "quad z", "kftag x", "kftag y", "kftag z", "tag x", "tag y", "tag z", "true tag x", "true tag y"]
+myData = ["time","quad x", "quad y", "quad z", 
+          "vel_x", "vel_y", "pitch", "roll", "pitch_rate", "roll_rate" 
+          "kftag x", "kftag y", "kftag z", 
+          "tag x", "tag y", "tag z", "true tag x", "true tag y"]
 
 # this creates a filename which contains the current date/time RaspberryPi does not have a real time clock, the files
 # will have the correct sequence (newest to oldest is preserved) but unless you set it explicitely the time will not
@@ -76,8 +113,7 @@ zero_time = rospy.get_time()
 # this is some ros magic to control the loop timing, you can change this to log data faster/slower as needed
 # note that the IMU publisher publishes data at a specified rate (500Hz) and while this number could be
 # changes, in general, you should keep the loop rate for the logger below the loop rate for the IMU publisher
-rate = rospy.Rate(10) #100 Hz
-
+rate = rospy.Rate(30) #100 Hz
 
 if __name__ == '__main__':
 
@@ -90,7 +126,16 @@ if __name__ == '__main__':
 			# create the data vector which we will write to the file, remember if you change
 			# something here, but don't change the header string, your column headers won't
 			# match the data
-			myData = [now, quad.x, quad.y, quad.z, tagekf.x, tagekf.y, tagekf.z, tag.x, tag.y, tag.z,
+			# myData = ["time","quad x", "quad y", "quad z", 
+			# 		"vel_x", "vel_y", "pitch", "roll", "pitch_rate", "roll_rate" 
+			# 		"kftag x", "kftag y", "kftag z", 
+			# 		"tag x", "tag y", "tag z", "true tag x", "true tag y"]
+			myData = [now, quad.x, quad.y, quad.z, 
+             attitude.x_state[1], attitude.y_state[1], 
+             attitude.x_state[2], attitude.y_state[2],
+             attitude.x_state[3], attitude.y_state[3],
+             tagekf.x, tagekf.y, tagekf.z, 
+             tag.x, tag.y, tag.z,
              true_tag.x, true_tag.y]
 
 			# stick everything in the file

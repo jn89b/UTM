@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+    #!/usr/bin/env python
 
 import rospy 
 import tf
@@ -79,7 +79,7 @@ class KalmanFilter():
         	(I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
 
     def tagpose_cb(self,msg): 
-        """get z readings """
+        """"""
         px = msg.pose.position.x 
         py = msg.pose.position.y        
         self.pz = msg.pose.position.z
@@ -135,12 +135,13 @@ class KalmanFilter():
 if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
-    Q_param = rospy.get_param("~Q_param", "0.001")
+    Q_param = rospy.get_param("~Q_param", "0.1") # variance of acceleration
+    R_param = rospy.get_param("~R_param", "0.1")
     Q_fact =  float(Q_param) # process noise covariance constant
-    rate_val = 15
+    rate_val = 20
     #init vals
     dt = 1/rate_val   
-     
+    q_dt = float(1/rate_val) 
     ####### CONSTANT ACCELERATION MODEL##########
     
     #This array is for constant acceleartion so size 6
@@ -157,15 +158,18 @@ if __name__ == "__main__":
     h_1 = [1, 0.0, 0.0, 0.0, 0.0, 0.0] #measurement of px
     h_2 = [0.0, 1, 0.0, 0.0, 0.0, 0.0] #measurement of py
 
-    H = np.array([h_1, h_2])
-    #print(H.shape)
-    #trust less on acceleration 
-    Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
-                [0, Q_fact, 0, 0, 0, 0], 
-                [0, 0, Q_fact, 0, 0, 0], 
-                [0, 0 , 0, Q_fact, 0, 0],
-                [0, 0 , 0, 0, Q_fact, 0],
-                [0, 0 , 0, 0, 0, Q_fact]])
+    H = np.array([h_1, h_2]) 
+    #trust less on acceleration https://www.kalmanfilter.net/multiExamples.html
+    # derivation is as follows : https://www.kalmanfilter.net/covextrap.html#withQ 
+    Q = np.array([[(q_dt**4)/4, (q_dt**3)/2, (q_dt**2)/2, 0, 0, 0], 
+                [(q_dt**3)/2, (q_dt**2), q_dt, 0, 0, 0], 
+                [(q_dt**2)/2, q_dt, 1, 0, 0, 0], 
+                [0, 0 , 0, (q_dt**4)/4,  (q_dt**3)/2, (q_dt**2)/2],
+                [0, 0 , 0, (q_dt**3)/2, (q_dt**2), q_dt],
+                [0, 0 , 0, (q_dt**2)/2, q_dt, 1]])
+    
+    Q = Q*float(Q_param)**2
+    #print(Q)
     
     ##################################################
 
@@ -193,7 +197,8 @@ if __name__ == "__main__":
     # ##################################################
 
     # ##### NOISE FACTOR AND INPUT TO KALMAN FILTER
-    R_factor = (0.1)**2 # measurement of camera saying .3m off
+    #R_factor = (0.1)**2 # measurement of camera saying .3m off
+    R_factor = float(R_param)**2 
     R = np.array([[R_factor, 0], [0, R_factor]]) #measurement noise for kalman filter
 
     kf = KalmanFilter(F = F, H = H, Q = Q, R = R) #import matrices into class

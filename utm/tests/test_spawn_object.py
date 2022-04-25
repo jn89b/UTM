@@ -31,8 +31,8 @@ if __name__=='__main__':
 	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
 	client.simSetWind(wind)
 	
-	time.sleep(0.5)
-	wind_val = [-10, -10, 0]
+	time.sleep(1.0)
+	wind_val = [0, -10, 0]
 	print("adding wind ", wind_val[0],wind_val[1])
 	#test 20 mph or 8.94m/s
 	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
@@ -44,7 +44,6 @@ if __name__=='__main__':
 	#test 20 mph or 8.94m/s
 	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
 	client.simSetWind(wind)
- 
  
 	# print("adding wind the other way", wind_val[0],wind_val[1])
 	# #test 20 mph or 8.94m/s

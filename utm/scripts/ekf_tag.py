@@ -112,14 +112,15 @@ class KalmanFilter():
         vel_msg.twist.linear.x = self.x[2,0]
         vel_msg.twist.linear.y = self.x[3,0]
         self.kf_vel_pub.publish(vel_msg)
-
+        
 if __name__ == "__main__":
     rospy.init_node("ekf_tag", anonymous=True)
     print("starting")
 
-    rate_val = 20
+    rate_val = 30
     #init vals
     dt = 1/rate_val
+    Q_param = 0.5 #for variance of acceleration
     
     ####### CONSTANT ACCELERATION MODEL##########
     
@@ -139,13 +140,16 @@ if __name__ == "__main__":
     H = np.array([h_1, h_2])
     #print(H.shape)
 
-    Q_fact = 1E-1 # process noise covariance constant 
-    Q = np.array([[Q_fact, 0, 0, 0, 0, 0], 
-                [0, Q_fact, 0, 0, 0, 0], 
-                [0, 0, Q_fact, 0, 0, 0], 
-                [0, 0 , 0, Q_fact, 0, 0],
-                [0, 0 , 0, 0, Q_fact, 0],
-                [0, 0 , 0, 0, 0, Q_fact]])
+    #trust less on acceleration https://www.kalmanfilter.net/multiExamples.html
+    # derivation is as follows : https://www.kalmanfilter.net/covextrap.html#withQ 
+    Q = np.array([[(dt**4)/4, (dt**3)/2, (dt**2)/2, 0, 0, 0], 
+                [(dt**3)/2, (dt**2), dt, 0, 0, 0], 
+                [(dt**2)/2, dt, 1, 0, 0, 0], 
+                [0, 0 , 0, (dt**4)/4,  (dt**3)/2, (dt**2)/2],
+                [0, 0 , 0, (dt**3)/2, (dt**2), dt],
+                [0, 0 , 0, (dt**2)/2, dt, 1]])
+    
+    Q = Q*float(Q_param)**2
     
     ##################################################
 

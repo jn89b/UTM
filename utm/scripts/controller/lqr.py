@@ -48,10 +48,13 @@ class LQR():
         
         self.A = A
         self.B = 0 if B is None else B
-        self.Q = np.diag([0.5]) #if Q is None else Q
+        
+        self.Q = np.diag(np.full(4,0.5))#np.diag(np.array(Q)) #if Q is None else Q
+        self.Q[0,0] = 1.5   #Q = 1.0 for apriltag , Q = 3.25 for position 
+        print("Q ", self.Q)
         
         #self.R = np.eye(self.n) if R is None else R,20, 4,5
-        self.R = np.diag([9.25]) #45 for apriltag
+        self.R = np.diag([9.1]) #45 for apriltag
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -117,10 +120,9 @@ class LQR():
 
     def compute_K(self):
         """get gains from LQR"""
-        self.Q[0,0] = 1.5   #Q = 1.0 for apriltag , Q = 3.25 for position 
+        #print(self.Q)
         K, _, _ = self.lqr(self.A, self.B, self.Q, self.R)
         self.K = K
-        print(self.K)
         
     def update_state(self): 
         """update state space"""
@@ -131,14 +133,16 @@ class LQR():
         """compute controller input"""
         self.u = np.multiply(self.K, self.error)[0]
         
-        max_pitch_rate = 0.125
+        max_pitch_rate = 0.3# about 20 degrees
         att_rate_idx = 2
         if abs(self.u[att_rate_idx])>= max_pitch_rate:
             if self.u[att_rate_idx] > 0:              
                 self.u[att_rate_idx] = max_pitch_rate
             else:
                 self.u[att_rate_idx] = -max_pitch_rate
-
+            print("updated attitutde rate command", self.u[att_rate_idx])
+            print("current attitude is", self.x[2])
+            
         max_vel = 10.0
         vel_idx = 0
         if abs(self.u[vel_idx])>= max_vel:
@@ -146,7 +150,6 @@ class LQR():
                 self.u[vel_idx] = max_vel
             else:
                 self.u[vel_idx] = -max_vel
-
 
     def main(self):         
         """update values to LQR"""
@@ -168,18 +171,18 @@ class DroneLQR():
                                                  self.desired_state)
         
         self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
-
-
+        
         self.x_state = np.array([0.0,0.0,0.0,0.0])
-        self.y_state = np.array([0.0,0.0,0.0,0.0])
-                
+        self.y_state = np.array([0.0,0.0,0.0,0.0])      
+        
+        #subsystem lqr X
         self.x_lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = self.x_state,
                     rate_val = rate_val) #import matrices into class
-
+        #subsystem lqr Y
         self.y_lqr = LQR(A = Ay, B = By, Q = Q, R = R, x0 = None,
                     rate_val = rate_val) #import matrices into class
-        
 
+        #intialize desired states
         self.desired_x = [0.0, 0.0, 0.0, 0.0]
         self.desired_y = [0.0, 0.0, 0.0, 0.0]
         self.dt = 1/rate_val
@@ -192,15 +195,15 @@ class DroneLQR():
         vel_x = msg.twist.twist.linear.x
         vel_y = msg.twist.twist.linear.y
         
-        pitch_rate = msg.twist.twist.angular.x 
-        roll_rate = msg.twist.twist.angular.y 
+        # pitch_rate = msg.twist.twist.angular.x 
+        # roll_rate = msg.twist.twist.angular.y 
         
         orientation_q = msg.pose.pose.orientation
         orientation_list = [orientation_q.x, orientation_q.y,
                              orientation_q.z, orientation_q.w]
         (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
-        #pitch_rate = pitch - self.x_state[2]/self.dt
-        #roll_rate = roll - self.y_state[2]/self.dt
+        pitch_rate = pitch - self.x_state[2]/self.dt
+        roll_rate = roll - self.y_state[2]/self.dt
          
         self.x_state[0] = px
         self.x_state[1] = vel_x
@@ -217,7 +220,7 @@ class DroneLQR():
         # desired_x = msg.pose.position.x # - self.x[0]
         # desired_y = msg.pose.position.y
         x_pos = 5.0
-        y_pos = 5.0
+        y_pos = 0.0
         desired_x = x_pos - self.x_state[0]
         desired_y = y_pos - self.y_state[0] + 10.0
         print("desired x and desired y", desired_x, desired_y)
@@ -227,7 +230,7 @@ class DroneLQR():
     def publish_input(self):
         """publish body rate commands"""
         gains = LQRGain()        
-        tol = 0.05 #0.075 for regular tracking , 0.5 for apriltag
+        tol = 0.03 #0.075 for regular tracking , 0.5 for apriltag
         zero_vals = [0,0,0,0]
         input_x = [float(xu) for xu in self.x_lqr.u]
         input_y = [-float(yu) for yu in self.y_lqr.u]
@@ -315,6 +318,7 @@ if __name__ == "__main__":
                 [0, Q_fact, 0, 0], 
                 [0, 0, Q_fact/2, 0], 
                 [0, 0 , 0, Q_fact/2]])
+    print("initial Q", Q)
     
     ## R penalty for input
     R = np.array([[Q_fact, 0, 0], 
