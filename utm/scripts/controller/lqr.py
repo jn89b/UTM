@@ -158,7 +158,11 @@ class DroneLQR():
                                          Odometry,
                                          self.current_state)
         
-        self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
+        # self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
+        #                                          PoseStamped,
+        #                                          self.desired_state)
+        
+        self.track_sub = rospy.Subscriber("websling", 
                                                  PoseStamped,
                                                  self.desired_state)
         
