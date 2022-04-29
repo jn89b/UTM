@@ -5,34 +5,38 @@ import rospy
 import numpy as np
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
-import scipy
 from scipy.integrate import odeint
 from tf.transformations import euler_from_quaternion
 from std_msgs.msg import Float64
 
 from mavros_msgs.msg import AttitudeTarget
-from utm.msg import LQRGain
+import scipy
 
 """ 
-LQR control for position tracking and referencing 
-of fiducial tags
+PSEUDOCODE
+list of parameters for Q,R, pitch authority:
+What Q,R and pitch authorities to set to?
 
-Drone in sim is AR 2.0 
-weight is 13.4 oz 
-Ix = 8.1 * 1e-3 kg/m^2
-Iy = 8.1 * 1e-3 kg/m^2
-Iz = 14.2 * 1e-3 kg/m^2
+while not recording or no input:
+    - set params
+    
+    - if record = True 
+        - start logging/recording 
+    
+    - if record done = True
+        - when stabilized or I tell to stop then stop recording
+    
+    - if done_sim = True:
+        break while
+        
+    - set next params
+    
+Set a list of Q and R Params
 
-LQR procedures
-    #get act state done by callbacks already
-    #get desired state done by callbacks already
-    #compute state error 
-    #do lqr and get my gains
-    #update state space model done by callbacks already
 """
 
-Ix = 8.1 * 1E-3
-Iy = 8.1 * 1E-3
+Ix = 8.1 * 1E-3 #kg/m"^2
+Iy = 8.1 * 1E-3 #kg/m"^2
 g = 9.81 #m^2/s
 m = 1.0 #kg
 
@@ -208,11 +212,10 @@ class DroneLQR():
         """get desired position from current position"""
         desired_x = msg.pose.position.x # - self.x[0]
         desired_y = msg.pose.position.y
-        # desired_x = 5.0 - self.x_state[0]
-        # desired_y =  5.0 - self.y_state[0] + 10.0
-        print("desired x and desired y", desired_x, desired_y)
-        self.desired_x[0] = desired_x 
-        self.desired_y[0] = desired_y 
+        
+        #print("desired x and desired y", desired_x, desired_y)
+        self.desired_x[0] = desired_x
+        self.desired_y[0] = desired_y
         
         self.desired_x[2] = desired_x - self.x_state[2]
         self.desired_y[2] = desired_y - self.y_state[2]
@@ -220,7 +223,7 @@ class DroneLQR():
     def publish_input(self):
         """publish body rate commands"""
         # gains = LQRGain()        
-        tol = 0.05    #0.075 for regular tracking , 0.5 for apriltag
+        tol = 0.25    #0.075 for regular tracking , 0.5 for apriltag
         zero_vals = [0,0,0,0]
         input_x = [float(xu) for xu in self.x_lqr.u]
         input_y = [-float(yu) for yu in self.y_lqr.u]
@@ -249,6 +252,7 @@ class DroneLQR():
         else:
             pub_vals = input_x
             pub_vals.extend(input_y)   
+            print("publishing values", input_x)
             self.k_pub.publish(pub_vals)
 
     def compute_gains(self):
@@ -269,9 +273,10 @@ class DroneLQR():
         
         self.publish_input()
         
+        
 if __name__ == "__main__":
     
-    rospy.init_node("lqr_controller", anonymous=False)
+    #rospy.init_node("lqr_controller", anonymous=False)
     rate_val = 30
 
     ############ Set up X and Y #####################
@@ -319,12 +324,12 @@ if __name__ == "__main__":
     # lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = None,
     #              rate_val = rate_val) #import matrices into class
 
-    drone_lqr = DroneLQR(Ax, Bx, Ay, By, Q, R, rate_val)
+    drone_lqr = lqr.DroneLQR(Ax, Bx, Ay, By, Q, R, rate_val)
     drone_lqr.compute_gains()
-    rate = rospy.Rate(rate_val)
-    while not rospy.is_shutdown():
-        drone_lqr.main()
-        rate.sleep()
+    # rate = rospy.Rate(rate_val)
+    # while not rospy.is_shutdown():
+    #     drone_lqr.main()
+    #     rate.sleep()
     
     
     

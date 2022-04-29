@@ -130,8 +130,8 @@ class AprilTagPositionPub():
         ops = (add,sub)
         op = random.choice(ops)
         
-        noise_x = random.uniform(0,1) *0.25
-        noise_y = random.uniform(0,1) *0.25
+        noise_x = random.uniform(0,1) *0.1
+        noise_y = random.uniform(0,1) *0.1
         
         px = op(trans[1], noise_x)
         py = op(trans[0], noise_y)

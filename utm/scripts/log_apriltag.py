@@ -67,7 +67,7 @@ tagekf = OdomLoc(tag_topic_filtered)
 tag_raw_topic = uav_name+"/tag/pose"
 tag = OdomLoc(tag_raw_topic)
 
-true_tag = "true_tag_dis"
+true_tag = "/apriltag_global"
 true_tag = OdomLoc(true_tag)
 
 att_topic = uav_name+"/mavros/odometry/in"
@@ -79,7 +79,7 @@ print(os.getcwd())
 #---------Logfile Setup-------------#
 # populate the data header, these are just strings, you can name them anything
 myData = ["time","quad x", "quad y", "quad z", 
-          "vel_x", "vel_y", "pitch", "roll", "pitch_rate", "roll_rate" 
+          "vel_x", "vel_y", "pitch", "roll", "pitch_rate", "roll_rate", 
           "kftag x", "kftag y", "kftag z", 
           "tag x", "tag y", "tag z", "true tag x", "true tag y"]
 
@@ -129,7 +129,8 @@ if __name__ == '__main__':
 			# myData = ["time","quad x", "quad y", "quad z", 
 			# 		"vel_x", "vel_y", "pitch", "roll", "pitch_rate", "roll_rate" 
 			# 		"kftag x", "kftag y", "kftag z", 
-			# 		"tag x", "tag y", "tag z", "true tag x", "true tag y"]
+			# 		"tag x", "tag y", "tag z", 
+            #        "true tag x", "true tag y"]
 			myData = [now, quad.x, quad.y, quad.z, 
              attitude.x_state[1], attitude.y_state[1], 
              attitude.x_state[2], attitude.y_state[2],

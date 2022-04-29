@@ -84,7 +84,7 @@ class PX4Drone
         void send_init_cmds(std::vector<float> position, ros::Rate rate);
         void send_global_waypoints(std::vector<float> wp_vector);
 
-        //tracking 
+        //tracking with PID
         void go_follow(Eigen::Vector2d gain, float z_cmd);
         void rtagquad_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
         void kftag_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);

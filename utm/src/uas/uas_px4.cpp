@@ -4,32 +4,31 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
 {
     //subscribers
     state_sub = nh->subscribe<mavros_msgs::State>
-            ("uav0/mavros/state", 10, &PX4Drone::state_cb, this);
+            ("uav0/mavros/state", 30, &PX4Drone::state_cb, this);
             
     quad_odom_sub = nh->subscribe<nav_msgs::Odometry>
-        ("uav0/mavros/odometry/in",15, &PX4Drone::quad_odom_cb, this);
+        ("uav0/mavros/odometry/in",30, &PX4Drone::quad_odom_cb, this);
 
     true_quad_odom_sub = nh->subscribe<geometry_msgs::PoseStamped>
-                    ("uav0/mavros/local_position/pose",20, &PX4Drone::true_odom_cb, this);
+                    ("uav0/mavros/local_position/pose",30, &PX4Drone::true_odom_cb, this);
     
     local_pos_pub = nh->advertise<geometry_msgs::PoseStamped>
-            ("uav0/mavros/setpoint_position/local", 20);
+            ("uav0/mavros/setpoint_position/local", 30);
     
     vel_pub = nh->advertise<geometry_msgs::TwistStamped>
-            ("uav0/mavros/setpoint_velocity/cmd_vel", 20);
+            ("uav0/mavros/setpoint_velocity/cmd_vel", 30);
 
     //raw publisher
     cmd_raw = nh->advertise<mavros_msgs::AttitudeTarget>
-            ("uav0/mavros/setpoint_raw/attitude", 10);
+            ("uav0/mavros/setpoint_raw/attitude", 30);
 
     //apriltag crap
     rtag_quad_sub = nh->subscribe<geometry_msgs::PoseStamped>
-            ("uav0/tag/pose", 10, &PX4Drone::rtagquad_cb,this); 
+            ("uav0/tag/pose", 30, &PX4Drone::rtagquad_cb,this); 
     rtag_ekf_sub = nh->subscribe<geometry_msgs::PoseStamped>
-            ("uav0/mavros/vision_pose/pose", 10, &PX4Drone::kftag_cb,this);
-
+            ("uav0/mavros/vision_pose/pose", 30, &PX4Drone::kftag_cb,this);
     rtag_ekf_vel_sub = nh->subscribe<geometry_msgs::TwistStamped>
-            ("/uav0/kf_tag/vel", 10, &PX4Drone::kftag_vel_cb,this);
+            ("/uav0/kf_tag/vel", 30, &PX4Drone::kftag_vel_cb,this);
 
     //services
     arming_client = nh->serviceClient<mavros_msgs::CommandBool>
@@ -39,15 +38,14 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
 
     //service input
     service_input_sub = nh->subscribe<std_msgs::Int8>
-                    ("utm_control", 10, &PX4Drone::user_cmd_cb,this);
-
+                    ("utm_control", 30, &PX4Drone::user_cmd_cb,this);
+    
+    //lqr crap
     lqr_gain_sub = nh->subscribe<utm::LQRGain>
-                    ("K_gain", 20, &PX4Drone::lqr_cb,this);
-
+                    ("K_gain", 30, &PX4Drone::lqr_cb,this);
 
 
     //velocity
-
     // offset_pos = {0,0};
     init_pos = {0,0,0};
 
@@ -160,6 +158,7 @@ void PX4Drone::send_global_waypoints(std::vector<float> wp_vector)
     pose.pose.position.y = wp_vector[1] - _offset_pos[1];
     pose.pose.position.z = wp_vector[2];
     local_pos_pub.publish(pose);
+    
 }
 
 //track target with PID gains
@@ -176,12 +175,12 @@ void PX4Drone::go_follow(Eigen::Vector2d gain, float z_cmd)
 void PX4Drone::lqr_track()
 {
     // mavros_msgs::AttitudeTarget bodyrate_msg;
-    // // bodyrate_msg.body_rate.x = 0.0;
-    // // bodyrate_msg.body_rate.y = 1.0;
-    // // bodyrate_msg.body_rate.z = 0.0;
-    // // bodyrate_msg.thrust = 0.4;
-    // // bodyrate_msg.type_mask = 128;
-    // // cmd_raw.publish(bodyrate_msg); 
+    // bodyrate_msg.body_rate.x = 0.0;
+    // bodyrate_msg.body_rate.y = 1.0;
+    // bodyrate_msg.body_rate.z = 0.0;
+    // bodyrate_msg.thrust = 0.4;
+    // bodyrate_msg.type_mask = 128;
+    // cmd_raw.publish(bodyrate_msg); 
 
     // this is better
     cmd_vel.twist.linear.x = lqr_gain_x[0];
@@ -253,7 +252,7 @@ void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
     quaternion_.normalize();
     pose.pose.position.x = odom[0] + gain[0];
     pose.pose.position.y = odom[1] + gain[1];
-    pose.pose.position.z = 10; // just testing the loiter
+    pose.pose.position.z = z_cmd; // just testing the loiter
     pose.pose.orientation.x = quaternion_.x();
     pose.pose.orientation.y = quaternion_.y();
     pose.pose.orientation.z = quaternion_.z();
