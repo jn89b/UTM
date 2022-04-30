@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     double at_yaw = 0.0;
 
     //this should be from parameters
-    std::vector<float> init_pos = {0.0,0.0,25.0};
+    std::vector<float> init_pos = {0.0,0.0,15.0};
     px4drone.send_init_cmds(init_pos, rate);
     px4drone.set_mode.request.custom_mode = "AUTO.LAND";
     px4drone.arm_cmd.request.value = true;

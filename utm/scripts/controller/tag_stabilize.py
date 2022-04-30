@@ -20,11 +20,15 @@ from geometry_msgs.msg import PoseStamped,TwistStamped
 from nav_msgs.msg import Odometry
 
 from tf.transformations import euler_from_quaternion
+
 class WebSling():
+    """_summary_
+    Spiderman likes to swing by stable point to another point    
+    """
     def __init__(self):
         uav_name = "uav0"
         att_topic =  uav_name+"/mavros/odometry/in"
-        tag_topic_filtered = uav_name+"/kf_tag/pose"
+        tag_topic_filtered = uav_name+"/tag/pose"
         websling_topic_name = "websling"
         self.sub = rospy.Subscriber(att_topic, Odometry, self.current_state)
         self.tag_sub = rospy.Subscriber(tag_topic_filtered, PoseStamped, self.kftag_cb) 
@@ -37,7 +41,7 @@ class WebSling():
         
         self.kftag = [0.0, 0.0, 0.0]
         self.sling_point = [0.0, 0.0,0.0]
-        self.angle_tol = 2.0 #degrees
+        self.angle_tol = 5.0  #degrees
         
     def kftag_cb(self,msg):
         self.kftag[0] = msg.pose.position.x
@@ -58,7 +62,7 @@ class WebSling():
 
     def is_stabilize(self):
         """check if attitude of drone is stable"""
-        if (abs(self.pitch_deg) <= self.angle_tol) and (abs(self.roll_deg) <= self.angle_tol):
+        if (abs(self.pitch_deg) < self.angle_tol) and (abs(self.roll_deg) < self.angle_tol):
             return True
         else: 
             return False  
@@ -68,7 +72,7 @@ class WebSling():
         self.sling_point[0] = self.kftag[0]
         self.sling_point[1] = self.kftag[1]
         self.sling_point[2] = self.kftag[2]
-
+    
     def publish_sling_point(self):
         """publish the sling point message as PoseStamped"""
         pose_msg = PoseStamped()
@@ -78,17 +82,31 @@ class WebSling():
         self.web_pub.publish(pose_msg)
         
     def main(self):
-        if self.is_stabilize():
-            self.set_sling_point()
-            self.publish_sling_point()
-            print("set sling point ", self.sling_point)
+        """main implementation to set anchor points"""
+        # set new reference points if stablr
+        if (abs(self.pitch_deg) <= self.angle_tol):
+            self.sling_point[0] = self.kftag[0]
+                
+        if (abs(self.roll_deg) <= self.angle_tol):
+            self.sling_point[1] = self.kftag[1]
+            
+        self.publish_sling_point()
+                
+        # if self.is_stabilize() == True:
+        #     self.set_sling_point()
+        #     self.publish_sling_point()
+        # #if not use last reference point
+        # else:
+        #     self.publish_sling_point()
+        #     #print("set sling point ", self.sling_point)
     
 if __name__=='__main__':
     rospy.init_node('web_sling')
     
-    rate_val = 20
+    rate_val = 30
     rate = rospy.Rate(rate_val) 
     websling = WebSling()
+    print("Spider-Man Spider-Man does whatever a Spider Can")
     while not rospy.is_shutdown():
         websling.main()
         rate.sleep()

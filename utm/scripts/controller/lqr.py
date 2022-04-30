@@ -49,11 +49,14 @@ class LQR():
         self.A = A
         self.B = 0 if B is None else B
         
-        self.Q = np.diag(np.full(4,0.01))#np.diag(np.array(Q)) #if Q is None else Q
-        self.Q[0,0] = 0.8   #Q = 1.0 for apriltag , Q = 3.25 for position 
+        self.Q = np.diag(np.full(4,0.1E-2))#np.diag(np.array(Q)) #if Q is None else Q
+        self.Q[0,0] = 0.95#Q = 1.0 or 0.8 for apriltag , Q = 3.25 for position 
         
         #self.R = np.eye(self.n) if R is None else R,20, 4,5
-        self.R = np.diag([30]) # 30 for apriltag, 9.1 for regular position
+        # self.R = np.diag(np.full(4,15))#
+        #self.R[2,2] = 0.2
+        
+        self.R = np.diag([10]) # 30 for apriltag, 9.1 for regular position
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -127,7 +130,7 @@ class LQR():
         """compute controller input"""
         self.u = np.multiply(self.K, self.error)[0]
         
-        max_pitch_rate = 0.25# 0.25, is the moveabout 20 degrees
+        max_pitch_rate = 0.45# 0.25, is the moveabout 20 degrees
         att_rate_idx = 2
         if abs(self.u[att_rate_idx])>= max_pitch_rate:
             if self.u[att_rate_idx] > 0:              
@@ -224,7 +227,7 @@ class DroneLQR():
     def publish_input(self):
         """publish body rate commands"""
         # gains = LQRGain()        
-        tol = 0.05    #0.075 for regular tracking , 0.5 for apriltag
+        tol = 0.075    #0.075 for regular tracking , 0.5 for apriltag
         zero_vals = [0,0,0,0]
         input_x = [float(xu) for xu in self.x_lqr.u]
         input_y = [-float(yu) for yu in self.y_lqr.u]
