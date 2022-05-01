@@ -22,9 +22,11 @@ from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 
 class WebSling():
+    
     """_summary_
-    Spiderman likes to swing by stable point to another point    
+    Spiderman likes to swing from one stable point to another point    
     """
+    
     def __init__(self):
         uav_name = "uav0"
         att_topic =  uav_name+"/mavros/odometry/in"

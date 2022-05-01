@@ -8,16 +8,12 @@
 #include <string>
 #include <math.h>
 
+#include <geometry_msgs/PoseStamped.h>
+
+
 using namespace Eigen;
 
-double constrainAngle(double x){
-    
-    x = fmod(x,360);
-    if (x < 0)
-        x += 360;
-    return x;
-}
-
+Eigen::Vector2d websling(0.0, 0.0);
 
 std::vector<float> get_offset_pos(ros::NodeHandle* nh)
 {
@@ -49,21 +45,37 @@ double calc_heading(std::vector<float> some_vec)
     return yaw;
 }
 
+void websling_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    websling[0] = msg->pose.position.x;
+    websling[1] = msg->pose.position.y;
+    
+}
 
 int main(int argc, char **argv)
 {
 
-    const float kp = 0.2; //0.35
+    const float kp = 0.37; //0.35
     const float ki = 0.0;
-    const float kd = 0.00001;
+    const float kd = 0.0005; //0.00001
     const float dt = 0.05;
-    const float gain_tol = 0.15;
+    const float gain_tol = 0.075;
     const float heading_bound = M_PI/6; //45 degrees
     const float rate_val = 20.0;    
+
+    bool spider_protocol = true;
 
     ros::init(argc, argv, "test_px4_header");
     ros::NodeHandle _nh; // create a node handle; need to pass this to the class constructor
     ros::Rate rate(rate_val);
+
+
+    // if (spider_protocol == true)
+    // {
+    std::cout<<"SpiderMan is Here" <<std::endl;
+    ros::Subscriber websling_sub = _nh.subscribe<geometry_msgs::PoseStamped>
+                    ("websling", 30, &websling_cb);
+    // }
 
     std::vector<float> offset_pos = get_offset_pos(&_nh);
     
@@ -82,12 +94,21 @@ int main(int argc, char **argv)
     while(ros::ok()){
         //px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
         //px4drone.send_global_waypoints(init_pos);
-
-        PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
-        PID pid_y(kp, ki, kd, dt, px4drone.kf_tag[1], px4drone.odom[1]);
-
-        PID pid_vx(kp, ki, kd, dt, px4drone.kf_vel[0], px4drone.vel[0]);
-        PID pid_vy(kp, ki, kd, dt, px4drone.kf_vel[1], px4drone.vel[1]);
+        PID pid_x(kp, ki, kd, dt, websling[0], px4drone.odom[0]);
+        PID pid_y(kp, ki, kd, dt, websling[1], px4drone.odom[1]);
+    
+        // if (spider_protocol == true)
+        // {
+        //     PID pid_x(kp, ki, kd, dt, websling[0], px4drone.odom[0]);
+        //     PID pid_y(kp, ki, kd, dt, websling[1], px4drone.odom[1]);
+        // }
+        // else
+        // {
+        //     PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
+        //     PID pid_y(kp, ki, kd, dt, px4drone.kf_tag[1], px4drone.odom[1]);
+        // }        
+        // PID pid_vx(kp, ki, kd, dt, px4drone.kf_vel[0], px4drone.vel[0]);
+        // PID pid_vy(kp, ki, kd, dt, px4drone.kf_vel[1], px4drone.vel[1]);
 
         PID pid_yaw(kp, ki, kd, dt, at_yaw, drone_yaw);
 
@@ -125,11 +146,11 @@ int main(int argc, char **argv)
                 float p_y = pid_y.getPID();
                 float p_yaw = pid_yaw.getPID();
 
-                float p_vx = pid_vx.getPID();
-                float p_vy = pid_vy.getPID();
+                // float p_vx = pid_vx.getPID();
+                // float p_vy = pid_vy.getPID();
 
                 Eigen::Vector2d gain(p_x, p_y);
-                Eigen::Vector2d vel_gain(p_vx, p_vy);
+                // Eigen::Vector2d vel_gain(p_vx, p_vy);
                 Eigen::Vector2d no_gain(0, 0);
 
                 // if ((heading_diff <= heading_bound)) 

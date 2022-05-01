@@ -49,14 +49,10 @@ class LQR():
         self.A = A
         self.B = 0 if B is None else B
         
-        self.Q = np.diag(np.full(4,0.1E-2))#np.diag(np.array(Q)) #if Q is None else Q
-        self.Q[0,0] = 0.95#Q = 1.0 or 0.8 for apriltag , Q = 3.25 for position 
+        self.Q = np.diag(np.full(4,0.1E-2)) #np.diag(np.array(Q)) #if Q is None else Q
+        self.Q[0,0] = 1.75#Q = 1.4 or 0.93 for apriltag , Q = 3.25 for position 
         
-        #self.R = np.eye(self.n) if R is None else R,20, 4,5
-        # self.R = np.diag(np.full(4,15))#
-        #self.R[2,2] = 0.2
-        
-        self.R = np.diag([10]) # 30 for apriltag, 9.1 for regular position
+        self.R = np.diag([20]) #14, 30 for apriltag, 9.1 for regular position
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -130,6 +126,7 @@ class LQR():
         """compute controller input"""
         self.u = np.multiply(self.K, self.error)[0]
         
+        #threshold command for pitch rate
         max_pitch_rate = 0.45# 0.25, is the moveabout 20 degrees
         att_rate_idx = 2
         if abs(self.u[att_rate_idx])>= max_pitch_rate:
@@ -137,7 +134,8 @@ class LQR():
                 self.u[att_rate_idx] = max_pitch_rate
             else:
                 self.u[att_rate_idx] = -max_pitch_rate
-                
+        
+        #threshold command for body velocity              
         max_vel = 15.0
         vel_idx = 0
         if abs(self.u[vel_idx])>= max_vel:
@@ -149,7 +147,6 @@ class LQR():
     def main(self):         
         """update values to LQR"""
         self.compute_error()
-        # self.compute_K()
         self.get_u()
         self.update_state()
         
@@ -161,14 +158,15 @@ class DroneLQR():
                                          Odometry,
                                          self.current_state)
         
+        """should refactor this to say if I want to websling or not"""
         # self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
         #                                          PoseStamped,
         #                                          self.desired_state)
         
         self.track_sub = rospy.Subscriber("websling", 
-                                                 PoseStamped,
-                                                 self.desired_state)
-        
+                                         PoseStamped,
+                                         self.desired_state)
+
         self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
         
         self.x_state = np.array([0.0,0.0,0.0,0.0])
@@ -232,10 +230,6 @@ class DroneLQR():
         input_x = [float(xu) for xu in self.x_lqr.u]
         input_y = [-float(yu) for yu in self.y_lqr.u]
         
-        # input_x_half = [float(xu)/2 for xu in self.x_lqr.u]
-        # input_y_half= [-float(yu)/2 for yu in self.y_lqr.u]
-        #print("rate command is", input_x[2])
-        
         if abs(self.x_lqr.error[0]) <= tol and abs(self.y_lqr.error[0]) >= tol:
             pub_vals = zero_vals
             pub_vals.extend(input_y)
@@ -279,7 +273,7 @@ class DroneLQR():
 if __name__ == "__main__":
     
     rospy.init_node("lqr_controller", anonymous=False)
-    rate_val = 30
+    rate_val = 50
 
     ############ Set up X and Y #####################
     # X-subsystem
@@ -323,9 +317,6 @@ if __name__ == "__main__":
                 [0, 0, Q_fact/2, 0], 
                 [0, 0 , 0, Q_fact/2]])
     
-    # lqr = LQR(A = Ax, B = Bx, Q = Q, R = R, x0 = None,
-    #              rate_val = rate_val) #import matrices into class
-
     drone_lqr = DroneLQR(Ax, Bx, Ay, By, Q, R, rate_val)
     drone_lqr.compute_gains()
     rate = rospy.Rate(rate_val)
