@@ -49,14 +49,19 @@ class LQR():
         self.A = A
         self.B = 0 if B is None else B
         
+        #self.high_Q = 2.5    
         self.Q = np.diag(np.full(4,0.1E-2)) #np.diag(np.array(Q)) #if Q is None else Q
-        self.Q[0,0] = 1.75#Q = 1.4 or 0.93 for apriltag , Q = 3.25 for position 
+        #1.9 is high gain, set to 0.9 after close to target
+        self.Q[0,0] = 1.85#Q = 1.4 or 0.93 for apriltag , Q=1.9 Q = 3.25 for position 
+        self.low_Q = 0.9 #0.5
         
-        self.R = np.diag([20]) #14, 30 for apriltag, 9.1 for regular position
+        self.R = np.diag([14]) #14, 30 for apriltag, 9.1 for regular position
+        self.low_R = np.diag([75])
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
-        self.K = []
+        self.K = [] 
+        self.low_K = []
         
         #desired states
         self.z = [0] * len(Q)
@@ -105,7 +110,6 @@ class LQR():
 
         # compute the LQR gain Compute $K=R^-1B^TS$
         K = np.matrix(scipy.linalg.inv(R) * (B.T * X))
-        print("K values are", K)
         
         #gives solution that yields stable system, negative values
         eigVals, eigVecs = scipy.linalg.eig(A - B * K)
@@ -117,17 +121,22 @@ class LQR():
         K, _, _ = self.lqr(self.A, self.B, self.Q, self.R)
         self.K = K
         
+    def compute_lowK(self):
+        """switch to low Q"""
+        self.Q[0,0] = self.low_Q
+        K, _, _ = self.lqr(self.A, self.B, self.Q, self.low_R)
+        self.low_K = K
+        
     def update_state(self): 
         """update state space"""
         self.lqr_output = np.dot(self.B.T, self.u)
         self.x = np.dot(self.A, self.x)  + self.lqr_output
         
-    def get_u(self):
+    def get_u(self,K_val):
         """compute controller input"""
-        self.u = np.multiply(self.K, self.error)[0]
-        
+        self.u = np.multiply(K_val, self.error)[0]
         #threshold command for pitch rate
-        max_pitch_rate = 0.45# 0.25, is the moveabout 20 degrees
+        max_pitch_rate = 0.45 #0.25, is the moveabout 20 degrees
         att_rate_idx = 2
         if abs(self.u[att_rate_idx])>= max_pitch_rate:
             if self.u[att_rate_idx] > 0:              
@@ -147,7 +156,12 @@ class LQR():
     def main(self):         
         """update values to LQR"""
         self.compute_error()
-        self.get_u()
+        #gain scheduling, if close to target reduce gains
+        if self.error[0] <= 0.85:
+            self.get_u(self.low_K)
+        else:         
+            self.get_u(self.K)
+            
         self.update_state()
         
 class DroneLQR():
@@ -256,6 +270,9 @@ class DroneLQR():
         """get gains from ricatti equation"""
         self.x_lqr.compute_K()
         self.y_lqr.compute_K()
+        
+        self.x_lqr.compute_lowK()
+        self.y_lqr.compute_lowK()
         
     def main(self):
         """main implementation"""
