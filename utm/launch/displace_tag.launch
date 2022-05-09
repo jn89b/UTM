@@ -1,0 +1,17 @@
+<launch>
+
+
+    <arg name="uav_name" value="uav0"/>
+    <arg name="cam_name" value="PX4_0"/>
+
+    <arg name="namespace" value="$(arg uav_name)"/>
+    <arg name="camera_name" value="/airsim_node/$(arg cam_name)/downwards_custom_0"/>
+    <arg name="quad_tf" value="/$(arg cam_name)_wrap"/>
+    <arg name="rtag_drone" value="/tag_wrt_$(arg cam_name)"/>
+
+    <node pkg="utm" type="apriltag_displace.py" name="apriltag_displace">
+        <param name="rtag_drone" value="$(arg rtag_drone)"/>
+        <param name="quad_tf" value="$(arg quad_tf)"/>    
+    </node>
+
+</launch>

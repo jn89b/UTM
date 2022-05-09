@@ -12,7 +12,10 @@ import csv
 import os
 import datetime
 from std_msgs.msg import Int8
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped,TwistStamped
+from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion
+
 
 class OdomLoc():
 	def __init__(self,sub_topic):
@@ -21,13 +24,22 @@ class OdomLoc():
 		self.z = None
 		self.coords = [None,None,None]
 		self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.odom_cb) 
+		self.pitch = None
+		self.roll = None
+		self.yaw = None
 
 	def odom_cb(self,msg):
 		self.x = msg.pose.position.x
 		self.y = msg.pose.position.y
 		self.z = msg.pose.position.z
 		self.coords = [self.x,self.y,self.z]
-		print("x", self.x)
+		q = msg.pose.orientation
+		explicit_quat = [q.x, q.y, q.z, q.w]
+		(roll, pitch, yaw) = euler_from_quaternion(explicit_quat)
+		self.pitch = pitch
+		self.roll = roll
+		self.yaw = yaw
+		# print("x", self.x)
 
 class UTMStateCB():
 	def __init__(self, sub_topic):
@@ -36,7 +48,60 @@ class UTMStateCB():
 
 	def utm_cb(self, msg):
 		self.state_command = msg.data
-	
+
+class AttitudePos():
+    def __init__(self, attitude_sub,pos_sub,vel_cmd=None):
+        self.sub = rospy.Subscriber(attitude_sub, Odometry, self.current_state)
+        
+        self.pos_sub = rospy.Subscriber(pos_sub, PoseStamped, self.pos_state)
+
+        if vel_cmd != None:
+            self.command_sub = rospy.Subscriber(vel_cmd, TwistStamped, self.command_vel)
+        
+        self.x_state = [0.0,0.0,0.0,0.0] #x, xdot, pitch, pitch_rate
+        self.y_state = [0.0,0.0,0.0,0.0] #y, ydot, roll, roll_rate
+    
+        self.cmd_vel_x = [0.0, 0.0] #body x vel , pitch rate
+        self.cmd_vel_y = [0.0, 0.0] #body y vel, roll rate
+
+    def pos_state(self,msg):
+        orientation_q = msg.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y,
+                             orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        
+        self.x_state[2] = pitch
+        self.y_state[2] = roll
+
+    def current_state(self, msg):
+        """update current estimates"""
+        px = msg.pose.pose.position.x 
+        py = msg.pose.pose.position.y
+        
+        vel_x = msg.twist.twist.linear.x
+        vel_y = msg.twist.twist.linear.y
+        
+        pitch_rate = msg.twist.twist.angular.x 
+        roll_rate = msg.twist.twist.angular.y 
+        
+        #pitch_rate = pitch - self.x_state[2]/self.dt
+        #roll_rate = roll - self.y_state[2]/self.dt
+        self.x_state[0] = px
+        self.x_state[1] = vel_x
+        self.x_state[3] = pitch_rate
+
+        self.y_state[0] = py
+        self.y_state[1] = vel_y
+        self.y_state[3] = roll_rate
+
+    def command_vel(self, msg):
+        self.cmd_vel_x[0] = msg.twist.linear.x 
+        self.cmd_vel_x[1] = msg.twist.angular.x
+        
+        self.cmd_vel_y[0] = msg.twist.linear.y
+        self.cmd_vel_y[1] = msg.twist.angular.y
+       
+       
 if __name__ == '__main__':
 	
 	# wsl_ip = os.getenv('WSL_HOST_IP')
@@ -46,11 +111,18 @@ if __name__ == '__main__':
 	quad_topic = "PX4_0/global_position/pose"
 	quad = OdomLoc(quad_topic)
 
-	tag_topic_filtered = uav_name+"/kf_tag/pose"
+	#
+	#tag_topic_filtered = uav_name+"/kf_tag/pose"
+	tag_topic_filtered= "/displace/tag/pose"
 	tagekf = OdomLoc(tag_topic_filtered)
 
 	tag_raw_topic = uav_name+"/tag/pose"
 	tag = OdomLoc(tag_raw_topic)
+
+	att_topic = uav_name+"/mavros/odometry/in"
+	pos_topic = uav_name+"/mavros/local_position/pose"
+	cmd_topic = uav_name+"/mavros/setpoint_velocity/cmd_vel"
+	attitude = AttitudePos(att_topic, pos_topic,  cmd_topic,)
 
 	true_tag = "true_tag_dis"
 	true_tag = OdomLoc(true_tag)
@@ -62,10 +134,10 @@ if __name__ == '__main__':
 		kf_name = "/qe"+str(i)
 		kf_name_list.append(kf_name)
 
-		kf_tag_topic = kf_name+"/uav0/kf_tag/pose"
+		kf_tag_topic = kf_name+"/uav0/displace/tag/kfpose"
 		kf_position =  OdomLoc(kf_tag_topic)
 
-		p_error_var_topic = kf_name+"/uav0/P_covar/pose"
+		p_error_var_topic = kf_name+"/uav0/displace/P_covar/pose"
 		process_var = OdomLoc(p_error_var_topic)
   
 		kf_est_list.append([kf_position, process_var])
@@ -91,7 +163,10 @@ if __name__ == '__main__':
 
 	#---------Logfile Setup-------------#
 	# populate the data header, these are just strings, you can name them anything
-	myData = ["time","quad x", "quad y", "quad z", "kftag x", "kftag y", "kftag z", "tag x", "tag y", "tag z", "true tag x", "true tag y"]
+	myData = ["time","quad x", "quad y", "quad z", "kftag x", "kftag y", 
+           "kftag z", "tag x", "tag y", "tag z", "tag roll", "tag pitch",
+           "true tag x", "true tag y",
+           "pitch", "roll"]
 
 	for kf in kf_name_list:
 		myData.append(kf+"_position")
@@ -123,7 +198,6 @@ if __name__ == '__main__':
 		writer = csv.writer(myFile)
 		writer.writerow(myData)
 
-
 	# get the CPU time at which we started the node, we will use this to subtract off so that our time vector
 	# starts near 0
 	zero_time = rospy.get_time()
@@ -140,8 +214,9 @@ if __name__ == '__main__':
 			# create the data vector which we will write to the file, remember if you change
 			# something here, but don't change the header string, your column headers won't
 			# match the data
-			myData = [now, quad.x, quad.y, quad.z, tagekf.x, tagekf.y, tagekf.z, tag.x, tag.y, tag.z,
-			 true_tag.x, true_tag.y]
+			myData = [now, quad.x, quad.y, quad.z, tagekf.x, tagekf.y, tagekf.z,
+             tag.x, tag.y, tag.z, tag.roll, tag.pitch,
+			 true_tag.x, true_tag.y, attitude.x_state[2], attitude.y_state[2]]
    
 			for kf in kf_est_list:
 				myData.append(kf[0].coords)

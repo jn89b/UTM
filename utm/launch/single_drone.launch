@@ -23,6 +23,7 @@
 		<arg name="is_vulkan" value="true"/>
 		<arg name="host" value="$(arg host)" />	
 	</include>
+    
     <!--https://answers.ros.org/question/353634/how-do-we-remap-all-of-the-input-and-ouput-topics-from-a-node-in-a-systematic-way/-->
     <node pkg="mavros" type="gcs_bridge" name="mavlink_bridge">
         <param name="gcs_url" value="$(arg mavlink_bridge_url)" />

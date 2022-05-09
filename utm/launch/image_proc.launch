@@ -1,0 +1,6 @@
+<launch>    
+  <node name="image_proc" pkg="image_proc" type="image_proc" ns="usb_cam">
+      <remap from="image_raw" to="/airsim_node/PX4_0/downwards_custom_0/Scene" />
+      <remap from="camera_info" to="/airsim_node/PX4_0/downwards_custom_0/camera_info" />
+  </node>
+</launch>

@@ -43,7 +43,7 @@ class WebSling():
         
         self.kftag = [0.0, 0.0, 0.0]
         self.sling_point = [0.0, 0.0,0.0]
-        self.angle_tol = 5.0  #degrees
+        self.angle_tol = 10.0  #degrees
         
     def kftag_cb(self,msg):
         self.kftag[0] = msg.pose.position.x
@@ -60,7 +60,7 @@ class WebSling():
         self.pitch_rad = pitch   
         self.roll_rad = roll
         self.pitch_deg = pitch * 180/math.pi
-        self.roll_deg = pitch * 180/math.pi
+        self.roll_deg = roll * 180/math.pi
 
     def is_stabilize(self):
         """check if attitude of drone is stable"""
@@ -86,22 +86,28 @@ class WebSling():
     def main(self):
         """main implementation to set anchor points"""
         # set new reference points if stablr
-        if (abs(self.pitch_deg) <= self.angle_tol):
+        pose_msg = PoseStamped()
+        if (abs(self.pitch_deg) < self.angle_tol):
             self.sling_point[0] = self.kftag[0]
-                
-        if (abs(self.roll_deg) <= self.angle_tol):
+            #print("less", self.pitch_deg)
+        else:
+            print("not stable", self.pitch_deg)
+        
+        if (abs(self.roll_deg) < self.angle_tol):
             self.sling_point[1] = self.kftag[1]
-            
-        self.publish_sling_point()
-                
-        # if self.is_stabilize() == True:
-        #     self.set_sling_point()
-        #     self.publish_sling_point()
-        # #if not use last reference point
-        # else:
-        #     self.publish_sling_point()
-        #     #print("set sling point ", self.sling_point)
-    
+            #print("less", self.roll_deg)
+        else:
+            print("not stable", self.roll_deg)
+        
+        #rospy.sleep(1E-3)
+        pose_msg = PoseStamped()
+        pose_msg.pose.position.x = self.sling_point[0]
+        pose_msg.pose.position.y = self.sling_point[1]
+        pose_msg.pose.position.z = self.sling_point[2]
+        self.web_pub.publish(pose_msg)
+        
+        #self.publish_sling_point()
+
 if __name__=='__main__':
     rospy.init_node('web_sling')
     
@@ -111,4 +117,4 @@ if __name__=='__main__':
     print("Spider-Man Spider-Man does whatever a Spider Can")
     while not rospy.is_shutdown():
         websling.main()
-        rate.sleep()
+    rate.sleep()

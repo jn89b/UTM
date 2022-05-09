@@ -734,7 +734,6 @@ class VehicleClient:
     def simSetDistortionParams(self, camera_name, distortion_params, vehicle_name = '', external = False):
         """
         Set camera distortion parameters
-
         Args:
             camera_name (str): Name of the camera, for backwards compatibility, ID numbers such as 0,1,etc. can also be used
             distortion_params (dict): Dictionary of distortion param names and corresponding values
@@ -742,10 +741,9 @@ class VehicleClient:
             vehicle_name (str, optional): Vehicle which the camera is associated with
             external (bool, optional): Whether the camera is an External Camera
         """
-
         for param_name, value in distortion_params.items():
             self.simSetDistortionParam(camera_name, param_name, value, vehicle_name, external)
-
+        
     def simSetDistortionParam(self, camera_name, param_name, value, vehicle_name = '', external = False):
         """
         Set single camera distortion parameter

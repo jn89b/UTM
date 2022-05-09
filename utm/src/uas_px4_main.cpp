@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include <geometry_msgs/PoseStamped.h>
-
+#include <tf2/LinearMath/Quaternion.h>
 
 using namespace Eigen;
 
@@ -55,9 +55,9 @@ void websling_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 int main(int argc, char **argv)
 {
 
-    const float kp = 0.37; //0.35
+    const float kp = 0.3; //0.35
     const float ki = 0.0;
-    const float kd = 0.0005; //0.00001
+    const float kd = 0.000001; //0.00001
     const float dt = 0.05;
     const float gain_tol = 0.075;
     const float heading_bound = M_PI/6; //45 degrees
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     double at_yaw = 0.0;
 
     //this should be from parameters
-    std::vector<float> init_pos = {0.0,0.0,15.0};
+    std::vector<float> init_pos = {5.0,5.0,15.0};
     px4drone.send_init_cmds(init_pos, rate);
     px4drone.set_mode.request.custom_mode = "AUTO.LAND";
     px4drone.arm_cmd.request.value = true;
@@ -130,56 +130,61 @@ int main(int argc, char **argv)
                 px4drone.lqr_track();
                 break;
             }
-            case 2: // TRACKING WITH pid
-            {   
-                //wrap this as a function
-                // at_yaw = calc_heading(px4drone.rtag);
-                // if(at_yaw <= 0) at_yaw += 2*M_PI;        
-                // drone_yaw = calc_heading(px4drone.odom);
-        
-                // std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
-                // std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
-                
-                // double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
-
-                float p_x = pid_x.getPID();
-                float p_y = pid_y.getPID();
-                float p_yaw = pid_yaw.getPID();
-
-                // float p_vx = pid_vx.getPID();
-                // float p_vy = pid_vy.getPID();
-
-                Eigen::Vector2d gain(p_x, p_y);
-                // Eigen::Vector2d vel_gain(p_vx, p_vy);
-                Eigen::Vector2d no_gain(0, 0);
-
-                // if ((heading_diff <= heading_bound)) 
-                {
-                    if ((abs(gain[0])<= gain_tol) && (abs(gain[1]) <= gain_tol)){
-                        std::cout<<"good enough"<<gain<<std::endl;
-                        px4drone.send_yaw_cmd(no_gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(no_gain);    
-                    } 
-                    
-                    else if((abs(gain[0])>= gain_tol) && (abs(gain[1]) <= gain_tol)){
-                        Eigen::Vector2d x_gain(p_x, 0);
-                        px4drone.send_yaw_cmd(x_gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(no_gain);    
-                    } 
-                    
-                    else if((abs(gain[1])>= gain_tol) && (abs(gain[0]) <= gain_tol)){
-                        Eigen::Vector2d y_gain(0, p_x);
-                        px4drone.send_yaw_cmd(y_gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(no_gain);    
-                    } 
-                    
-                    else{
-                        px4drone.send_yaw_cmd(gain, init_pos[2], drone_yaw);
-                        // px4drone.send_velocity_cmd(vel_gain);
-                    }
-                }   
+            case 2: // Precision Land with LQR
+            {
+                px4drone.lqr_land(-0.35, rate);
                 break;
             }
+            // case 2: // TRACKING WITH pid
+            // {   
+            //     //wrap this as a function
+            //     // at_yaw = calc_heading(px4drone.rtag);
+            //     // if(at_yaw <= 0) at_yaw += 2*M_PI;        
+            //     // drone_yaw = calc_heading(px4drone.odom);
+        
+            //     // std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
+            //     // std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
+                
+            //     // double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
+
+            //     float p_x = pid_x.getPID();
+            //     float p_y = pid_y.getPID();
+            //     float p_yaw = pid_yaw.getPID();
+
+            //     // float p_vx = pid_vx.getPID();
+            //     // float p_vy = pid_vy.getPID();
+
+            //     Eigen::Vector2d gain(p_x, p_y);
+            //     // Eigen::Vector2d vel_gain(p_vx, p_vy);
+            //     Eigen::Vector2d no_gain(0, 0);
+
+            //     // if ((heading_diff <= heading_bound)) 
+            //     {
+            //         if ((abs(gain[0])<= gain_tol) && (abs(gain[1]) <= gain_tol)){
+            //             std::cout<<"good enough"<<gain<<std::endl;
+            //             px4drone.send_yaw_cmd(no_gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(no_gain);    
+            //         } 
+                    
+            //         else if((abs(gain[0])>= gain_tol) && (abs(gain[1]) <= gain_tol)){
+            //             Eigen::Vector2d x_gain(p_x, 0);
+            //             px4drone.send_yaw_cmd(x_gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(no_gain);    
+            //         } 
+                    
+            //         else if((abs(gain[1])>= gain_tol) && (abs(gain[0]) <= gain_tol)){
+            //             Eigen::Vector2d y_gain(0, p_x);
+            //             px4drone.send_yaw_cmd(y_gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(no_gain);    
+            //         } 
+                    
+            //         else{
+            //             px4drone.send_yaw_cmd(gain, init_pos[2], drone_yaw);
+            //             // px4drone.send_velocity_cmd(vel_gain);
+            //         }
+            //     }   
+            //     break;
+            // }
             // case 2: //precland
             // {
             //     float p_x = pid_x.getPID();

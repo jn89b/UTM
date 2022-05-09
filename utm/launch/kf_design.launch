@@ -1,45 +1,51 @@
 <launch>
 <!--Launches multiple kalman filters to tune Q-->
 
+    <group ns="qe0">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.1"/>
+            <arg name="R_param" value="0.1"/>
+        </include>
+    </group>
 
     <group ns="qe1">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="1.0"/>
+            <arg name="Q_param" value="0.01"/>
             <arg name="R_param" value="0.1"/>
         </include>
     </group>
 
     <group ns="qe2">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="2.0"/>
+            <arg name="Q_param" value="0.001"/>
             <arg name="R_param" value="0.2"/>
         </include>
     </group>
 
     <group ns="qe3">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="3.0"/>
+            <arg name="Q_param" value="0.0001"/>
             <arg name="R_param" value="0.3"/>
         </include>
     </group>
 
     <group ns="qe4">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="4.0"/>
+            <arg name="Q_param" value="0.00001"/>
             <arg name="R_param" value="0.4"/>
         </include>
     </group>
 
     <group ns="qe5">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="5.0"/>
+            <arg name="Q_param" value="0.000001"/>
             <arg name="R_param" value="0.5"/>
         </include>
     </group>
 
     <group ns="qe6">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="6.0"/>
+            <arg name="Q_param" value="0.0000001"/>
             <arg name="R_param" value="0.6"/>
         </include>
     </group>
@@ -47,11 +53,70 @@
 
     <group ns="qe7">
         <include file="$(find utm)/launch/kf.launch">
-            <arg name="Q_param" value="7.0"/>
+            <arg name="Q_param" value="0.00000001"/>
             <arg name="R_param" value="0.7"/>
         </include>
     </group>
 
-    
+
+<!-- 
+    <group ns="qe0">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.1"/>
+            <arg name="R_param" value="0.1"/>
+        </include>
+    </group>
+
+    <group ns="qe1">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.2"/>
+            <arg name="R_param" value="0.1"/>
+        </include>
+    </group>
+
+    <group ns="qe2">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.3"/>
+            <arg name="R_param" value="0.2"/>
+        </include>
+    </group>
+
+    <group ns="qe3">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.4"/>
+            <arg name="R_param" value="0.3"/>
+        </include>
+    </group>
+
+    <group ns="qe4">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.5"/>
+            <arg name="R_param" value="0.4"/>
+        </include>
+    </group>
+
+    <group ns="qe5">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.6"/>
+            <arg name="R_param" value="0.5"/>
+        </include>
+    </group>
+
+    <group ns="qe6">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.7"/>
+            <arg name="R_param" value="0.6"/>
+        </include>
+    </group>
+
+
+    <group ns="qe7">
+        <include file="$(find utm)/launch/kf.launch">
+            <arg name="Q_param" value="0.8"/>
+            <arg name="R_param" value="0.7"/>
+        </include>
+    </group>  -->
+
+
 
 </launch>

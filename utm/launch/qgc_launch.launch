@@ -1,0 +1,62 @@
+<launch>
+
+    <arg name="mavlink_bridge_url" default="udp://@$(env WSL_HOST_IP):14550" />
+
+	<!--args for airsim_node.launch, set arg host to WSL2 ipaddress config-->
+	<arg name="output" default="screen"/>
+	<arg name="publish_clock" default="true"/>
+	<arg name="is_vulkan" default="true"/>
+	<arg name="host" default="$(env WSL_HOST_IP)" />
+
+    <!-- <remap from="/airsim_node/PX4/front_camera/Scene" to="/airsim_node/PX4/front_camera/Scene/image_raw"/>
+    <remap from="/airsim_node/PX4/front_camera/camera_info" to="/airsim_node/PX4/front_camera/Scene/camera_info"/> -->
+    <arg name="fcu_url" default="udp://:14540@$(arg host):14557" />
+    <arg name="gcs_url" default="udp://:14556@$(arg host):14551" />
+
+    <arg name="tgt_system" default="1" />
+    <arg name="tgt_component" default="1" />
+
+	<include file="$(find airsim_ros_pkgs)/launch/airsim_node.launch">
+		<arg name="output" value="screen"/>
+		<arg name="publish_clock" value="true"/>
+		<arg name="is_vulkan" value="true"/>
+		<arg name="host" value="$(arg host)" />	
+	</include>
+    
+    <include file="$(find utm)/launch/mavros_gcs_launch.launch">
+        <arg name="fcu_url" value="$(arg fcu_url)" />
+        <arg name="gcs_url" value="$(arg gcs_url)"/>
+        <arg name="tgt_system" value="$(arg tgt_system)" />
+        <arg name="tgt_component" value="$(arg tgt_component)"/>
+    </include>
+    
+
+    <node pkg="mavros" type="gcs_bridge" name="mavlink_bridge">
+        <param name="gcs_url" value="$(arg mavlink_bridge_url)" />
+    </node>
+
+    <group ns="uav0">
+        <arg name="uav_name" value="uav0"/>
+        <arg name="cam_name" value="PX4_0"/>
+    
+        <arg name="namespace" value="$(arg uav_name)"/>
+        <arg name="camera_name" value="/airsim_node/$(arg cam_name)/downwards_custom_0"/>
+        <arg name="quad_tf" value="/$(arg cam_name)_wrap"/>
+        <arg name="rtag_drone" value="/tag_wrt_$(arg cam_name)"/>
+
+        <include file="$(find apriltag_ros)/launch/continuous_detection.launch">        
+            <arg name="camera_name" value="/$(arg camera_name)"/>
+        </include>
+        
+        <!--remap these params to my ros wrapper-->
+        <node pkg="utm" type="apriltag_position_pub.py" name="apriltag_position_pub">
+            <param name="rtag_drone" value="$(arg rtag_drone)"/>
+            <param name="quad_tf" value="$(arg quad_tf)"/>    
+        </node>
+        <!--comment this out if you don't want apriltag tag detection-->
+        <node pkg="utm" type="ekf_tag.py" name="ekf_tag"/>
+
+    </group>
+
+
+</launch>

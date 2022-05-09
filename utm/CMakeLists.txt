@@ -111,6 +111,10 @@ add_executable(uas_px4_main src/uas_px4_main.cpp src/PID.cpp src/uas/uas_px4.cpp
 add_dependencies(uas_px4_main ${catkin_EXPORTED_TARGETS})
 target_link_libraries(uas_px4_main  ${catkin_LIBRARIES})
 
+add_executable(px4_att_test src/px4_att_test.cpp src/PID.cpp src/uas/uas_px4.cpp)
+add_dependencies(px4_att_test ${catkin_EXPORTED_TARGETS})
+target_link_libraries(px4_att_test  ${catkin_LIBRARIES})
+
 add_executable(offboard_example src/offboard_example.cpp)
 target_link_libraries(offboard_example ${catkin_LIBRARIES})
 
@@ -182,6 +186,8 @@ catkin_install_python(PROGRAMS
     scripts/uss/path_planning_service/path_planning_service.py
 
     #test setups
+    tests/kf_displace.py
+    tests/apriltag_displace.py
     tests/mongo_db_test.py
     tests/mongo_recieve_info.py
     tests/landing_zone_test.py

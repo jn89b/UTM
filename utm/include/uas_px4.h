@@ -24,7 +24,7 @@ class PX4Drone
     private:
         ros::NodeHandle nh;
 
-        ros::Publisher local_pos_pub, vel_pub, cmd_raw;
+        ros::Publisher local_pos_pub, vel_pub, cmd_raw, att_pub;
 
         ros::Subscriber state_sub, target_found_sub, 
             rtag_ekf_sub,rtag_quad_sub, quad_odom_sub;
@@ -36,7 +36,8 @@ class PX4Drone
         ros::ServiceClient arming_client, set_mode_client;
 
         geometry_msgs::PoseStamped pose;
-        geometry_msgs::TwistStamped cmd_vel;             
+        geometry_msgs::TwistStamped cmd_vel;   
+                  
         
         Eigen::Vector4d lqr_gain_x;
         Eigen::Vector4d lqr_gain_y;
@@ -55,6 +56,8 @@ class PX4Drone
         //offsets
         std::vector<float> _offset_pos;
 
+        void lqr_precland(float z_val);
+
     public:
     //Odometry of quad with offset because Airsim does not like to play nice
         std::vector<float> odom;
@@ -68,6 +71,7 @@ class PX4Drone
         mavros_msgs::SetMode set_mode;
         mavros_msgs::CommandBool arm_cmd;
         mavros_msgs::State current_state;
+        
 
         PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos);
         void init_vals(std::vector<float> offset_pos);
@@ -94,14 +98,18 @@ class PX4Drone
         void lqr_cb(const utm::LQRGain::ConstPtr& msg);
         void lqr_track();
 
-        void user_cmd_cb(const std_msgs::Int8::ConstPtr& msg);
+        //lqr landing
+        void lqr_land(float z_drop, ros::Rate rate);
 
+        void user_cmd_cb(const std_msgs::Int8::ConstPtr& msg);
         void send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw);
         
         void begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate);
         void set_offboard(std::vector<float> pos_cmd,  ros::Rate rate);
 
         void send_velocity_cmd(Eigen::Vector2d gain);
+
+        void send_att_cmd(float pitch, float roll, float yaw);
 
 };
 

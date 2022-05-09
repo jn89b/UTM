@@ -1,9 +1,14 @@
 <launch>
-
+    <!--step_q1_r4p5-->
     <node pkg="rosbag" type="play" name="player" 
-    output="screen" args="--clock /home/justin/catkin_ws/src/utm/utm/bagfiles/freq_sweep.bag"/>
+    output="screen" args="--clock /home/justin/catkin_ws/src/utm/utm/bagfiles/step_q1_r4p5.bag"/>
+
+    <!-- <include file="$(find utm)/launch/displace_tag.launch"/> -->
+
+    <include file="$(find utm)/launch/displace_tag.launch"/>
+
+    <include file="$(find utm)/launch/kf_design.launch"/>
 
     <node pkg="utm" type="kf_logger.py" name="kf_logger"/>
-    <include file="$(find utm)/launch/kf_design.launch"/>
 
 </launch>

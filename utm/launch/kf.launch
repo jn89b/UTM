@@ -4,7 +4,7 @@
     <arg name="Q_param" default="0.1"/>
     <arg name="R_param" default="0.1"/>
 
-    <node pkg="utm" type="kf_design.py" name="kf_design">
+    <node pkg="utm" type="kf_displace.py" name="kf_displace">
             <param name="~Q_param" value="$(arg Q_param)"/>
             <param name="R_param" value="$(arg R_param)"/>
     </node>

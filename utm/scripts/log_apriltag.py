@@ -24,9 +24,11 @@ class OdomLoc():
         self.z = msg.pose.position.z
 
 class AttitudePos():
-    def __init__(self, attitude_sub,vel_cmd=None):
+    def __init__(self, attitude_sub,pos_sub,vel_cmd=None):
         self.sub = rospy.Subscriber(attitude_sub, Odometry, self.current_state)
         
+        self.pos_sub = rospy.Subscriber(pos_sub, PoseStamped, self.pos_state)
+
         if vel_cmd != None:
             self.command_sub = rospy.Subscriber(vel_cmd, TwistStamped, self.command_vel)
         
@@ -35,6 +37,15 @@ class AttitudePos():
     
         self.cmd_vel_x = [0.0, 0.0] #body x vel , pitch rate
         self.cmd_vel_y = [0.0, 0.0] #body y vel, roll rate
+
+    def pos_state(self,msg):
+        orientation_q = msg.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y,
+                             orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        
+        self.x_state[2] = pitch
+        self.y_state[2] = roll
 
     def current_state(self, msg):
         """update current estimates"""
@@ -47,20 +58,14 @@ class AttitudePos():
         pitch_rate = msg.twist.twist.angular.x 
         roll_rate = msg.twist.twist.angular.y 
         
-        orientation_q = msg.pose.pose.orientation
-        orientation_list = [orientation_q.x, orientation_q.y,
-                             orientation_q.z, orientation_q.w]
-        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
         #pitch_rate = pitch - self.x_state[2]/self.dt
         #roll_rate = roll - self.y_state[2]/self.dt
         self.x_state[0] = px
         self.x_state[1] = vel_x
-        self.x_state[2] = pitch
         self.x_state[3] = pitch_rate
 
         self.y_state[0] = py
         self.y_state[1] = vel_y
-        self.y_state[2] = roll
         self.y_state[3] = roll_rate
 
     def command_vel(self, msg):
@@ -88,8 +93,15 @@ web_tag = "websling"
 web = OdomLoc(web_tag)
 
 att_topic = uav_name+"/mavros/odometry/in"
+pos_topic = uav_name+"/mavros/local_position/pose"
 cmd_topic = uav_name+"/mavros/setpoint_velocity/cmd_vel"
-attitude = AttitudePos(att_topic, cmd_topic)
+attitude = AttitudePos(att_topic, pos_topic,  cmd_topic,)
+
+tag_dis_topic = uav_name+"/displace/tag/pose"
+dist_tag = OdomLoc(tag_dis_topic)
+
+kf_tag_dis_topic = uav_name+"/displace/tag/kfpose"
+kf_tag_dis = OdomLoc(kf_tag_dis_topic)
 
 # register the node with the name logger
 rospy.init_node('logger', anonymous=True)
@@ -101,7 +113,7 @@ myData = ["time","quad x", "quad y", "quad z",
           "kftag x", "kftag y", "kftag z", 
           "tag x", "tag y", "tag z", "true tag x", "true tag y",
           "cmd vel x", "cmd ang x", "cmd vel y", "cmd ang y",
-          "web x", "web y"]
+          "web x", "web y", "dis x", "dis y", "dis kfx", "dis kfy"]
 
 # this creates a filename which contains the current date/time RaspberryPi does not have a real time clock, the files
 # will have the correct sequence (newest to oldest is preserved) but unless you set it explicitely the time will not
@@ -142,14 +154,7 @@ if __name__ == '__main__':
 		while not rospy.is_shutdown():
 			# get the current time and subtract off the zero_time offset
 			now = (rospy.get_time()-zero_time)
-			# create the data vector which we will write to the file, remember if you change
-			# something here, but don't change the header string, your column headers won't
-			# match the data
-			# myData = ["time","quad x", "quad y", "quad z", 
-			# 		"vel_x", "vel_y", "pitch", "roll", "pitch_rate", "roll_rate" 
-			# 		"kftag x", "kftag y", "kftag z", 
-			# 		"tag x", "tag y", "tag z", 
-            #        "true tag x", "true tag y"]
+
 			myData = [now, quad.x, quad.y, quad.z, 
              attitude.x_state[1], attitude.y_state[1], 
              attitude.x_state[2], attitude.y_state[2],
@@ -159,7 +164,8 @@ if __name__ == '__main__':
              true_tag.x, true_tag.y,
              attitude.cmd_vel_x[0], attitude.cmd_vel_y[0],
              attitude.cmd_vel_x[1], attitude.cmd_vel_y[1],
-             web.x, web.y]
+             web.x, web.y, dist_tag.x, dist_tag.y, 
+             kf_tag_dis.x, kf_tag_dis.y]
             
 			# stick everything in the file
 			myFile = open(fileName, 'a')

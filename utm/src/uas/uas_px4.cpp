@@ -18,6 +18,9 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     vel_pub = nh->advertise<geometry_msgs::TwistStamped>
             ("uav0/mavros/setpoint_velocity/cmd_vel", 30);
 
+    att_pub = nh->advertise<mavros_msgs::AttitudeTarget>
+            ("uav0/mavros/setpoint_raw/attitude", 30);
+
     //raw publisher
     cmd_raw = nh->advertise<mavros_msgs::AttitudeTarget>
             ("uav0/mavros/setpoint_raw/attitude", 30);
@@ -28,7 +31,7 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     rtag_ekf_sub = nh->subscribe<geometry_msgs::PoseStamped>
             ("uav0/mavros/vision_pose/pose", 30, &PX4Drone::kftag_cb,this);
     rtag_ekf_vel_sub = nh->subscribe<geometry_msgs::TwistStamped>
-            ("/uav0/kf_tag/vel", 30, &PX4Drone::kftag_vel_cb,this);
+            ("uav0/kf_tag/vel", 30, &PX4Drone::kftag_vel_cb,this);
 
     //services
     arming_client = nh->serviceClient<mavros_msgs::CommandBool>
@@ -105,6 +108,8 @@ void PX4Drone::get_odom_pos()
     float y = odom[1];
     std::cout<<"odometry of Drone is"<< x << "," <<  y << std::endl;
 }
+
+
 
 void PX4Drone::true_odom_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
@@ -192,6 +197,29 @@ void PX4Drone::lqr_track()
     vel_pub.publish(cmd_vel);
 }
 
+void PX4Drone::lqr_precland(float z_val)
+{
+    // mavros_msgs::AttitudeTarget bodyrate_msg;
+    // bodyrate_msg.body_rate.x = 0.0;
+    // bodyrate_msg.body_rate.y = 1.0;
+    // bodyrate_msg.body_rate.z = 0.0;
+    // bodyrate_msg.thrust = 0.4;
+    // bodyrate_msg.type_mask = 128;
+    // cmd_raw.publish(bodyrate_msg); 
+
+    // this is better
+    cmd_vel.twist.linear.x = lqr_gain_x[0];
+    cmd_vel.twist.angular.x = lqr_gain_x[2];
+
+    cmd_vel.twist.linear.y = lqr_gain_y[0];
+    cmd_vel.twist.angular.y = lqr_gain_y[2];
+    
+    cmd_vel.twist.linear.z = z_val;
+
+    //cmd_vel.twist.linear.y = vel[1] + gain[1];
+    vel_pub.publish(cmd_vel);
+}
+
 
 void PX4Drone::lqr_cb(const utm::LQRGain::ConstPtr& msg)
 {
@@ -260,6 +288,25 @@ void PX4Drone::send_yaw_cmd(Eigen::Vector2d gain, float z_cmd, float yaw)
     local_pos_pub.publish(pose);
 }
 
+void PX4Drone::send_att_cmd(float pitch, float roll, float yaw)
+{
+    //x = pitch , y == roll, z == yaw ENU coordinates in radians
+
+    mavros_msgs::AttitudeTarget att_msg;
+    tf2::Quaternion myQuaternion;
+    myQuaternion.setRPY(pitch,roll,yaw); 
+    myQuaternion.normalize();
+    //att_msg.thrust = 0.5; 
+    att_msg.type_mask = 64; // ignore thrust
+    att_msg.orientation.x = myQuaternion.x();
+    att_msg.orientation.y = myQuaternion.y();
+    att_msg.orientation.z = myQuaternion.z();
+    att_msg.orientation.w = myQuaternion.w();
+
+    att_pub.publish(att_msg);   
+}
+
+
 void PX4Drone::send_velocity_cmd(Eigen::Vector2d gain)
 {
     cmd_vel.twist.linear.x = vel[0] + gain[0];
@@ -269,12 +316,13 @@ void PX4Drone::send_velocity_cmd(Eigen::Vector2d gain)
 
 void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
 {   
-    const float land_height = 0.8;
+    const float land_height = 1.5;
     const float dropping = 0.25;
 
-    if (rtag[2]>= land_height){
+    if (abs(rtag[2])>= land_height){
         //std::cout<<"starting to land"<<std::endl;
         go_follow(gain, odom[2]-dropping);
+
     }
     else{
         ros::Time last_request = ros::Time::now();  
@@ -293,6 +341,35 @@ void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
         }
     }
 }
+
+void PX4Drone::lqr_land(float z_drop, ros::Rate rate)
+{   
+    const float land_height = 1.5;
+    const float dropping = 0.25;
+
+    if (abs(rtag[2])>= land_height){
+        lqr_precland(z_drop);
+        std::cout<<"not there yet"<<rtag[2]<<std::endl;
+    }
+    else{
+        std::cout<<"I'm here"<<rtag[2]<< std::endl;
+        ros::Time last_request = ros::Time::now();  
+        set_mode.request.custom_mode = "AUTO.LAND";
+        arm_cmd.request.value = false;
+        while(ros::ok() && (current_state.mode != "AUTO.LAND")){
+            lqr_precland(0.0);
+            setmode_arm(last_request, set_mode.request.custom_mode , arm_cmd);
+            ros::spinOnce();
+            rate.sleep();
+            if (user_cmd != 2) 
+            {
+                ROS_INFO("I hear a different command");
+                return;
+            }
+        }
+    }
+}
+
 
 void PX4Drone::set_offboard(std::vector<float> pos_cmd,  ros::Rate rate)
 {

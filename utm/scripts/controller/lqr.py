@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from this import d
 import rospy 
 import numpy as np
 from geometry_msgs.msg import PoseStamped
@@ -53,10 +52,10 @@ class LQR():
         self.Q = np.diag(np.full(4,0.1E-2)) #np.diag(np.array(Q)) #if Q is None else Q
         #1.9 is high gain, set to 0.9 after close to target
         self.Q[0,0] = 1.85#Q = 1.4 or 0.93 for apriltag , Q=1.9 Q = 3.25 for position 
-        self.low_Q = 0.9 #0.5
+        self.low_Q = 1.0 #0.5
         
-        self.R = np.diag([14]) #14, 30 for apriltag, 9.1 for regular position
-        self.low_R = np.diag([75])
+        self.R = np.diag([14]) #14, 75 30 for apriltag, 9.1 for regular position
+        self.low_R = np.diag([50])
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -290,7 +289,7 @@ class DroneLQR():
 if __name__ == "__main__":
     
     rospy.init_node("lqr_controller", anonymous=False)
-    rate_val = 50
+    rate_val = 30
 
     ############ Set up X and Y #####################
     # X-subsystem
