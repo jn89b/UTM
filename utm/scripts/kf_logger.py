@@ -39,7 +39,6 @@ class OdomLoc():
 		self.pitch = pitch
 		self.roll = roll
 		self.yaw = yaw
-		# print("x", self.x)
 
 class UTMStateCB():
 	def __init__(self, sub_topic):
@@ -104,14 +103,10 @@ class AttitudePos():
        
 if __name__ == '__main__':
 	
-	# wsl_ip = os.getenv('WSL_HOST_IP')
-	# df = pd.read_csv(config.FILEPATH+config.FILENAME)
-	
 	uav_name = "uav0"
 	quad_topic = "PX4_0/global_position/pose"
 	quad = OdomLoc(quad_topic)
 
-	#
 	#tag_topic_filtered = uav_name+"/kf_tag/pose"
 	tag_topic_filtered= "/displace/tag/pose"
 	tagekf = OdomLoc(tag_topic_filtered)

@@ -264,12 +264,10 @@ class ZonePlanner():
 
         print("Removed ", uav_name + " from landing service collection")
 
-
 class PathPlannerService(AbstractDatabaseInfo):
     """
     Path Planner Service takes in all information of UAS queries to request 
-    a path to be sent from start point to goal point
-
+    a path and inputs into the pathPlanning service database
     """
     database_name = "pathPlanningService"
     path_planning_col_name = "uas_path_planning"
@@ -311,7 +309,8 @@ class PathPlannerService(AbstractDatabaseInfo):
             return True
             
     def find_path_planning_clients(self):
-        """find uas operators who do not have a waypoint and returns as list of lists"""
+        """find uas operators who do not have a waypoint 
+        and returns as list of lists"""
         uavs = []
         myquery = {"waypoints": {'$exists': False}}
         cursor = self.path_planning_col.find(myquery)
@@ -323,6 +322,7 @@ class PathPlannerService(AbstractDatabaseInfo):
         return uavs
     
     def get_uav_waypoints(self, uav_name, start, goal):
+        """get uav waypoints and checks if it exists"""
         myquery = {"$and": [{"uav_name":uav_name, 
                     "start_point":start,"end_point":goal}, 
                     {"waypoints": {'$exists': True}}]}
@@ -351,12 +351,28 @@ class PathPlannerService(AbstractDatabaseInfo):
     def insert_uav_to_reservation(self,uav_name, waypoints):
         """insert uav into reservation collection"""
         #https://stackoverflow.com/questions/2801008/mongodb-insert-if-not-exists
-        key = {"_id":uav_name}
-        query = {"uav_name":uav_name, "waypoints": waypoints}
-        self.reservation_col.update(key,query,upsert=True)
+        try:
+            key = {"_id":uav_name}
+            query = {"uav_name":uav_name, "waypoints": waypoints}
+            self.reservation_col.update(key,query,upsert=True)
+        except pymongo.errors.DuplicateKeyError:
+            # skip document because it already exists in new collection
+            print("duplicate uav key", uav_name)
+            
+    def remove_zone_from_reservation(self, zone_name):
+        """remove zones from collection list"""
+        self.reservation_col.update({"zone_name": zone_name},
+        {"$set":{
+            "waypoints": ""}},upsert=True)
+
+    def insert_zone_to_reservation(self, zone_name, fence):
+        """insert zones to reservation table"""
+        key = {"_id":zone_name}
+        query = {"zone_name":zone_name, "waypoints": fence}
+        self.reservation_col.update(key,query,upsert=True)            
 
     def get_reserved_waypoints(self):
-        """find uas operators who do not have a waypoint and returns as list of lists"""
+        """returns a list of reserved waypoints"""
         reserved = []
         myquery = {"waypoints": {'$exists': True}}
         cursor = self.reservation_col.find(myquery)

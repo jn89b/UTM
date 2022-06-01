@@ -114,8 +114,6 @@ class PositionController():
 
     def publishSetpoint(self):
         self.setpoint_.header.stamp = rospy.Time.now()
-
-        # Only one type of the following setpoints will be consumed based on the type_mask
         """
         self.setpoint_.position.x = self.pos_setpoint_.x
         self.setpoint_.position.y = self.pos_setpoint_.y
@@ -137,8 +135,6 @@ class PositionController():
 
         self.setpoint_.yaw = 25 * pi / 180. # convert to radians
         self.setpoint_pub_.publish(self.setpoint_)
-
-
 
     def bodyVelCallback(self, msg):
         self.body_vel_ = msg

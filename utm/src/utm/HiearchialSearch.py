@@ -635,7 +635,7 @@ def get_abstract_path(start_location, goal_location, reservation_table,graph):
     """
     graph.insert_temp_nodes(start_location, 1, start_location)
     graph.insert_temp_nodes(goal_location, 1, goal_location)
-    gc.collect()
+    # gc.collect()
     astar_graph = Astar.AstarGraph(graph.graph, reservation_table, start_location, goal_location, 0.01)
     abstract_pathways = astar_graph.main()
     return abstract_pathways

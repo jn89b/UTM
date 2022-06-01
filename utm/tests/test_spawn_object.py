@@ -30,9 +30,17 @@ if __name__=='__main__':
 	#test 20 mph or 8.94m/s
 	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
 	client.simSetWind(wind)
-	
+	time.sleep(1.5)
 	# time.sleep(1.5)
-	# wind_val = [0, -15, 0]
+	# wind_val = [0, -10, 0]
+	# print("adding wind ", wind_val[0],wind_val[1])
+	# #test 20 mph or 8.94m/s
+	# wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
+	# client.simSetWind(wind)
+	# time.sleep(1.5)
+
+
+	# wind_val = [0, 0, 0]
 	# print("adding wind ", wind_val[0],wind_val[1])
 	# #test 20 mph or 8.94m/s
 	# wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
@@ -52,27 +60,20 @@ if __name__=='__main__':
 	wind_list = [wind_1, wind_2, wind_3, wind_4,
               wind_5, wind_6, wind_7, wind_8]
 
-	wind_val = [0, 0, 0]
-	print("adding wind ", wind_val[0],wind_val[1])
-	#test 20 mph or 8.94m/s
-	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
-	client.simSetWind(wind)
-
-
 	for wind in wind_list:
 		print("adding wind ", wind[0],wind[1])
 		#test 20 mph or 8.94m/s
 		wind = airsim.Vector3r(wind[0], wind[1], 0)
 		client.simSetWind(wind)
-		time.sleep(3.0)
+		time.sleep(1.5)
 	
-	time.sleep(1.5)
-	wind_val = [0, 0, 0]
-	print("wind sim done", wind_val[0],wind_val[1])
-	#test 20 mph or 8.94m/s
-	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
-	client.simSetWind(wind)
-			
+	# time.sleep(1.5)
+	# wind_val = [0, -8.5, 0]
+	# while True:
+	# 	#print("wind sim done", wind_val[0],wind_val[1])
+	# 	wind = airsim.Vector3r(wind_val[0], wind_val[1], 0)
+	# 	client.simSetWind(wind)
+				
 	
 	# print("adding wind the other way", wind_val[0],wind_val[1])
 	# #test 20 mph or 8.94m/s

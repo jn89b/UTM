@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator 
 
-from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 from utm import Database, HomeBase, PathFinding
 
@@ -127,9 +126,7 @@ class PreLandingService():
         cursor = self.landing_service_col.find(myquery)
         for document in cursor:
             uavs.append(document["uav_name"])
-
         return uavs
-
 
     def find_closest_zone(self, uav_loc, landing_zones):
         """find closest zone location to uav location"""

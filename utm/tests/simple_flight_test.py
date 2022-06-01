@@ -46,15 +46,5 @@ if __name__=='__main__':
     #this command gets all vehicle types will be useful for global planner
     vehicles = client.listVehicles()
     print("vehicles are", vehicles)
-    # waypoints = [[30,50,10,5], [20,10,14,5]]
-
-    # client.moveToPositionAsync(15, 0, -10, 5, vehicle_name=vehicles[0])
-
-    # for wp in waypoints:
-    #     ned_wp = convert_enu_to_ned(wp)
-    #     async_call = client.moveToPositionAsync(ned_wp[0], ned_wp[1], ned_wp[2], wp[3],
-    #      vehicle_name='PX4_0').join()
-
-    #send waypoint commands
 
     

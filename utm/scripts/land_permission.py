@@ -13,7 +13,6 @@ if it does request a land -> probably make this a service? allow permission
 """
 
 class PrecLand():
-
     def __init__(self):
         self.pub = rospy.Publisher("precland", Bool, queue_size=10)
         self.sub = rospy.Subscriber("target_found", Bool, self.target_foundcb)

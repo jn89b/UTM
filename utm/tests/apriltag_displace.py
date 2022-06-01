@@ -51,7 +51,7 @@ class AprilTagPositionPub():
         self.z_sub = rospy.Subscriber("/PX4_0/global_position/pose", PoseStamped, self.z_cb)
         rospy.Subscriber('uav0/tag_detections', AprilTagDetectionArray, self.tagsCallback)
 
-        #boolean statement 
+         
         self.pitch_rad = 0.0 
         self.roll_rad = 0.0 
         self.pitch_deg = 0.0 
@@ -60,6 +60,7 @@ class AprilTagPositionPub():
         self.dx = 0.0 
         self.dy = 0.0
         self.z = 0.0 
+        #boolean statement
         self.valid = False
                 
     def current_state(self, msg):

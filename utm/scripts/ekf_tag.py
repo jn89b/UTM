@@ -120,7 +120,7 @@ if __name__ == "__main__":
     rate_val = 30
     #init vals
     dt = 1/rate_val
-    Q_param = 0.5 #for variance of acceleration
+    Q_param = 0.125 #for variance of acceleration
     
     ####### CONSTANT ACCELERATION MODEL##########
     

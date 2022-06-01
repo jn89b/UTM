@@ -49,7 +49,6 @@ class UAV():
         self.current_pose = None
         self.wp_dest = None
 
-
     def position_cb(self, msg):
         """position callback for my function"""
         position = msg.pose.position

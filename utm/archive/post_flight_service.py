@@ -101,11 +101,12 @@ class PostFlightService():
 
     def get_dynamic_obstacles(self, idx, uav_path_obs, zone_locations, \
         zone_idx, path_list, uav_loc_list):
-        """get location of uavs, 
+        """
+        get location of uavs, 
         get location of zones not assigned to uavs
         get flight trajectories, 
-        set as list"""
-
+        set as list
+        """
         zone_bounds = self.return_unassigned_list(zone_locations[:], zone_idx) 
         zone_obstacles = []
         for zone in zone_bounds:

@@ -25,16 +25,12 @@ def compute_actual_euclidean(position, goal):
 
 def get_uav_names(dataframe):
     """return list of uav names from dataframe"""
-
     return df['uav_name'].to_list()
 
 
 class USSPathPlanner(Database.PathPlannerService):
     def __init__(self):
         super().__init__()
-        # self.world_client =  airsim.VehicleClient(ip=str(wsl_ip), port=41451)
-        # self.world_client.confirmConnection()
-        # self.world_client.enableApiControl(True)
     
     def init_reserve_table(self):
         """intialize reservation table queries for any reserved waypoints
@@ -98,17 +94,14 @@ class USSPathPlanner(Database.PathPlannerService):
         scale = airsim.Vector3r(1,1,1)
         self.world_client.simSpawnObject(vehicle_name+str(index), 'Waypoint', pose, scale)
 
-
     def prioritize_uas(self,uav_list):
         """Takes in start list, and goal list and 
         prioritizes UAS based on highest distance to be traversed
         this should be move to the uss service
-        
         uav has input of :
         uav[0] = name
         uav[1] = start point
-        uav[2] = emnd point
-        
+        uav[2] = end point
         """
         
         dist_list = []

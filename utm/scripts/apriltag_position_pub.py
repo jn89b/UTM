@@ -8,8 +8,9 @@ import rospy
 import tf
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped
-
+import math
 from apriltag_ros.msg import AprilTagDetectionArray
+from tf.transformations import euler_from_quaternion
 
 class AprilTagPositionPub():
     def __init__(self):
@@ -31,13 +32,10 @@ class AprilTagPositionPub():
         if self.alt_from_tag_ < 0.0 :
             rospy.logerr("Desired altitude above tag is negative. It should be positive. Defaulting to 1.0 meter")
             self.alt_from_tag_ = 1.0
-
-
+            
         self.camera_z_offset = 0.5
-
         self.apriltag_position = [None,None,None]
         self.apriltag_orientation = [None,None,None,None]
-        
         # Relative setpoint publisher
         self.setpoint_pub_ = rospy.Publisher(self.setpoint_topic_, Point, queue_size=20)
 
@@ -48,14 +46,33 @@ class AprilTagPositionPub():
         self.target_pub = rospy.Publisher("target_found", Bool, queue_size=20)
         # Subscriber to Kalman filter estimate
         #rospy.Subscriber("kf/estimate", PoseWithCovarianceStamped, self.kfCallback)
-
+        self.sub = rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.current_state)
+        self.z_sub = rospy.Subscriber("/PX4_0/global_position/pose", PoseStamped, self.z_cb)
+        
         rospy.Subscriber('tag_detections', AprilTagDetectionArray, self.tagsCallback)
 
         self.valid = False
-                
-    def check_wrap(self, val):
-        """check for angle wrapping"""
-    
+        self.pitch_rad = 0.0 
+        self.roll_rad = 0.0 
+        self.pitch_deg = 0.0 
+        self.roll_deg = 0.0 
+        
+        self.dx = 0.0 
+        self.dy = 0.0
+        self.z = 0.0                 
+
+    def current_state(self, msg):
+        """update current estimates"""        
+        orientation_q = msg.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y,
+                             orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+
+        self.pitch_rad = pitch   
+        self.roll_rad = roll
+        self.pitch_deg = pitch * 180/math.pi
+        self.roll_deg = roll * 180/math.pi
+        
     # tags callback
     def tagsCallback(self, msg):
         valid = False
@@ -75,8 +92,7 @@ class AprilTagPositionPub():
             self.apriltag_position = [x, y, z]
             
             self.apriltag_orientation = [qx, qy, qz, qw]
-            
-
+        
             # (trans,rot) = self.tf_listener_.lookupTransform(self.tag_frame_id_, self.drone_frame_id_, rospy.Time(0))
             # target_found = Bool()
             # target_found.data = True
@@ -84,44 +100,17 @@ class AprilTagPositionPub():
             self.valid = True
         else:
             self.valid = False
-            # target_found = Bool()
-            # target_found.data = False
-            # self.target_pub.publish(target_found) 
-            # #rospy.logwarn("No valid TF for the required tag %s", self.tag_id_)
-            # return
 
-        # if valid: # Publish relative setpoint
-        #     now = rospy.Time.now()
-        #     # pose_msg = PoseStamped()
-        #     # pose_msg.header.frame_id = self.new_tf
-        #     # pose_msg.header.stamp = rospy.Time.now()
-        #     # pose_msg.pose.position.x = trans[0]/scale_factor 
-        #     # pose_msg.pose.position.y = trans[1]/scale_factor
-        #     # pose_msg.pose.position.z = trans[2] - camera_offset_z
-        #     # pose_msg.pose.orientation.x = rot[0]
-        #     # pose_msg.pose.orientation.y = rot[1]
-        #     # pose_msg.pose.orientation.z = rot[2]
-        #     # pose_msg.pose.orientation.w = rot[3]
-            
-        #     pose_msg = PoseStamped()
-        #     pose_msg.header.frame_id = self.new_tf
-        #     pose_msg.header.stamp = rospy.Time.now()
-        #     pose_msg.pose.position.x = self.apriltag_position[0] 
-        #     pose_msg.pose.position.y = self.apriltag_position[1]
-        #     pose_msg.pose.position.z = self.apriltag_position[2] - camera_offset_z
-        #     #pose_msg.pose.orientation = self.apriltag_orientation
-            
-        #     # pose_msg.pose.orientation.x = self.apriltag_position[0]
-        #     # pose_msg.pose.orientation.y = rot[1]
-        #     # pose_msg.pose.orientation.z = rot[2]
-        #     # pose_msg.pose.orientation.w = rot[3]
-        #     self.pose_pub_.publish(pose_msg)
-        #     #sending transform rtagwrtdrone Rtag/drone
-        #     #self.br.sendTransform((trans[0]/scale_factor,trans[1]/scale_factor, trans[2]- camera_offset_z),(rot[0],rot[1],rot[2],rot[3]),now,self.new_tf, self.drone_frame_id_)
-            
-        # else:
-        #     pass
-        
+
+    def z_cb(self,msg):
+        """get z ground truth"""
+        self.z = msg.pose.position.z
+
+    def compute_offset(self):
+        """compute offset distortion from drone attitude"""
+        self.dx = self.z * np.tan(self.pitch_rad)
+        self.dy = self.z * np.tan(self.roll_rad)
+    
     def publish_apriltag(self, trans, rot):
         """publish apriltag position"""
         pose_msg = PoseStamped()
@@ -149,27 +138,24 @@ class AprilTagPositionPub():
         
     def main(self, rate_val):
         """begin publishing the apriltag position wrt drone and broadcast transform"""
-        
         rate_val = 20
         rate = rospy.Rate(rate_val)
-        
         while not rospy.is_shutdown():
             # self.tf_listener_.waitForTransform(
             #     self.drone_frame_id_, self.tag_frame_id_,  rospy.Time(),rospy.Duration(15.0))
-            
             try:
                 if self.valid == True:                    
                     # self.tf_listener_.waitForTransform(
                     #      self.drone_frame_id_, self.tag_frame_id_, rospy.Time(), rospy.Duration(3.0))
-                    
                     (trans,rot) = self.tf_listener_.lookupTransform(
                          self.drone_frame_id_, self.tag_frame_id_, rospy.Time(0))
                     
+                    self.compute_offset()
                     self.publish_apriltag(trans,rot)
 
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 continue
-                
+
             rate.sleep()
             
                 

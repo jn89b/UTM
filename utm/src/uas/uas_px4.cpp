@@ -52,10 +52,6 @@ PX4Drone::PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos)
     // offset_pos = {0,0};
     init_pos = {0,0,0};
 
-    // //params for offset from mavros
-    // nh->getParam("offboard_landing/offset_x", offset_pos[0]);
-    // nh->getParam("offboard_landing/offset_y", offset_pos[1]);
-    
     nh->getParam("offboard_landing/init_x", init_pos[0]);
     nh->getParam("offboard_landing/init_y", init_pos[1]);
     nh->getParam("offboard_landing/init_z", init_pos[2]);
@@ -188,11 +184,11 @@ void PX4Drone::lqr_track()
     // cmd_raw.publish(bodyrate_msg); 
 
     // this is better
-    cmd_vel.twist.linear.x = lqr_gain_x[0];
-    cmd_vel.twist.angular.x = lqr_gain_x[2];
+    cmd_vel.twist.linear.x = lqr_gain_x[1];
+    cmd_vel.twist.angular.x = lqr_gain_x[3];
     
-    cmd_vel.twist.linear.y = lqr_gain_y[0];
-    cmd_vel.twist.angular.y = lqr_gain_y[2];
+    cmd_vel.twist.linear.y = lqr_gain_y[1];
+    cmd_vel.twist.angular.y = lqr_gain_y[3];
     //cmd_vel.twist.linear.y = vel[1] + gain[1];
     vel_pub.publish(cmd_vel);
 }
@@ -317,7 +313,7 @@ void PX4Drone::send_velocity_cmd(Eigen::Vector2d gain)
 void PX4Drone::begin_land_protocol(Eigen::Vector2d gain, ros::Rate rate)
 {   
     const float land_height = 1.5;
-    const float dropping = 0.25;
+    const float dropping = 0.5;
 
     if (abs(rtag[2])>= land_height){
         //std::cout<<"starting to land"<<std::endl;

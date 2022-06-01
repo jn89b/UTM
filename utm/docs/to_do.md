@@ -52,6 +52,12 @@ sudo mongod --dbpath /data/db
 - [X] Get heading of Drone
 - [X] Compute Difference then calculate desired 
 
+## Notes 3/22/2022
+- Had to rotate the camera x and y
+- This is a useful link to control yaw for PX4 offboard 
+- https://discuss.px4.io/t/px4-rotate-drone-with-lower-angular-velocity-or-yaw-rate/24301
+- 
+
 # To do 04/15/2022
 - [X] Record rosbag of tag position
 - [X] Exten Kalman Filter to do a kalman filter sweep on this rosbag recording
@@ -62,20 +68,25 @@ sudo mongod --dbpath /data/db
 - [x] Penalize sudden change of pitch 
 - [X] add disturbances https://github.com/microsoft/AirSim/pull/2867
 
-# To do 04/25/2022
-- [] Test tracking of LQR vs PID
-
 ## Notes 4/22/200
-- Test LQR disturbance performance to step input
-- Add worst case 20mph wind 
-- Run experiment 1 with wind going with 
-- Run experiment 2 with wind going against
+- [x] Test LQR disturbance performance to step input
+- [x] Add worst case 20mph wind 
+- [x] Run experiment 1 with wind going with 
+- [x] Run experiment 2 with wind going against
 
-## Notes 3/22/2022
-- Had to rotate the camera x and y
-- This is a useful link to control yaw for PX4 offboard 
-- https://discuss.px4.io/t/px4-rotate-drone-with-lower-angular-velocity-or-yaw-rate/24301
-- 
+# To do 04/25/2022
+- [x] Test tracking of LQR vs PID
+
+# To do 05/31/2022 
+- [x] Apply Inter-USS communication protocol for database between the Landing Service and Path Planning Service
+- [x] Block Landing Zone areas to prevent access of these areas 
+- [x] Landing Service listens for incoming UAS  
+- [x] Based on proximity of UAS figure out which landing zone is best
+- [x] Assign landing zone to UAS and request path for USS 
+- [x] Path Planning Service will then plan path for USS  
+- [x] Path Planning Service will assign path to USS 
+- [] Allow path planning service the ability to land the system with user command
+
 
 ## Port connectiosn to Airsim API
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64

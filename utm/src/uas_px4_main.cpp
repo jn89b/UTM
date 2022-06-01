@@ -13,8 +13,6 @@
 
 using namespace Eigen;
 
-Eigen::Vector2d websling(0.0, 0.0);
-
 std::vector<float> get_offset_pos(ros::NodeHandle* nh)
 {
     float offset_x;
@@ -45,37 +43,27 @@ double calc_heading(std::vector<float> some_vec)
     return yaw;
 }
 
-void websling_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
-{
-    websling[0] = msg->pose.position.x;
-    websling[1] = msg->pose.position.y;
+// void websling_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+// {
+//     websling[0] = msg->pose.position.x;
+//     websling[1] = msg->pose.position.y;
     
-}
+// }
 
 int main(int argc, char **argv)
 {
 
-    const float kp = 0.3; //0.35
-    const float ki = 0.0;
-    const float kd = 0.000001; //0.00001
-    const float dt = 0.05;
+    const float kp = 0.30; //0.35
+    const float ki = 0.00001;
+    const float kd = 0.00001; //0.00001
+    const float dt = 0.1;
     const float gain_tol = 0.075;
     const float heading_bound = M_PI/6; //45 degrees
     const float rate_val = 20.0;    
 
-    bool spider_protocol = true;
-
     ros::init(argc, argv, "test_px4_header");
     ros::NodeHandle _nh; // create a node handle; need to pass this to the class constructor
     ros::Rate rate(rate_val);
-
-
-    // if (spider_protocol == true)
-    // {
-    std::cout<<"SpiderMan is Here" <<std::endl;
-    ros::Subscriber websling_sub = _nh.subscribe<geometry_msgs::PoseStamped>
-                    ("websling", 30, &websling_cb);
-    // }
 
     std::vector<float> offset_pos = get_offset_pos(&_nh);
     
@@ -84,7 +72,7 @@ int main(int argc, char **argv)
     double at_yaw = 0.0;
 
     //this should be from parameters
-    std::vector<float> init_pos = {5.0,5.0,15.0};
+    std::vector<float> init_pos = {5.0, 5.0, 30.0};
     px4drone.send_init_cmds(init_pos, rate);
     px4drone.set_mode.request.custom_mode = "AUTO.LAND";
     px4drone.arm_cmd.request.value = true;
@@ -94,21 +82,9 @@ int main(int argc, char **argv)
     while(ros::ok()){
         //px4drone.setmode_arm(last_request, px4drone.set_mode.request.custom_mode , px4drone.arm_cmd);
         //px4drone.send_global_waypoints(init_pos);
-        PID pid_x(kp, ki, kd, dt, websling[0], px4drone.odom[0]);
-        PID pid_y(kp, ki, kd, dt, websling[1], px4drone.odom[1]);
-    
-        // if (spider_protocol == true)
-        // {
-        //     PID pid_x(kp, ki, kd, dt, websling[0], px4drone.odom[0]);
-        //     PID pid_y(kp, ki, kd, dt, websling[1], px4drone.odom[1]);
-        // }
-        // else
-        // {
-        //     PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
-        //     PID pid_y(kp, ki, kd, dt, px4drone.kf_tag[1], px4drone.odom[1]);
-        // }        
-        // PID pid_vx(kp, ki, kd, dt, px4drone.kf_vel[0], px4drone.vel[0]);
-        // PID pid_vy(kp, ki, kd, dt, px4drone.kf_vel[1], px4drone.vel[1]);
+
+        PID pid_x(kp, ki, kd, dt, px4drone.kf_tag[0], px4drone.odom[0]);
+        PID pid_y(kp, ki, kd, dt, px4drone.kf_tag[1], px4drone.odom[1]);
 
         PID pid_yaw(kp, ki, kd, dt, at_yaw, drone_yaw);
 
@@ -132,33 +108,18 @@ int main(int argc, char **argv)
             }
             case 2: // Precision Land with LQR
             {
-                px4drone.lqr_land(-0.35, rate);
+                px4drone.lqr_land(-0.5, rate);
                 break;
             }
             // case 2: // TRACKING WITH pid
             // {   
-            //     //wrap this as a function
-            //     // at_yaw = calc_heading(px4drone.rtag);
-            //     // if(at_yaw <= 0) at_yaw += 2*M_PI;        
-            //     // drone_yaw = calc_heading(px4drone.odom);
-        
-            //     // std::cout<< "At yaw " << at_yaw*180/M_PI << std::endl;
-            //     // std::cout<< "drone yaw" << drone_yaw*180/M_PI << std::endl;
-                
-            //     // double heading_diff = abs(at_yaw - drone_yaw)  ; //- (M_PI/2);
-
             //     float p_x = pid_x.getPID();
             //     float p_y = pid_y.getPID();
+
             //     float p_yaw = pid_yaw.getPID();
-
-            //     // float p_vx = pid_vx.getPID();
-            //     // float p_vy = pid_vy.getPID();
-
             //     Eigen::Vector2d gain(p_x, p_y);
-            //     // Eigen::Vector2d vel_gain(p_vx, p_vy);
             //     Eigen::Vector2d no_gain(0, 0);
-
-            //     // if ((heading_diff <= heading_bound)) 
+ 
             //     {
             //         if ((abs(gain[0])<= gain_tol) && (abs(gain[1]) <= gain_tol)){
             //             std::cout<<"good enough"<<gain<<std::endl;

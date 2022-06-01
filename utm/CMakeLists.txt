@@ -168,6 +168,7 @@ catkin_install_python(PROGRAMS
     #simpleflight stuff
     scripts/uas/test_airsim_api.py
     scripts/uas/simple_flight_drone.py
+    scripts/uas/simple_land_drone.py
 
     #data plotting tuff
     scripts/data_visualize/real_time_plot.py
@@ -177,13 +178,18 @@ catkin_install_python(PROGRAMS
     scripts/landing_db/landing_service_database.py
 
     #third party landing server
-    scripts/landing_service_nodes/pre_landing_service.py
-    scripts/landing_service_nodes/path_sender_service.py
-    scripts/landing_service_nodes/landing_state_service.py
-    scripts/landing_service_nodes/post_flight_service.py
-    scripts/landing_service_nodes/path_home_sender_service.py
-    scripts/landing_service_nodes/zone_observer.py
+    # scripts/landing_service_nodes/pre_landing_service.py
+    # scripts/landing_service_nodes/path_sender_service.py
+    # scripts/landing_service_nodes/landing_state_service.py
+    # scripts/landing_service_nodes/post_flight_service.py
+    # scripts/landing_service_nodes/path_home_sender_service.py
+    # scripts/landing_service_nodes/zone_observer.py
     scripts/uss/path_planning_service/path_planning_service.py
+
+    #more third party stuff
+    scripts/landing_service_nodes/landing_inbound_service.py
+    scripts/landing_service_nodes/landing_permission_service.py
+    
 
     #test setups
     tests/kf_displace.py

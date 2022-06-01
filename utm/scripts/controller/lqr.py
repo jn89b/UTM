@@ -49,13 +49,14 @@ class LQR():
         self.B = 0 if B is None else B
         
         #self.high_Q = 2.5    
-        self.Q = np.diag(np.full(4,0.1E-2)) #np.diag(np.array(Q)) #if Q is None else Q
+        self.Q = np.diag(np.full(4,0.1E-1)) #np.diag(np.array(Q)) #if Q is None else Q
         #1.9 is high gain, set to 0.9 after close to target
-        self.Q[0,0] = 1.85#Q = 1.4 or 0.93 for apriltag , Q=1.9 Q = 3.25 for position 
-        self.low_Q = 1.0 #0.5
+        self.Q[0,0] = 1.8#2.0#2.5#1.85Q = 1.4 or 0.93 for apriltag , Q=1.9 Q = 3.25 for position 
+        self.low_Q = 1.0#0.5
         
-        self.R = np.diag([14]) #14, 75 30 for apriltag, 9.1 for regular position
-        self.low_R = np.diag([50])
+        self.R = np.diag([20]) #25, 14, 75 30 for apriltag, 9.1 for regular position
+        self.low_R = np.diag([25]) #25 50
+        self.close = 0.075
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
         
         #gains
@@ -70,6 +71,9 @@ class LQR():
         #rate values
         self.rate_val = 30 if rate_val is None else rate_val
         self.dt = 1/self.rate_val
+        
+        #feedforward inputs
+        self.old_u = np.array([0,0,0,0])
         
     def current_state(self, x_state):
         """update position estimate """
@@ -89,12 +93,14 @@ class LQR():
         self.z[3] = desired_val[3]
 
     def compute_error(self):
-        """compute error of state"""
+        """compute error of state
+        for fiducial tags desired already accounts for the error 
+        since its relative"""
         #self.error[0] = self.z[0] # - self.x[0] if not using apriltag use this
-        self.error[0] = self.z[0] #- self.x[0]
-        self.error[1] = self.z[1] #- self.x[1]
-        self.error[2] = self.z[2] #- self.x[2]
-        self.error[3] = self.z[3] #- self.x[3]
+        self.error[0] = self.z[0]
+        self.error[1] = self.z[0]/ self.dt
+        self.error[2] = self.z[2] - self.x[2]
+        self.error[3] = self.z[3] - self.x[3]
         
     def lqr(self, A, B, Q, R):
         """Solve the continuous time lqr controller.
@@ -109,9 +115,12 @@ class LQR():
 
         # compute the LQR gain Compute $K=R^-1B^TS$
         K = np.matrix(scipy.linalg.inv(R) * (B.T * X))
+        print("K is", K )
+        print("/n")
         
         #gives solution that yields stable system, negative values
         eigVals, eigVecs = scipy.linalg.eig(A - B * K)
+        print("Eigens", eigVals )
         return np.asarray(K), np.asarray(X), np.asarray(eigVals)
 
     def compute_K(self):
@@ -133,10 +142,12 @@ class LQR():
         
     def get_u(self,K_val):
         """compute controller input"""
-        self.u = np.multiply(K_val, self.error)[0]
+        self.u = np.multiply(K_val, self.error)[0] 
+        #self.u = self.u #+ self.old_u
+        
         #threshold command for pitch rate
         max_pitch_rate = 0.45 #0.25, is the moveabout 20 degrees
-        att_rate_idx = 2
+        att_rate_idx = 2#2
         if abs(self.u[att_rate_idx])>= max_pitch_rate:
             if self.u[att_rate_idx] > 0:              
                 self.u[att_rate_idx] = max_pitch_rate
@@ -145,18 +156,21 @@ class LQR():
         
         #threshold command for body velocity              
         max_vel = 15.0
-        vel_idx = 0
+        vel_idx = 0#0
         if abs(self.u[vel_idx])>= max_vel:
             if self.u[vel_idx] > 0:              
                 self.u[vel_idx] = max_vel
             else:
                 self.u[vel_idx] = -max_vel
 
+        #update u after done
+        self.old_u = self.u
+
     def main(self):         
         """update values to LQR"""
         self.compute_error()
         #gain scheduling, if close to target reduce gains
-        if self.error[0] <= 0.85:
+        if self.error[0] <= self.close:
             self.get_u(self.low_K)
         else:         
             self.get_u(self.K)
@@ -172,13 +186,13 @@ class DroneLQR():
                                          self.current_state)
         
         """should refactor this to say if I want to websling or not"""
-        # self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
-        #                                          PoseStamped,
-        #                                          self.desired_state)
+        self.track_sub = rospy.Subscriber("uav0/mavros/vision_pose/pose", 
+                                                 PoseStamped,
+                                                 self.desired_state)
         
-        self.track_sub = rospy.Subscriber("websling", 
-                                         PoseStamped,
-                                         self.desired_state)
+        # self.track_sub = rospy.Subscriber("websling", 
+        #                                  PoseStamped,
+        #                                  self.desired_state)
 
         self.k_pub = rospy.Publisher("K_gain", LQRGain, queue_size=5)
         
@@ -228,7 +242,7 @@ class DroneLQR():
         desired_y = msg.pose.position.y
         # desired_x = 5.0 - self.x_state[0]
         # desired_y =  5.0 - self.y_state[0] + 10.0
-        print("desired x and desired y", desired_x, desired_y)
+        # print("desired x and desired y", desired_x, desired_y)
         self.desired_x[0] = desired_x 
         self.desired_y[0] = desired_y 
         
@@ -285,6 +299,7 @@ class DroneLQR():
         self.y_lqr.main()
         
         self.publish_input()
+        
         
 if __name__ == "__main__":
     

@@ -18,7 +18,6 @@ Look up transformation or offset of drone  when it spawns
 publish the offset as the offset_local_position_pose
 """
 class MavrosTF():
-
     def __init__(self):
         #init tf broacast
         self.br = tf.TransformBroadcaster()
