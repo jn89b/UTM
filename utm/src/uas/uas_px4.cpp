@@ -66,6 +66,8 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
     odom = {0,0,0,0,0,0,0};
     rtag = {0,0,0,0,0,0,0};
     kf_tag = {0,0,0,0,0,0,0};
+
+    true_pos = {0,0,0,0,0,0,0};
     
     vel = {0,0};
     kf_vel = {0,0};
@@ -78,6 +80,9 @@ void PX4Drone::init_vals(std::vector<float> offset_pos)
     pre_ierror_x = 0.0;
     pre_ierror_y = 0.0;
 }
+
+
+
 
 //recieve state of quad
 void PX4Drone::state_cb(const mavros_msgs::State::ConstPtr& msg)
@@ -97,15 +102,16 @@ void PX4Drone::quad_odom_cb(const nav_msgs::Odometry::ConstPtr& msg)
     odom[6] = msg->pose.pose.orientation.w;
 }
 
-//accessor function to get odometry of PX4 Drone
-void PX4Drone::get_odom_pos()
-{   
-    float x = odom[0];
-    float y = odom[1];
-    std::cout<<"odometry of Drone is"<< x << "," <<  y << std::endl;
+void PX4Drone::get_true_pos()
+{
+    true_pos[0] = odom[0] - _offset_pos[0];
+    true_pos[1] = odom[1] + _offset_pos[1];
+    true_pos[2] = odom[2];
+    true_pos[3] = odom[3];
+    true_pos[4] = odom[4];
+    true_pos[5] = odom[5];
+    true_pos[6] = odom[6];
 }
-
-
 
 void PX4Drone::true_odom_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {

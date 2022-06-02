@@ -61,6 +61,7 @@ class PX4Drone
     public:
     //Odometry of quad with offset because Airsim does not like to play nice
         std::vector<float> odom;
+        std::vector<float> true_pos;
         std::vector<float> kf_tag;
         std::vector<float> rtag;
 
@@ -72,7 +73,6 @@ class PX4Drone
         mavros_msgs::CommandBool arm_cmd;
         mavros_msgs::State current_state;
         
-
         PX4Drone(ros::NodeHandle* nh, std::vector<float> offset_pos);
         void init_vals(std::vector<float> offset_pos);
         
@@ -82,11 +82,11 @@ class PX4Drone
         void true_odom_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
         
         //drone stuff 
-        void get_odom_pos(); 
         void setmode_arm(ros::Time last_request,
             const std::string& mode_input, mavros_msgs::CommandBool arm_cmd);
         void send_init_cmds(std::vector<float> position, ros::Rate rate);
         void send_global_waypoints(std::vector<float> wp_vector);
+        void get_true_pos();
 
         //tracking with PID
         void go_follow(Eigen::Vector2d gain, float z_cmd);

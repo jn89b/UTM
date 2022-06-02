@@ -125,10 +125,9 @@ add_executable(moving_avg_main src/moving_avg_main.cpp src/moving_avg.cpp)
 add_dependencies(moving_avg_main ${catkin_EXPORTED_TARGETS})
 target_link_libraries(moving_avg_main  ${catkin_LIBRARIES})
 
-add_executable(test_user src/uas/test_user.cpp )
-add_dependencies(test_user ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_user  ${catkin_LIBRARIES})
-
+add_executable(test_px4_wp src/test_px4_wp.cpp src/PID.cpp src/uas/uas_px4.cpp)
+add_dependencies(test_px4_wp ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_px4_wp  ${catkin_LIBRARIES})
 
 ##################
 ##  Install #####
