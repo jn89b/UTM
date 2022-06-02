@@ -17,6 +17,8 @@ import rospkg
 import subprocess
 
 """
+LAUNCHES PX4
+
 to do:
     -read csv files
     -get the wsl ip address

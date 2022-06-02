@@ -87,6 +87,21 @@ sudo mongod --dbpath /data/db
 - [x] Path Planning Service will assign path to USS 
 - [] Allow path planning service the ability to land the system with user command
 
+# To do 06/01/2022
+- [] Create a seperate Python Script to get waypoint and feed into cpp PX4 drone
+- [] Feed waypoints into PX4 drone -> will listen to this  
+- [] Once at final goalpoint wait for permission to land from service  
+- [] Land and disarm 
+- [] Once disarmed wait a couple of seconds 
+- [] Request a waypoint from path planning service  
+
+- UAV Python Script will:
+    - query to database 
+    - based on scenario send user command input
+    - feed waypoint commands to uav
+    - if waypoints create bubbles for visual sight
+    - send information to database
+
 
 ## Port connectiosn to Airsim API
 - https://github.com/microsoft/AirSim-NeurIPS2019-Drone-Racing/issues/64

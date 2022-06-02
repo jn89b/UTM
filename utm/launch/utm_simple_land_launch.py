@@ -93,36 +93,36 @@ if __name__ == "__main__":
 
     launch_files = [roslaunch_file1]
 
-    ## UAS OPERATOR
-    port_num = 41451
-    for idx, uav in df.iterrows():
-        uav_name = uav['uav_name']
-        x_spawn = uav['spawn_x']
-        y_spawn = uav['spawn_y']
-        z_spawn = uav['spawn_z']
+    # ## UAS OPERATOR
+    # port_num = 41451
+    # for idx, uav in df.iterrows():
+    #     uav_name = uav['uav_name']
+    #     x_spawn = uav['spawn_x']
+    #     y_spawn = uav['spawn_y']
+    #     z_spawn = uav['spawn_z']
 
-        init_x = uav['init_x']
-        init_y = uav['init_y']
-        init_z = uav['init_z']
+    #     init_x = uav['init_x']
+    #     init_y = uav['init_y']
+    #     init_z = uav['init_z']
 
-        goal_x = uav['goal_x']
-        goal_y = uav['goal_y']
-        goal_z = uav['goal_z']
+    #     goal_x = uav['goal_x']
+    #     goal_y = uav['goal_y']
+    #     goal_z = uav['goal_z']
 
-        api_port = port_num#+idx
+    #     api_port = port_num#+idx
 
-        """ need to refactor this code with better naming conventions
-        the offset_x and offset_y are swapped to switch from unreal coordinates 
-        to enu coordinates"""
-        client_args = ['utm', 'simple_drone.launch', 
-                    'veh_name:='+str(uav_name), 'offset_x:='+str(y_spawn),
-                    'offset_y:='+str(x_spawn), 'api_port:='+str(api_port),
-                    'init_vel:='+str(3.0),'init_x:='+str(init_x),
-                    'init_y:='+str(init_y), 'init_z:='+str(init_z),
-                    'goal_x:='+str(goal_x),'goal_y:='+str(goal_y), 
-                    'goal_z:='+str(goal_z)]
-        uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
-        launch_files.append(uas_launch)
+    #     """ need to refactor this code with better naming conventions
+    #     the offset_x and offset_y are swapped to switch from unreal coordinates 
+    #     to enu coordinates"""
+    #     client_args = ['utm', 'simple_drone.launch', 
+    #                 'veh_name:='+str(uav_name), 'offset_x:='+str(y_spawn),
+    #                 'offset_y:='+str(x_spawn), 'api_port:='+str(api_port),
+    #                 'init_vel:='+str(3.0),'init_x:='+str(init_x),
+    #                 'init_y:='+str(init_y), 'init_z:='+str(init_z),
+    #                 'goal_x:='+str(goal_x),'goal_y:='+str(goal_y), 
+    #                 'goal_z:='+str(goal_z)]
+    #     uas_launch = (roslaunch.rlutil.resolve_launch_arguments(client_args)[0], client_args[2:])        
+    #     launch_files.append(uas_launch)
     
     ## TRANSFORMATIONS FOR FIDUCIAL TAGS
     """

@@ -254,8 +254,8 @@ class SimpleFlightDrone():
                 return True
 
     def send_enu_waypoint(self, enu_wp, velocity):
-        """send enu waypoint command to drone by converting to ned to use api
-        takes in the enu waypoint and the desired velocity"""
+        """send enu waypoint command to drone by converting to ned to use 
+        the api, takes in the enu waypoint and the desired velocity"""
         
         ## spawn waypoints before computing offsets
         enu_wp = self.compute_offsets(enu_wp)

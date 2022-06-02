@@ -42,7 +42,6 @@ class PathPlannerService(Database.AbstractDatabaseInfo):
     ip = "127.0.0.1"
     port_num = 27017
     poolsize = 100
-
     def __init__(self):
         super().__init__(self.ip,self.port_num,self.poolsize)
         self.mainDB = self.access_database(self.database_name)  
