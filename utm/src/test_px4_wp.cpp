@@ -1,7 +1,11 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <uas_px4.h>
-#include <stdlib.h>    
+#include <stdlib.h>
+
+#include <std_msgs/Int8.h>
+#include <std_msgs/Float64.h>
+
 #include <PID.h>
 #include <vector>
 #include <tf/tf.h>
@@ -12,12 +16,18 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <list>
 
+#include <utm/WP.h>
+#include <utm/Coords.h>
 
 using namespace Eigen;
 
+int val = -1;
+// std::vector<int> wp_vectors;
+std::vector<utm::Coords> coords;
 
-using namespace Eigen;
+std::vector<std::vector<float>> wp_vectors;
 
+//functions
 std::vector<float> get_offset_pos(ros::NodeHandle* nh)
 {
     float offset_x;
@@ -30,6 +40,21 @@ std::vector<float> get_offset_pos(ros::NodeHandle* nh)
     offset_pos.push_back(-10.0);
 
     return offset_pos;
+}
+
+void wp_cb(const utm::WP::ConstPtr& msg)
+{ //cb function for waypoints
+
+  coords = msg->data;
+  if (val != msg->unique_wp_num)
+  {
+    for (const auto& coord: coords)
+    {
+      wp_vectors.push_back(std::vector<float>{coord.data[0], coord.data[1], coord.data[2]});
+    }
+  }
+  val = msg->unique_wp_num;
+  //wp_vectors.push_back(msg->data.data);
 }
 
 
@@ -81,7 +106,7 @@ bool is_at_position(std::vector<float> curr_pos, std::vector<float> des_wp, floa
 int main(int argc, char **argv)
 {
   const float radius = 0.75;
-  const float rate_val = 15.0;
+  const float rate_val = 5;
   bool global_wp_flag = false;
   bool print_dumbass_once = false;
 
@@ -94,11 +119,10 @@ int main(int argc, char **argv)
   std::vector<float> des_position = {5,5,30};
 
   //list of lists
-  std::vector<std::vector<float>> wp_vectors{
-  
-  std::vector<float>{5,5,30},
-  std::vector<float>{25,15,20},
-  std::vector<float>{30,22,40}};
+  // std::vector<std::vector<float>> wp_vectors{
+  // std::vector<float>{5,5,30},
+  // std::vector<float>{25,15,20},
+  // std::vector<float>{30,22,40}};
 
   std::vector<float> init_pos = {5.0, 5.0, 30.0};
   px4drone.send_init_cmds(init_pos, rate);
@@ -107,7 +131,10 @@ int main(int argc, char **argv)
 
   ros::Time last_request = ros::Time::now();
   
-  while(ros::ok())
+  ros::Subscriber wp_sub = _nh.subscribe<utm::WP>
+          ("uav0/wp_list", 10, wp_cb);
+
+  while(ros::ok())  
   {
     switch(px4drone.user_cmd)
     {
@@ -115,6 +142,7 @@ int main(int argc, char **argv)
       case 0:
       {
         //dont want to do duplicate waypoints 
+        // std::cout<<"length of trip" << wp_vectors.size() << std::endl;
         if (global_wp_flag == true) 
         {
           if (print_dumbass_once == false){
@@ -123,7 +151,6 @@ int main(int argc, char **argv)
           } 
           break;
         }
-        
         std::cout<<"going" <<std::endl;        
         size_t index = 0;
         for (const auto& wp : wp_vectors)
@@ -146,8 +173,11 @@ int main(int argc, char **argv)
           }
           //check if at last waypoint
           ++index;
+          if (index >= wp_vectors.size())
+          {
+            global_wp_flag = true; 
+          }
         }
-        global_wp_flag = true; 
         break;
       }
 
@@ -164,9 +194,7 @@ int main(int argc, char **argv)
       }
     }
     ros::spinOnce();
-    rate.sleep();
-  }  
-
-
+    rate.sleep();  
+  }
     return 0;
   }

@@ -124,6 +124,15 @@ class SimpleFlightDrone():
         #get second number string values after PX4_
         self.waypoint_num = string_name[1]
         
+    def spawn_waypoint_assets(self,enu_waypoints):
+        """spawn all waypoints """
+        for i, enu_wp in enumerate(enu_waypoints):
+            self.spawn_waypoints(enu_wp,i)
+            # if i % self.col_bubble == 0:
+            #     self.spawn_waypoints(enu_wp,i)
+            # else:
+            #     continue        
+
     def spawn_waypoints(self, enu_waypoints,index):
         """
         spawn waypoint assset with ned waypoint and ned orientation
@@ -218,14 +227,6 @@ class SimpleFlightDrone():
         enu_global_z = enu_wp[2] #- 0.8 #add these height offset because it can be weird
         return [enu_global_x, enu_global_y, enu_global_z]
  
-    def spawn_waypoint_assets(self,enu_waypoints):
-        """spawn all waypoints """
-        for i, enu_wp in enumerate(enu_waypoints):
-            self.spawn_waypoints(enu_wp,i)
-            # if i % self.col_bubble == 0:
-            #     self.spawn_waypoints(enu_wp,i)
-            # else:
-            #     continue
             
     def send_enu_waypoints(self, enu_waypoints,velocity):
         """send a list of waypoints for drone to fly to, 
