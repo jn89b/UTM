@@ -46,6 +46,8 @@ bool is_at_position(std::vector<float> curr_pos, std::vector<float> des_wp, floa
   return (abs((curr_vec-desired_wp).norm()) <= radius);
 }
 
+
+
 // bool reached_position(PX4Drone some_drone, std::vector<float> des_position, float radius, ros::Rate rate)
 // {
 //   //break off from this function if reached the waypoint, might need to add a timeoout catch
@@ -80,6 +82,8 @@ int main(int argc, char **argv)
 {
   const float radius = 0.75;
   const float rate_val = 15.0;
+  bool global_wp_flag = false;
+  bool print_dumbass_once = false;
 
   ros::init(argc, argv, "test_px4_wp");
   ros::NodeHandle _nh; // create a node handle; need to pass this to the class constructor
@@ -107,18 +111,24 @@ int main(int argc, char **argv)
   {
     switch(px4drone.user_cmd)
     {
-      // std::cout << "0. size: " << wp_lists.size() << '\n';
-      
-      /*feed in waypoints with for loop, 
-      to get to the next point
-      to reached_position function,
-      if true then feed the next one
-      wrap this in a case switch*/
+      //waypoint navigation, now I need to subscribe to the waypoints
       case 0:
       {
-        std::cout<<"going" <<std::endl;
+        //dont want to do duplicate waypoints 
+        if (global_wp_flag == true) 
+        {
+          if (print_dumbass_once == false){
+            std::cout<< "im done dumbass" << std::endl;
+            print_dumbass_once = true;
+          } 
+          break;
+        }
+        
+        std::cout<<"going" <<std::endl;        
+        size_t index = 0;
         for (const auto& wp : wp_vectors)
         {
+          std::cout << "Index: " << index  << std::endl;
           bool reached_wp = false;
           while (reached_wp == false)
           {
@@ -134,10 +144,10 @@ int main(int argc, char **argv)
               rate.sleep();
             }
           }
-
-        //check if at last waypoint 
-
+          //check if at last waypoint
+          ++index;
         }
+        global_wp_flag = true; 
         break;
       }
 

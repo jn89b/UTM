@@ -307,7 +307,7 @@ class PathPlannerService(AbstractDatabaseInfo):
             return False
         else:
             return True
-            
+
     def find_path_planning_clients(self):
         """find uas operators who do not have a waypoint 
         and returns as list of lists"""
@@ -386,3 +386,5 @@ def compute_actual_euclidean(position, goal):
                         ((position[2] - goal[2]) ** 2))**(1/2)
     
     return distance
+
+

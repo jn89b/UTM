@@ -42,6 +42,8 @@ catkin_python_setup()
 add_message_files(
  FILES
  LQRGain.msg
+ Coords.msg
+ WP.msg
 )
 
 #add_service_files(
@@ -168,6 +170,7 @@ catkin_install_python(PROGRAMS
     scripts/uas/test_airsim_api.py
     scripts/uas/simple_flight_drone.py
     scripts/uas/simple_land_drone.py
+    scripts/uas/px4_wp_sender.py
 
     #data plotting tuff
     scripts/data_visualize/real_time_plot.py
